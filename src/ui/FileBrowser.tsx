@@ -81,7 +81,7 @@ export function FileBrowser() {
           <FolderBreadcrumb dir={d.directory.fullName} cd={d.cd} />
         </div>
       </div>
-      <div className="h-80 flex flex-col max-h-80 overflow-y-auto">
+      <div className="h-160 flex flex-col max-h-160 overflow-y-auto">
         {d.loading ? (
           <div>Loading...</div>
         ) : d.error ? (
@@ -103,6 +103,12 @@ export function FileBrowser() {
                   defaultPath.setPath(d.getFullName(p));
                 },
               })}
+              onRowDragStart={(_) => {
+                const files = [...s.state.indexes].map((i) => {
+                  return d.getFullName(table.data[i].name);
+                });
+                window.electron.onDragStart(files);
+              }}
             />
           </div>
         )}

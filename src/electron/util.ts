@@ -8,11 +8,14 @@ export function isDev() {
 
 export function ipcHandle<Key extends keyof EventResponseMapping>(
   key: Key,
-  handler: (request: EventRequest<Key>) => EventResponseMapping[Key],
+  handler: (
+    request: EventRequest<Key>,
+    event: Electron.IpcMainInvokeEvent,
+  ) => EventResponseMapping[Key],
 ) {
   ipcMain.handle(key, (event, request) => {
     event.senderFrame && validateEventFrame(event.senderFrame);
-    return handler(request);
+    return handler(request, event);
   });
 }
 
