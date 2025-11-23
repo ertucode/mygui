@@ -84,8 +84,14 @@ export function useSelection(props: SelectionInput) {
 
   return {
     select,
-    onKeydown: (event: React.KeyboardEvent) => {
-      event.preventDefault();
+    onKeydown: (event: React.KeyboardEvent, count: number) => {
+      if (event.key === "a" && (event.ctrlKey || event.metaKey)) {
+        setState({
+          indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
+          lastSelected: count - 1,
+        });
+        return event.preventDefault();
+      }
 
       const lastSelected = state.lastSelected ?? 0;
       if (event.key === "ArrowUp") {
@@ -97,6 +103,7 @@ export function useSelection(props: SelectionInput) {
         } else {
           select(lastSelected - 1, event);
         }
+        return event.preventDefault();
       } else if (event.key === "ArrowDown") {
         if (state.indexes.has(lastSelected + 1)) {
           setState({
@@ -106,10 +113,13 @@ export function useSelection(props: SelectionInput) {
         } else {
           select(lastSelected + 1, event);
         }
+        return event.preventDefault();
       } else if (event.key === "ArrowLeft") {
         select(lastSelected - 10, event);
+        return event.preventDefault();
       } else if (event.key === "ArrowRight") {
         select(lastSelected + 10, event);
+        return event.preventDefault();
       }
     },
     reset: () => {

@@ -1,9 +1,4 @@
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  FileIcon,
-  FolderIcon,
-} from "lucide-react";
+import { ArrowLeftIcon, ArrowRightIcon, FolderIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HistoryStack } from "../common/history-stack";
 import { useForceRerender } from "./lib/hooks/forceRerender";
@@ -16,17 +11,17 @@ import type { ColumnDef } from "./lib/libs/table/table-types";
 import { Table } from "./lib/libs/table/Table";
 import { useTable } from "./lib/libs/table/useTable";
 import { useDefaultSelection } from "./lib/libs/table/useSelection";
+import z from "zod";
+import { useLocalStorage } from "./lib/hooks/useLocalStorage";
+import { getFileIcon } from "./lib/components/file-icon";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
     accessorKey: "type",
     header: "",
     cell: (row) => {
-      return row.type === "file" ? (
-        <FileIcon className="size-4" />
-      ) : (
-        <FolderIcon className="size-4" />
-      );
+      const Icon = resolveIcon(row);
+      return <Icon className="size-4" />;
     },
     size: 24,
   },
@@ -52,7 +47,8 @@ const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
 ];
 
 export function FileBrowser() {
-  const d = useDirectory("~/");
+  const defaultPath = useDefaultPath();
+  const d = useDirectory(defaultPath.path);
   const s = useDefaultSelection();
 
   const table = useTable({
@@ -102,6 +98,11 @@ export function FileBrowser() {
                 }
               }}
               selection={table.selection}
+              ContextMenu={ContextMenu({
+                setAsDefaultPath: (p) => {
+                  defaultPath.setPath(d.getFullName(p));
+                },
+              })}
             />
           </div>
         )}
@@ -225,11 +226,14 @@ function useDirectory(initialDirectory: string) {
     loadDirectory(newDirectory.fullName);
   };
 
+  const getFullName = (dir: string) =>
+    mergeMaybeSlashed(directory.fullName, dir);
+
   return {
     changeDirectory: async (newDirectory: string) => {
       cd(
         {
-          fullName: mergeMaybeSlashed(directory.fullName, newDirectory),
+          fullName: getFullName(newDirectory),
           name: newDirectory,
         },
         true,
@@ -254,6 +258,57 @@ function useDirectory(initialDirectory: string) {
     showDotFiles,
     toggleShowDotFiles: () => setShowDotFiles((s) => !s),
     openFile: (filePath: string) =>
-      window.electron.openFile(mergeMaybeSlashed(directory.fullName, filePath)),
+      window.electron.openFile(getFullName(filePath)),
+    getFullName,
   };
+}
+
+function ContextMenu({
+  setAsDefaultPath,
+}: {
+  setAsDefaultPath: (path: string) => void;
+}) {
+  return ({
+    item,
+    close,
+  }: {
+    item: GetFilesAndFoldersInDirectoryItem;
+    close: () => void;
+  }) => {
+    if (item.type === "dir")
+      return (
+        <ul className="menu bg-base-200 rounded-box w-56">
+          <li>
+            <a
+              onClick={() => {
+                setAsDefaultPath(item.name);
+                close();
+              }}
+            >
+              Set as default path
+            </a>
+          </li>
+        </ul>
+      );
+
+    return (
+      <ul className="menu bg-base-200 rounded-box w-56">
+        <li>
+          <a>TODO</a>
+        </li>
+      </ul>
+    );
+  };
+}
+
+function useDefaultPath() {
+  const [path, setPath] = useLocalStorage<string>("path", z.string(), "~/");
+  return { path, setPath };
+}
+
+function resolveIcon(item: GetFilesAndFoldersInDirectoryItem) {
+  if (item.type === "file") {
+    return getFileIcon(item.ext);
+  }
+  return FolderIcon;
 }
