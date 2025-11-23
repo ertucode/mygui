@@ -14,6 +14,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   getFilesAndFoldersInDirectory: (directory: string) =>
     ipcInvoke("getFilesAndFoldersInDirectory", directory),
   openFile: (filePath: string) => ipcInvoke("openFile", filePath),
+  onDragStart: (files: string[]) => ipcInvoke("onDragStart", files),
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

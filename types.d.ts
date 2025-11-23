@@ -35,6 +35,7 @@ type EventResponseMapping = {
   fuzzyFind: string[];
   getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
   openFile: Promise<unknown>;
+  onDragStart: Promise<unknown>;
 };
 
 type EventRequestMapping = {
@@ -42,6 +43,7 @@ type EventRequestMapping = {
   fuzzyFind: string;
   getFilesAndFoldersInDirectory: string;
   openFile: string;
+  onDragStart: string[];
 };
 
 type EventRequest<Key extends keyof EventResponseMapping> =
@@ -63,5 +65,6 @@ interface Window {
       directory: string,
     ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
     openFile: (filePath: string) => Promise<unknown>;
+    onDragStart: (files: string[]) => Promise<unknown>;
   };
 }
