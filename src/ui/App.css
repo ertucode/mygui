@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@plugin "daisyui" {
+  themes:
+    abyss --default,
+    light --preferslight;
+}
+
+body {
+  @apply bg-base-100;
+  padding: 1rem;
+}
