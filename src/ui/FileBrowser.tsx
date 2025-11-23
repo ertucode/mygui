@@ -103,10 +103,12 @@ export function FileBrowser() {
                   defaultPath.setPath(d.getFullName(p));
                 },
               })}
-              onRowDragStart={(_) => {
-                const files = [...s.state.indexes].map((i) => {
-                  return d.getFullName(table.data[i].name);
-                });
+              onRowDragStart={(item, index) => {
+                const files = s.state.indexes.has(index)
+                  ? [...s.state.indexes].map((i) => {
+                      return d.getFullName(table.data[i].name);
+                    })
+                  : [d.getFullName(item.name)];
                 window.electron.onDragStart(files);
               }}
             />

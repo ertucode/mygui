@@ -8,7 +8,7 @@ export type TableProps<T> = {
   onRowDoubleClick?: (item: T) => void;
   selection?: ReturnType<typeof useSelection>;
   ContextMenu?: React.FC<TableContextMenuProps<T>>;
-  onRowDragStart?: (item: T) => void;
+  onRowDragStart?: (item: T, index: number) => void;
 };
 export type TableContextMenuProps<T> = {
   item: T;
@@ -76,7 +76,7 @@ export function Table<T>({
                 onDragStart={(e) => {
                   if (props.onRowDragStart == null) return;
                   e.preventDefault();
-                  props.onRowDragStart(table.data[idx]);
+                  props.onRowDragStart(table.data[idx], idx);
                 }}
                 draggable={props.onRowDragStart != null}
               >
