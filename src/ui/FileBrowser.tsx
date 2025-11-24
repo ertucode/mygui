@@ -57,6 +57,56 @@ export function FileBrowser() {
     selection: s,
   });
 
+  const openItem = (item: GetFilesAndFoldersInDirectoryItem) => {
+    if (item.type === "dir") {
+      d.changeDirectory(item.name);
+    } else {
+      d.openFile(item.name);
+    }
+  };
+
+  function goPrev() {
+    if (!d.hasPrev) return;
+    d.goPrev().then(({ directoryData, current }) => {
+      setTimeout(() => {
+        if (!directoryData) return;
+        if (!d.showDotFiles) {
+          directoryData = directoryData.filter((i) => !i.name.startsWith("."));
+        }
+        const idx = directoryData.findIndex((i) => i.name === current.name);
+        if (idx === -1) return;
+        table.selection?.selectManually(idx);
+      }, 5);
+    });
+  }
+
+  useFileBrowserShortcuts([
+    {
+      key: ["Enter", "l"],
+      handler: (_) => {
+        if (s.state.lastSelected == null || s.state.indexes.size !== 1) {
+          openItem(d.directoryData[0]);
+        } else {
+          openItem(d.directoryData[s.state.lastSelected]);
+        }
+      },
+    },
+    {
+      key: ["Backspace", "h"],
+      handler: (_) => {
+        goPrev();
+      },
+    },
+    {
+      key: " ",
+      handler: (_) => {
+        if (s.state.lastSelected == null) {
+          table.selection?.selectManually(0);
+        }
+      },
+    },
+  ]);
+
   return (
     <div className="flex flex-col items-stretch py-3 gap-3">
       <div className="flex gap-3">
@@ -90,13 +140,7 @@ export function FileBrowser() {
           <div>
             <Table
               table={table}
-              onRowDoubleClick={(item) => {
-                if (item.type === "dir") {
-                  d.changeDirectory(item.name);
-                } else {
-                  d.openFile(item.name);
-                }
-              }}
+              onRowDoubleClick={openItem}
               selection={table.selection}
               ContextMenu={ContextMenu({
                 setAsDefaultPath: (p) => {
@@ -110,6 +154,11 @@ export function FileBrowser() {
                     })
                   : [d.getFullName(item.name)];
                 window.electron.onDragStart(files);
+              }}
+              onRowMouseDown={(item) => {
+                if (item.type === "dir") {
+                  d.preloadDirectory(d.getFullName(item.name));
+                }
               }}
             />
           </div>
@@ -198,7 +247,7 @@ function useDirectory(initialDirectory: string) {
     // TODO: cancel previous request
     setLoading(true);
     try {
-      const result = await window.electron.getFilesAndFoldersInDirectory(dir);
+      const result = await FileBrowserCache.load(dir);
 
       result.sort((a, b) => {
         if (a.type === "dir" && b.type === "dir") return 0;
@@ -209,6 +258,7 @@ function useDirectory(initialDirectory: string) {
 
       setDirectoryData(result);
       setError(undefined);
+      return result;
     } catch (e) {
       setError(errorToString(e));
     } finally {
@@ -231,7 +281,11 @@ function useDirectory(initialDirectory: string) {
     if (loading) return;
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
-    loadDirectory(newDirectory.fullName);
+    return loadDirectory(newDirectory.fullName);
+  };
+
+  const preloadDirectory = (dir: string) => {
+    return FileBrowserCache.load(dir);
   };
 
   const getFullName = (dir: string) =>
@@ -255,10 +309,15 @@ function useDirectory(initialDirectory: string) {
       forceRerender();
       cd(historyStack.goNext(), false);
     },
-    goPrev: () => {
+    goPrev: async () => {
       forceRerender();
       const p = historyStack.goPrev();
-      cd(p, false);
+      const directoryData = await cd(p, false);
+      return {
+        directoryData,
+        prev: p,
+        current: directory,
+      };
     },
     hasNext: historyStack.hasNext,
     hasPrev: historyStack.hasPrev,
@@ -268,6 +327,7 @@ function useDirectory(initialDirectory: string) {
     openFile: (filePath: string) =>
       window.electron.openFile(getFullName(filePath)),
     getFullName,
+    preloadDirectory,
   };
 }
 
@@ -319,4 +379,64 @@ function resolveIcon(item: GetFilesAndFoldersInDirectoryItem) {
     return getFileIcon(item.ext);
   }
   return FolderIcon;
+}
+
+type FileBrowserCacheOperation =
+  | {
+      loading: true;
+      promise: Promise<GetFilesAndFoldersInDirectoryItem[]>;
+    }
+  | {
+      loading: false;
+      loaded: GetFilesAndFoldersInDirectoryItem[];
+    };
+
+export class FileBrowserCache {
+  static cache = new Map<string, FileBrowserCacheOperation>();
+
+  static load = async (dir: string) => {
+    const cached = FileBrowserCache.cache.get(dir);
+    if (cached) {
+      if (!cached.loading) return cached.loaded;
+      return cached.promise;
+    }
+
+    const promise = window.electron
+      .getFilesAndFoldersInDirectory(dir)
+      .then((items) => {
+        FileBrowserCache.cache.set(dir, { loading: false, loaded: items });
+        setTimeout(() => {
+          FileBrowserCache.cache.delete(dir);
+        }, 500);
+        return items;
+      });
+    return promise;
+  };
+}
+
+type FileBrowserShortcut = {
+  key: string | string[];
+  handler: (e: KeyboardEvent) => void;
+};
+function useFileBrowserShortcuts(shortcuts: FileBrowserShortcut[]) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      shortcuts.forEach((shortcut) => {
+        const sk = shortcut.key;
+        if (typeof sk === "string") {
+          if (e.key === sk) {
+            shortcut.handler(e);
+          }
+        } else {
+          if (sk.some((k) => e.key === k)) {
+            shortcut.handler(e);
+          }
+        }
+      });
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [shortcuts]);
 }

@@ -14,6 +14,7 @@ export function ipcHandle<Key extends keyof EventResponseMapping>(
   ) => EventResponseMapping[Key],
 ) {
   ipcMain.handle(key, (event, request) => {
+    console.log("ipcHandle", key, request);
     event.senderFrame && validateEventFrame(event.senderFrame);
     return handler(request, event);
   });

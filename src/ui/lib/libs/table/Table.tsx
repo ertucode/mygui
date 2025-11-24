@@ -9,6 +9,7 @@ export type TableProps<T> = {
   selection?: ReturnType<typeof useSelection>;
   ContextMenu?: React.FC<TableContextMenuProps<T>>;
   onRowDragStart?: (item: T, index: number) => void;
+  onRowMouseDown?: (item: T, index: number) => void;
 };
 export type TableContextMenuProps<T> = {
   item: T;
@@ -51,7 +52,9 @@ export function Table<T>({
           </tr>
         </thead>
         <tbody
-          onKeyDown={(e) => selection?.onKeydown(e, table.rows.length)}
+          onKeyDown={(e) => {
+            selection?.onKeydown(e, table.rows.length);
+          }}
           tabIndex={0}
         >
           {table.rows.map((row, idx) => {
@@ -77,6 +80,10 @@ export function Table<T>({
                   if (props.onRowDragStart == null) return;
                   e.preventDefault();
                   props.onRowDragStart(table.data[idx], idx);
+                }}
+                onPointerDown={(_) => {
+                  if (props.onRowMouseDown == null) return;
+                  props.onRowMouseDown(table.data[idx], idx);
                 }}
                 draggable={props.onRowDragStart != null}
               >

@@ -94,7 +94,7 @@ export function useSelection(props: SelectionInput) {
       }
 
       const lastSelected = state.lastSelected ?? 0;
-      if (event.key === "ArrowUp") {
+      if (event.key === "ArrowUp" || event.key === "k") {
         if (state.indexes.has(lastSelected - 1)) {
           setState({
             indexes: Helpers.remove(state.indexes, lastSelected),
@@ -104,7 +104,7 @@ export function useSelection(props: SelectionInput) {
           select(lastSelected - 1, event);
         }
         return event.preventDefault();
-      } else if (event.key === "ArrowDown") {
+      } else if (event.key === "ArrowDown" || event.key === "j") {
         if (state.indexes.has(lastSelected + 1)) {
           setState({
             indexes: Helpers.remove(state.indexes, lastSelected),
@@ -126,6 +126,12 @@ export function useSelection(props: SelectionInput) {
       setState(defaultSelection());
     },
     isSelected: (index: number) => state.indexes.has(index),
+    selectManually: (index: number) => {
+      setState({
+        indexes: new Set([index]),
+        lastSelected: index,
+      });
+    },
   };
 }
 
