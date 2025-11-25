@@ -36,6 +36,7 @@ type EventResponseMapping = {
   getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
+  captureRect: Promise<unknown>;
 };
 
 type EventRequestMapping = {
@@ -43,13 +44,24 @@ type EventRequestMapping = {
   fuzzyFind: string;
   getFilesAndFoldersInDirectory: string;
   openFile: string;
-  onDragStart: string[];
+  onDragStart: {
+    files: string[];
+    image: string;
+  };
+  captureRect: Rect;
 };
 
 type EventRequest<Key extends keyof EventResponseMapping> =
   Key extends keyof EventRequestMapping ? EventRequestMapping[Key] : void;
 
 type UnsubscribeFunction = () => void;
+
+type Rect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 interface Window {
   electron: {
@@ -65,6 +77,14 @@ interface Window {
       directory: string,
     ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
     openFile: (filePath: string) => Promise<unknown>;
-    onDragStart: (files: string[]) => Promise<unknown>;
+    onDragStart: (
+      request: EventRequestMapping["onDragStart"],
+    ) => Promise<unknown>;
+    captureRect: (rect: Rect) => Promise<string>;
   };
+}
+
+declare module "dom-to-image-more" {
+  import domToImage = require("dom-to-image-more");
+  export = domToImage;
 }
