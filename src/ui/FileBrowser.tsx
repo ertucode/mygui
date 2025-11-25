@@ -1,4 +1,9 @@
-import { ArrowLeftIcon, ArrowRightIcon, FolderIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  FileIcon,
+  FolderIcon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HistoryStack } from "../common/history-stack";
 import { useForceRerender } from "./lib/hooks/forceRerender";
@@ -13,7 +18,7 @@ import { useTable } from "./lib/libs/table/useTable";
 import { useDefaultSelection } from "./lib/libs/table/useSelection";
 import z from "zod";
 import { useLocalStorage } from "./lib/hooks/useLocalStorage";
-import { getFileIcon } from "./lib/components/file-icon";
+import { captureDivAsBase64 } from "./lib/functions/captureDiv";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
@@ -147,13 +152,30 @@ export function FileBrowser() {
                   defaultPath.setPath(d.getFullName(p));
                 },
               })}
-              onRowDragStart={(item, index) => {
-                const files = s.state.indexes.has(index)
+              onRowDragStart={async (item, index, e) => {
+                const alreadySelected = s.state.indexes.has(index);
+                const files = alreadySelected
                   ? [...s.state.indexes].map((i) => {
                       return d.getFullName(table.data[i].name);
                     })
                   : [d.getFullName(item.name)];
-                window.electron.onDragStart(files);
+
+                const tableBody = e.currentTarget.closest("tbody");
+                window.electron.onDragStart({
+                  files,
+                  image: await captureDivAsBase64(tableBody!, (node) => {
+                    if (typeof node === "string") {
+                      return true;
+                    }
+                    if (!node.classList) {
+                      return true;
+                    }
+                    if (node.classList.contains("row-selected")) return true;
+                    const row = node.closest("tr");
+                    if (!row) return false;
+                    return row.classList.contains("row-selected");
+                  }),
+                });
               }}
               onRowMouseDown={(item) => {
                 if (item.type === "dir") {
@@ -376,7 +398,7 @@ function useDefaultPath() {
 
 function resolveIcon(item: GetFilesAndFoldersInDirectoryItem) {
   if (item.type === "file") {
-    return getFileIcon(item.ext);
+    return FileIcon;
   }
   return FolderIcon;
 }
@@ -440,3 +462,5 @@ function useFileBrowserShortcuts(shortcuts: FileBrowserShortcut[]) {
     };
   }, [shortcuts]);
 }
+
+function captureForDragStart(tbody: HTMLElement) {}

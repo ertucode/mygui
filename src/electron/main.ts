@@ -6,13 +6,8 @@ import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
 import { getInitializedFuzzyFinder } from "./utils/get-initialized-fuzzy-finder.js";
 import { getFilesAndFoldersInDirectory } from "./utils/file-browser-helpers.js";
 import { openFile } from "./utils/open-file.js";
-import path from "path";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
 import { expandHome } from "./utils/expand-home.js";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+import { base64ImageToTempPath } from "./utils/base64-image-to-temp-path.js";
 
 app.on("ready", () => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -49,11 +44,30 @@ app.on("ready", () => {
 
   ipcHandle("getFilesAndFoldersInDirectory", getFilesAndFoldersInDirectory);
   ipcHandle("openFile", openFile);
-  ipcHandle("onDragStart", async (files, event) => {
+  ipcHandle("onDragStart", async ({ files, image }, event) => {
     event.sender.startDrag({
       files: files.map((file) => expandHome(file)),
-      icon: path.join(__dirname, "assets", "file-drag.png"),
+      //icon: path.join(__dirname, "assets", "file-drag.png"),
+      // icon: base64ImageToTempPath(app, await captureRect(rect, event)),
+      icon: base64ImageToTempPath(app, image),
       file: "",
     });
+  });
+
+  async function captureRect(
+    rect: Electron.Rectangle,
+    event: Electron.IpcMainInvokeEvent,
+  ) {
+    const win = BrowserWindow.fromWebContents(event.sender)!;
+    const image = await win.capturePage(rect);
+    const width = 800;
+    console.log("image.getSize()", rect, image.getSize());
+    return image
+      .resize({ width, height: width * image.getAspectRatio() })
+      .toDataURL();
+  }
+
+  ipcHandle("captureRect", async (rect, event) => {
+    return captureRect(rect, event);
   });
 });

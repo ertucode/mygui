@@ -8,7 +8,11 @@ export type TableProps<T> = {
   onRowDoubleClick?: (item: T) => void;
   selection?: ReturnType<typeof useSelection>;
   ContextMenu?: React.FC<TableContextMenuProps<T>>;
-  onRowDragStart?: (item: T, index: number) => void;
+  onRowDragStart?: (
+    item: T,
+    index: number,
+    event: React.DragEvent<HTMLTableRowElement>,
+  ) => void;
   onRowMouseDown?: (item: T, index: number) => void;
 };
 export type TableContextMenuProps<T> = {
@@ -62,7 +66,8 @@ export function Table<T>({
               <tr
                 key={row.id}
                 className={clsx(
-                  selection?.isSelected(idx) && "bg-base-content/10",
+                  selection?.isSelected(idx) &&
+                    "bg-base-content/10 row-selected",
                   "select-none",
                 )}
                 onDoubleClick={
@@ -79,7 +84,7 @@ export function Table<T>({
                 onDragStart={(e) => {
                   if (props.onRowDragStart == null) return;
                   e.preventDefault();
-                  props.onRowDragStart(table.data[idx], idx);
+                  props.onRowDragStart(table.data[idx], idx, e);
                 }}
                 onPointerDown={(_) => {
                   if (props.onRowMouseDown == null) return;
