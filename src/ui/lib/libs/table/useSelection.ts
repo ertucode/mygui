@@ -101,7 +101,11 @@ export function useSelection(props: SelectionInput) {
             lastSelected: lastSelected - 1,
           });
         } else {
-          select(lastSelected - 1, event);
+          if (lastSelected - 1 < 0) {
+            select(count - 1, event);
+          } else {
+            select(lastSelected - 1, event);
+          }
         }
         return event.preventDefault();
       } else if (event.key === "ArrowDown" || event.key === "j") {
@@ -111,7 +115,11 @@ export function useSelection(props: SelectionInput) {
             lastSelected: lastSelected + 1,
           });
         } else {
-          select(lastSelected + 1, event);
+          if (lastSelected + 1 === count) {
+            select(0, event);
+          } else {
+            select(lastSelected + 1, event);
+          }
         }
         return event.preventDefault();
       } else if (event.key === "ArrowLeft") {

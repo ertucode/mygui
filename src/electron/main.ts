@@ -61,7 +61,6 @@ app.on("ready", () => {
     const win = BrowserWindow.fromWebContents(event.sender)!;
     const image = await win.capturePage(rect);
     const width = 800;
-    console.log("image.getSize()", rect, image.getSize());
     return image
       .resize({ width, height: width * image.getAspectRatio() })
       .toDataURL();
