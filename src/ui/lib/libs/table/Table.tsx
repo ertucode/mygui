@@ -4,6 +4,7 @@ import { clsx } from "../../functions/clsx";
 import type { useSelection } from "./useSelection";
 import type { TableMetadata } from "./useTable";
 import { useTableSort } from "./useTableSort";
+import { RefObject } from "react";
 
 export type TableProps<T> = {
   table: TableMetadata<T>;
@@ -17,6 +18,7 @@ export type TableProps<T> = {
     event: React.DragEvent<HTMLTableRowElement>,
   ) => void;
   onRowMouseDown?: (item: T, index: number) => void;
+  tableRef?: RefObject<HTMLTableElement | null>;
 };
 export type TableContextMenuProps<T> = {
   item: T;
@@ -28,6 +30,7 @@ export function Table<T>({
   onRowDoubleClick,
   selection,
   sort,
+  tableRef,
   ...props
 }: TableProps<T>) {
   const contextMenu = useContextMenu<T>();
@@ -45,7 +48,10 @@ export function Table<T>({
         </ContextMenu>
       )}
 
-      <table className="w-full overflow-auto table table-zebra table-xs border border-base-content/5 ">
+      <table
+        ref={tableRef}
+        className="w-full overflow-auto table table-zebra table-xs border border-base-content/5 "
+      >
         <thead>
           <tr>
             {table.headers.map((header) => {
