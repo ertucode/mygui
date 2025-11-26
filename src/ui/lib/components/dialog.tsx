@@ -31,7 +31,7 @@ export function Dialog({
   }, [onClose, dialogRef.current]);
 
   return (
-    <dialog className="modal" ref={dialogRef}>
+    <dialog className="modal" ref={dialogRef} onClose={onClose}>
       <div
         className="modal-box"
         style={{

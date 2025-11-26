@@ -4,7 +4,7 @@ import {
   FileIcon,
   FolderIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HistoryStack } from "../common/history-stack";
 import { useForceRerender } from "./lib/hooks/forceRerender";
 import { errorToString } from "../common/errorToString";
@@ -25,6 +25,8 @@ import {
   ContextMenuList,
   useContextMenu,
 } from "./lib/components/context-menu";
+import { useShortcuts } from "./lib/hooks/useShortcuts";
+import { FuzzyFinderDialog } from "./lib/libs/fuzzy-find/FuzzyFinderDialog";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
@@ -72,6 +74,8 @@ export function FileBrowser() {
     selection: s,
   });
 
+  const tableRef = useRef<HTMLTableElement>(null);
+
   const sort = useTableSort(
     {
       state: d.settings.sort,
@@ -112,7 +116,7 @@ export function FileBrowser() {
     });
   }
 
-  useFileBrowserShortcuts([
+  useShortcuts([
     {
       key: ["Enter", "l"],
       handler: (_) => {
@@ -141,6 +145,26 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch py-3 gap-3">
+      <FuzzyFinderDialog
+        items={d.directoryData}
+        keys={["name"]}
+        onSelect={openItem}
+        getKey={(i) => i.name}
+        renderItem={(i) => {
+          const I = resolveIcon(i);
+          return (
+            <div className="flex items-center">
+              <I className="size-4" />
+              <div>{i.name}</div>
+            </div>
+          );
+        }}
+        onClose={() => {
+          setTimeout(() => {
+            tableRef.current?.querySelector("tbody")?.focus();
+          }, 100);
+        }}
+      />
       <div className="flex gap-3">
         <label className="label">
           <input
@@ -171,6 +195,7 @@ export function FileBrowser() {
         ) : (
           <div>
             <Table
+              tableRef={tableRef}
               table={table}
               sort={sort}
               onRowDoubleClick={openItem}
@@ -337,45 +362,10 @@ function useDirectory(initialDirectory: string) {
     }
   }, []);
 
-  const directoryData = useMemo(() => {
-    let data = _directoryData;
-
-    if (!settings.showDotFiles)
-      data = data.filter((i) => !i.name.startsWith("."));
-
-    if (settings.sort.by === "name") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        return a.name.localeCompare(b.name) * times;
-      });
-    } else if (settings.sort.by === "modifiedTimestamp") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
-        if (!a.modifiedTimestamp) return -1;
-        if (!b.modifiedTimestamp) return 1;
-        return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
-      });
-    } else if (settings.sort.by === "size") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.size && !b.size) return 0;
-        if (!a.size) return 1;
-        if (!b.size) return -1;
-        return (a.size - b.size) * times;
-      });
-    } else if (settings.sort.by === "ext") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.ext && !b.ext) return 0;
-        if (!a.ext) return 1;
-        if (!b.ext) return -1;
-        return a.ext.localeCompare(b.ext) * times;
-      });
-    }
-
-    return data;
-  }, [_directoryData, settings]);
+  const directoryData = useMemo(
+    () => DirectoryDataFromSettings.getDirectoryData(_directoryData, settings),
+    [_directoryData, settings],
+  );
 
   const historyStack = useMemo(
     () => new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
@@ -419,7 +409,9 @@ function useDirectory(initialDirectory: string) {
       const p = historyStack.goPrev();
       const directoryData = await cd(p, false);
       return {
-        directoryData,
+        directoryData:
+          directoryData &&
+          DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
         prev: p,
         current: directory,
       };
@@ -523,49 +515,83 @@ export class FileBrowserCache {
   };
 }
 
+const SettingsSchema = z.object({
+  showDotFiles: z.boolean(),
+  sort: z.object({
+    by: sortNames.nullish(),
+    order: z.enum(["asc", "desc"]).nullish(),
+  }),
+});
+
+type Settings = z.infer<typeof SettingsSchema>;
+
 function useFileBrowserSettings() {
-  return useLocalStorage(
-    "fbSettings",
-    z.object({
-      showDotFiles: z.boolean(),
-      sort: z.object({
-        by: sortNames.nullish(),
-        order: z.enum(["asc", "desc"]).nullish(),
-      }),
-    }),
-    {
-      showDotFiles: false,
-      sort: {
-        by: "ext",
-        order: "asc",
-      },
+  return useLocalStorage("fbSettings", SettingsSchema, {
+    showDotFiles: false,
+    sort: {
+      by: "ext",
+      order: "asc",
     },
-  );
+  });
 }
 
-type FileBrowserShortcut = {
-  key: string | string[];
-  handler: (e: KeyboardEvent) => void;
-};
-function useFileBrowserShortcuts(shortcuts: FileBrowserShortcut[]) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      shortcuts.forEach((shortcut) => {
-        const sk = shortcut.key;
-        if (typeof sk === "string") {
-          if (e.key === sk) {
-            shortcut.handler(e);
-          }
-        } else {
-          if (sk.some((k) => e.key === k)) {
-            shortcut.handler(e);
-          }
-        }
+class DirectoryDataFromSettings {
+  static lastSettings: Settings | undefined;
+  static lastData: GetFilesAndFoldersInDirectoryItem[] | undefined;
+  static lastResult: GetFilesAndFoldersInDirectoryItem[] | undefined;
+
+  static getDirectoryData(
+    d: GetFilesAndFoldersInDirectoryItem[],
+    settings: Settings,
+  ) {
+    if (settings === this.lastSettings && d === this.lastData)
+      return this.lastResult!;
+    this.lastSettings = settings;
+    this.lastData = d;
+    this.lastResult = this.getDirectoryDataWithoutCache(d, settings);
+    return this.lastResult;
+  }
+
+  private static getDirectoryDataWithoutCache(
+    d: GetFilesAndFoldersInDirectoryItem[],
+    settings: Settings,
+  ) {
+    let data = d;
+
+    if (!settings.showDotFiles)
+      data = data.filter((i) => !i.name.startsWith("."));
+
+    if (settings.sort.by === "name") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        return a.name.localeCompare(b.name) * times;
       });
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [shortcuts]);
+    } else if (settings.sort.by === "modifiedTimestamp") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
+        if (!a.modifiedTimestamp) return -1;
+        if (!b.modifiedTimestamp) return 1;
+        return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
+      });
+    } else if (settings.sort.by === "size") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.size && !b.size) return 0;
+        if (!a.size) return 1;
+        if (!b.size) return -1;
+        return (a.size - b.size) * times;
+      });
+    } else if (settings.sort.by === "ext") {
+      const times = settings.sort.order === "asc" ? 1 : -1;
+      data = data.sort((a, b) => {
+        if (!a.ext && !b.ext) return 0;
+        if (!a.ext) return 1;
+        if (!b.ext) return -1;
+        return a.ext.localeCompare(b.ext) * times;
+      });
+    }
+
+    return data;
+  }
 }

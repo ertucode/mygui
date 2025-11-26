@@ -87,3 +87,4 @@ interface Window {
 }
 
 type $Maybe<T> = T | undefined | null;
+type $ExpectNever<T extends never> = T;
