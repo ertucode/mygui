@@ -19,6 +19,7 @@ export type TableProps<T> = {
   ) => void;
   onRowMouseDown?: (item: T, index: number) => void;
   tableRef?: RefObject<HTMLTableElement | null>;
+  children?: React.ReactNode;
 };
 export type TableContextMenuProps<T> = {
   item: T;
@@ -31,6 +32,7 @@ export function Table<T>({
   selection,
   sort,
   tableRef,
+  children,
   ...props
 }: TableProps<T>) {
   const contextMenu = useContextMenu<T>();
@@ -48,86 +50,93 @@ export function Table<T>({
         </ContextMenu>
       )}
 
-      <table
-        ref={tableRef}
-        className="w-full overflow-auto table table-zebra table-xs border border-base-content/5 "
-      >
-        <thead>
-          <tr>
-            {table.headers.map((header) => {
-              return (
-                <th key={header.id} onClick={() => sort?.onKey(header.sortKey)}>
-                  <div className="flex items-center gap-1">
-                    <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
-                      {header.value}
-                    </span>
+      <div className="relative">
+        {children}
 
-                    {sort?.state.by === header.sortKey &&
-                      (sort.state.order === "asc" ? (
-                        <ChevronDownIcon className="size-4 stroke-[3]" />
-                      ) : (
-                        <ChevronUpIcon className="size-4 stroke-[3]" />
-                      ))}
-                  </div>
-                </th>
+        <table
+          ref={tableRef}
+          className="w-full overflow-auto table table-zebra table-xs border border-base-content/5 "
+        >
+          <thead>
+            <tr>
+              {table.headers.map((header) => {
+                return (
+                  <th
+                    key={header.id}
+                    onClick={() => sort?.onKey(header.sortKey)}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
+                        {header.value}
+                      </span>
+
+                      {sort?.state.by === header.sortKey &&
+                        (sort.state.order === "asc" ? (
+                          <ChevronDownIcon className="size-4 stroke-[3]" />
+                        ) : (
+                          <ChevronUpIcon className="size-4 stroke-[3]" />
+                        ))}
+                    </div>
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody
+            onKeyDown={(e) => {
+              selection?.onKeydown(e, table.rows.length);
+            }}
+            tabIndex={0}
+          >
+            {table.rows.map((row, idx) => {
+              return (
+                <tr
+                  key={row.id}
+                  className={clsx(
+                    selection?.isSelected(idx) &&
+                      "bg-base-content/10 row-selected",
+                    "select-none",
+                  )}
+                  onDoubleClick={
+                    onRowDoubleClick
+                      ? () => onRowDoubleClick(table.data[idx])
+                      : undefined
+                  }
+                  onClick={(e) => selection?.select(idx, e)}
+                  onContextMenu={(e) => {
+                    if (props.ContextMenu == null) return;
+                    e.preventDefault();
+                    contextMenu.onRightClick(e, table.data[idx]);
+                  }}
+                  onDragStart={(e) => {
+                    if (props.onRowDragStart == null) return;
+                    e.preventDefault();
+                    props.onRowDragStart(table.data[idx], idx, e);
+                  }}
+                  onPointerDown={(_) => {
+                    if (props.onRowMouseDown == null) return;
+                    props.onRowMouseDown(table.data[idx], idx);
+                  }}
+                  draggable={props.onRowDragStart != null}
+                >
+                  {row.cells.map((cell) => {
+                    return (
+                      <td
+                        style={{
+                          width: cell.size,
+                        }}
+                        key={cell.id}
+                      >
+                        {cell.value}
+                      </td>
+                    );
+                  })}
+                </tr>
               );
             })}
-          </tr>
-        </thead>
-        <tbody
-          onKeyDown={(e) => {
-            selection?.onKeydown(e, table.rows.length);
-          }}
-          tabIndex={0}
-        >
-          {table.rows.map((row, idx) => {
-            return (
-              <tr
-                key={row.id}
-                className={clsx(
-                  selection?.isSelected(idx) &&
-                    "bg-base-content/10 row-selected",
-                  "select-none",
-                )}
-                onDoubleClick={
-                  onRowDoubleClick
-                    ? () => onRowDoubleClick(table.data[idx])
-                    : undefined
-                }
-                onClick={(e) => selection?.select(idx, e)}
-                onContextMenu={(e) => {
-                  if (props.ContextMenu == null) return;
-                  e.preventDefault();
-                  contextMenu.onRightClick(e, table.data[idx]);
-                }}
-                onDragStart={(e) => {
-                  if (props.onRowDragStart == null) return;
-                  e.preventDefault();
-                  props.onRowDragStart(table.data[idx], idx, e);
-                }}
-                onPointerDown={(_) => {
-                  if (props.onRowMouseDown == null) return;
-                  props.onRowMouseDown(table.data[idx], idx);
-                }}
-                draggable={props.onRowDragStart != null}
-              >
-                {row.cells.map((cell) => {
-                  return (
-                    <td
-                      style={{
-                        width: cell.size,
-                      }}
-                      key={cell.id}
-                    >
-                      {cell.value}
-                    </td>
-                  );
-                })}
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

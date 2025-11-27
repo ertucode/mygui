@@ -1,35 +1,34 @@
-import { useMemo, useRef, useState } from "react";
-import { Dialog } from "../../components/dialog";
+import { Dispatch, SetStateAction, useMemo, useRef, useState } from "react";
 import { useShortcuts } from "../../hooks/useShortcuts";
 import Fuse from "fuse.js";
 
-export type FuzzyFinderDialogProps<T> = {
+export type UseFuzzyFinderProps<T> = {
   query?: string | undefined;
   setQuery?: (query: $Maybe<string>) => void;
   items: T[];
   keys: (keyof T & string)[];
   maxCount?: number;
-  renderItem: (item: T) => React.ReactNode;
-  getKey: (item: T) => string;
-  onSelect: (item: T) => void;
   onClose?: () => void;
+  onResultChange?: (items: T[]) => void;
+  setHighlight: Dispatch<SetStateAction<number>>;
 };
 
-export function FuzzyFinderDialog<T>({
+export type FuzzyFinderDialogProps<T> = {
+  fuzzy: ReturnType<typeof useFuzzyFinder<T>>;
+};
+
+export function useFuzzyFinder<T>({
   query: _query,
   setQuery: _setQuery,
-  onSelect,
   items,
   keys,
   maxCount,
-  renderItem,
-  getKey,
+  setHighlight,
   ...props
-}: FuzzyFinderDialogProps<T>) {
+}: UseFuzzyFinderProps<T>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(_query ?? "");
 
-  const [highlight, setHighlight] = useState(0);
   const fuse = useMemo(() => {
     return new Fuse(items, {
       threshold: 0.3,
@@ -41,12 +40,13 @@ export function FuzzyFinderDialog<T>({
   }, [items]);
 
   const results = useMemo(() => {
+    if (!open) return items;
     if (!query) return items.slice(0, maxCount);
 
     const results = fuse.search(query, { limit: maxCount ?? items.length });
     setHighlight(0);
     return results.map((result) => result.item);
-  }, [query, fuse, maxCount]);
+  }, [query, fuse, maxCount, open]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -80,59 +80,55 @@ export function FuzzyFinderDialog<T>({
     },
   ]);
 
-  const onClose = () => {
+  const close = () => {
     setOpen(false);
     props.onClose?.();
   };
 
+  return {
+    open,
+    close,
+    query,
+    setQuery,
+    results,
+    inputRef,
+    setHighlight,
+  };
+}
+
+export function FuzzyFinderDialog<T>({
+  fuzzy: {
+    open,
+    inputRef,
+    query,
+    setQuery,
+    close: close,
+    setHighlight,
+    results,
+  },
+}: FuzzyFinderDialogProps<T>) {
   if (!open) return null;
 
   return (
-    <Dialog onClose={onClose}>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex gap-3">
-          <input
-            ref={inputRef}
-            type="text"
-            className="input input-bordered mb-2 w-[80vw]"
-            placeholder="Type to search..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === "j" && e.ctrlKey)
-                setHighlight((h) => Math.min(h + 1, results.length - 1));
-              if (e.key === "k" && e.ctrlKey)
-                setHighlight((h) => Math.max(h - 1, 0));
-              if (e.key === "Enter" && results[highlight]) {
-                onSelect(results[highlight]);
-                setQuery("");
-                setHighlight(0);
-                onClose();
-              }
-            }}
-          />
-          <button className="btn" onClick={onClose}>
-            Close
-          </button>
-        </div>
-
-        <ul className="menu bg-base-100 z-1 shadow-sm w-full p-0 overflow-y-auto h-full">
-          {results.map((item, i) => (
-            <li
-              key={getKey(item)}
-              className={`cursor-pointer py-1 w-full ${i === highlight ? "bg-warning text-warning-content" : ""}`}
-              onMouseEnter={() => setHighlight(i)}
-              onClick={() => {
-                onSelect(item);
-                onClose();
-              }}
-            >
-              {renderItem(item)}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </Dialog>
+    <div className="absolute top-20 left-10 right-10 bg-base-100 z-50000000 flex flex-col gap-3">
+      <input
+        id="fuzzy-finder-input"
+        type="text"
+        ref={inputRef}
+        className="input w-full text-sm h-6 border-none! highlight-red-100"
+        placeholder="Type to search..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onBlur={close}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") close();
+          if (e.key === "j" && e.ctrlKey)
+            setHighlight((h) => Math.min(h + 1, results.length - 1));
+          if (e.key === "k" && e.ctrlKey)
+            setHighlight((h) => Math.max(h - 1, 0));
+        }}
+        autoFocus
+      />
+    </div>
   );
 }

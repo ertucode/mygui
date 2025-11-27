@@ -7,20 +7,26 @@ type ShortcutDefinition =
 type ShortcutWithHandler = {
   key: ShortcutDefinition | ShortcutDefinition[];
   handler: (e: KeyboardEvent) => void;
-  enabledIn?: RefObject<HTMLElement | null>;
+  enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
 };
-export function useShortcuts(shortcuts: ShortcutWithHandler[]) {
+export function useShortcuts(
+  shortcuts: ($Maybe<ShortcutWithHandler> | boolean)[],
+) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Sonra başka bir şeyler yapabiliriz
 
       shortcuts.forEach((shortcut) => {
-        const enabledIn = shortcut.enabledIn?.current;
-        if (
-          e.target instanceof HTMLInputElement &&
-          (!enabledIn || enabledIn !== e.target)
-        )
-          return;
+        if (!shortcut || shortcut === true) return;
+
+        if (e.target instanceof HTMLInputElement) {
+          if (!shortcut.enabledIn) return;
+          if (typeof shortcut.enabledIn === "function") {
+            if (!shortcut.enabledIn(e)) return;
+          } else {
+            if (shortcut.enabledIn.current !== e.target) return;
+          }
+        }
 
         if (Array.isArray(shortcut.key)) {
           if (shortcut.key.some((k) => checkShortcut(k, e))) {
