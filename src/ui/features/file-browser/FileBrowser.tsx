@@ -5,31 +5,31 @@ import {
   FolderIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HistoryStack } from "../common/history-stack";
-import { useForceRerender } from "./lib/hooks/forceRerender";
-import { errorToString } from "../common/errorToString";
-import { Alert } from "./lib/components/alert";
-import { mergeMaybeSlashed } from "../common/merge-maybe-slashed";
-import { useDebounce } from "./lib/hooks/useDebounce";
+import { HistoryStack } from "@common/history-stack";
+import { useForceRerender } from "@/lib/hooks/forceRerender";
+import { errorToString } from "@common/errorToString";
+import { Alert } from "@/lib/components/alert";
+import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 import "./FileBrowser.css";
-import type { ColumnDef } from "./lib/libs/table/table-types";
-import { Table } from "./lib/libs/table/Table";
-import { useTable } from "./lib/libs/table/useTable";
-import { useDefaultSelection } from "./lib/libs/table/useSelection";
+import type { ColumnDef } from "@/lib/libs/table/table-types";
+import { Table } from "@/lib/libs/table/Table";
+import { useTable } from "@/lib/libs/table/useTable";
+import { useDefaultSelection } from "@/lib/libs/table/useSelection";
 import z from "zod";
-import { useLocalStorage } from "./lib/hooks/useLocalStorage";
-import { captureDivAsBase64 } from "./lib/functions/captureDiv";
-import { useTableSort } from "./lib/libs/table/useTableSort";
+import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
+import { useTableSort } from "@/lib/libs/table/useTableSort";
 import {
   ContextMenu,
   ContextMenuList,
   useContextMenu,
-} from "./lib/components/context-menu";
-import { useShortcuts } from "./lib/hooks/useShortcuts";
+} from "@/lib/components/context-menu";
+import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import {
   FuzzyFinderDialog,
   useFuzzyFinder,
-} from "./lib/libs/fuzzy-find/FuzzyFinderDialog";
+} from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
 
 const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
@@ -171,6 +171,10 @@ export function FileBrowser() {
           table.selection?.selectManually(0);
         }
       },
+    },
+    {
+      key: "-",
+      handler: () => d.goUp(),
     },
   ]);
 
@@ -425,6 +429,26 @@ function useDirectory(initialDirectory: string) {
         prev: p,
         current: directory,
       };
+    },
+    goUp: async () => {
+      let parts = getFolderNameParts(directory.fullName);
+      if (parts.length === 1) {
+        if (parts[0] === "~") {
+          const home = await window.electron.getHomeDirectory();
+          parts = getFolderNameParts(home);
+        }
+      }
+      let fullName = parts.slice(0, parts.length - 1).join("/") + "/";
+      if (fullName[0] !== "/" && fullName[1] !== "~") {
+        fullName = "/" + fullName;
+      }
+      cd(
+        {
+          fullName,
+          name: parts[parts.length - 1],
+        },
+        true,
+      );
     },
     hasNext: historyStack.hasNext,
     hasPrev: historyStack.hasPrev,

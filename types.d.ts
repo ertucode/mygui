@@ -39,6 +39,7 @@ type EventResponseMapping = {
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
   captureRect: Promise<unknown>;
+  getHomeDirectory: string;
 };
 
 type EventRequestMapping = {
@@ -83,6 +84,7 @@ interface Window {
       request: EventRequestMapping["onDragStart"],
     ) => Promise<unknown>;
     captureRect: (rect: Rect) => Promise<string>;
+    getHomeDirectory: () => Promise<string>;
   };
 }
 
