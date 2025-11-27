@@ -52,8 +52,9 @@ export function useFuzzyFinder<T>({
 
   useShortcuts([
     {
-      key: { key: "p", ctrlKey: true },
-      handler: () => {
+      key: { key: "/" },
+      handler: (e) => {
+        e.preventDefault();
         setOpen(true);
         if (query) {
           setTimeout(() => {

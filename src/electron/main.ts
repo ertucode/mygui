@@ -69,4 +69,8 @@ app.on("ready", () => {
   ipcHandle("captureRect", async (rect, event) => {
     return captureRect(rect, event);
   });
+
+  ipcHandle("getHomeDirectory", () => {
+    return "/" + app.getPath("home");
+  });
 });

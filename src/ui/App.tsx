@@ -1,6 +1,6 @@
 import "./App.css";
 import { DocxConverter } from "./DocxConverter";
-import { FileBrowser } from "./FileBrowser";
+import { FileBrowser } from "./features/file-browser/FileBrowser";
 
 function App() {
   return (
