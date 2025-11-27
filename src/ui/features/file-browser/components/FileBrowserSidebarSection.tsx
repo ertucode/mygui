@@ -9,6 +9,7 @@ interface FileBrowserSidebarSectionProps<T> {
   isSelected: (item: T) => boolean;
   onClick: (item: T) => void;
   getKey: (item: T) => string;
+  className?: string;
 }
 
 export function FileBrowserSidebarSection<T>({
@@ -19,13 +20,19 @@ export function FileBrowserSidebarSection<T>({
   isSelected,
   onClick,
   getKey,
+  className = "",
 }: FileBrowserSidebarSectionProps<T>) {
   return (
-    <div className="flex flex-col gap-1 border-r border-base-300 min-w-48 pr-2">
+    <div
+      className={clsx(
+        "flex flex-col gap-1 border-r border-base-300 min-w-48 pr-2",
+        className,
+      )}
+    >
       <h3 className="text-sm font-semibold pl-2">{header}</h3>
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 overflow-y-auto">
         {items.length === 0 ? (
-          <div className="text-xs text-gray-500">{emptyMessage}</div>
+          <div className="text-xs text-gray-500 pl-2">{emptyMessage}</div>
         ) : (
           items.map((item) => (
             <button

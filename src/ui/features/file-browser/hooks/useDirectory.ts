@@ -8,6 +8,7 @@ import {
   DirectoryDataFromSettings,
   useFileBrowserSettings,
 } from "./useFileBrowserSettings";
+import { useRecents } from "./useRecents";
 
 type DirectoryInfo = {
   fullName: string;
@@ -60,7 +61,10 @@ function getFolderNameParts(dir: string) {
   return dir.split("/").filter(Boolean);
 }
 
-export function useDirectory(initialDirectory: string) {
+export function useDirectory(
+  initialDirectory: string,
+  recents: ReturnType<typeof useRecents>,
+) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
   const [settings, setSettings] = useFileBrowserSettings();
   const [directory, setDirectory] =
@@ -115,6 +119,7 @@ export function useDirectory(initialDirectory: string) {
     if (loading) return;
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
+    recents.addRecent({ fullPath: newDirectory.fullName, type: "dir" });
     return loadDirectory(newDirectory.fullName);
   };
 

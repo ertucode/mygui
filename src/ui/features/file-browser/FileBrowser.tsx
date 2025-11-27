@@ -24,10 +24,13 @@ import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FolderBreadcrumb } from "./components/FolderBreadcrumb";
 import { FavoritesList } from "./components/FavoritesList";
 import { useFavorites } from "./hooks/useFavorites";
+import { RecentsList } from "./components/RecentsList";
+import { useRecents } from "./hooks/useRecents";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
-  const d = useDirectory(defaultPath.path);
+  const recents = useRecents();
+  const d = useDirectory(defaultPath.path, recents);
   const s = useSelection(useDefaultSelection());
 
   const fuzzy = useFuzzyFinder({
@@ -79,6 +82,7 @@ export function FileBrowser() {
     if (item.type === "dir") {
       d.changeDirectory(item.name);
     } else {
+      recents.addRecent({ fullPath: d.getFullName(item.name), type: "file" });
       d.openFile(item.name);
     }
   };
@@ -166,7 +170,10 @@ export function FileBrowser() {
         </div>
       </div>
       <div className="flex gap-0">
-        <FavoritesList favorites={favorites} d={d} />
+        <div className="flex flex-col h-160">
+          <FavoritesList favorites={favorites} d={d} className="flex-1" />
+          <RecentsList recents={recents} d={d} className="flex-1" />
+        </div>
         <div className="relative h-160 flex flex-col max-h-160 overflow-y-auto flex-1">
           {d.loading ? (
             <div>Loading...</div>

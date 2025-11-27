@@ -11,6 +11,7 @@ export function useLocalStorage<T>(
       const item = window.localStorage.getItem(key);
       return item ? schema.parse(JSON.parse(item)) : initialValue;
     } catch (error) {
+      console.error(error);
       return initialValue;
     }
   });
@@ -21,7 +22,9 @@ export function useLocalStorage<T>(
         value instanceof Function ? value(storedValue) : value;
       setStoredValue(valueToStore);
       window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return [storedValue, setValue] as const;

@@ -6,9 +6,10 @@ import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 interface FavoritesListProps {
   favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
+  className?: string;
 }
 
-export function FavoritesList({ favorites, d }: FavoritesListProps) {
+export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
   const f = favorites.favorites;
 
   return (
@@ -19,6 +20,7 @@ export function FavoritesList({ favorites, d }: FavoritesListProps) {
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) => d.directory.fullName === favorite.fullPath}
       onClick={(favorite) => d.cdFull(favorite.fullPath)}
+      className={className}
       render={(favorite) => (
         <>
           {favorite.type === "dir" ? (
