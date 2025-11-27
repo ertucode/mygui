@@ -1,13 +1,13 @@
 import { useEffect, useMemo, type ReactNode } from "react";
 import type { ColumnDef } from "./table-types";
-import { useSelection, type SelectionInput } from "./useSelection";
+import { useSelection } from "./useSelection";
 
 export type TableMetadata<T> = ReturnType<typeof useTable<T>>;
 
 export type UseTableOptions<T> = {
   columns: ColumnDef<T>[];
   data: T[];
-  selection?: SelectionInput;
+  selection?: ReturnType<typeof useSelection>;
 };
 
 export function useTable<T>(opts: UseTableOptions<T>) {
@@ -40,19 +40,14 @@ export function useTable<T>(opts: UseTableOptions<T>) {
     });
   }, [data, cols]);
 
-  const selection = useSelection(
-    opts.selection ?? { state: { indexes: new Set() }, setState: () => {} },
-  );
-
   useEffect(() => {
-    selection.reset();
+    opts?.selection?.reset();
   }, [data]);
 
   return {
     headers,
     rows,
     data,
-    selection,
   };
 }
 

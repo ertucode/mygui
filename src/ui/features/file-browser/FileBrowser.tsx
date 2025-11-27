@@ -1,75 +1,29 @@
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  FileIcon,
-  FolderIcon,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HistoryStack } from "@common/history-stack";
-import { useForceRerender } from "@/lib/hooks/forceRerender";
-import { errorToString } from "@common/errorToString";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { useRef } from "react";
 import { Alert } from "@/lib/components/alert";
-import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
-import { useDebounce } from "@/lib/hooks/useDebounce";
-import "./FileBrowser.css";
-import type { ColumnDef } from "@/lib/libs/table/table-types";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
-import { useDefaultSelection } from "@/lib/libs/table/useSelection";
-import z from "zod";
-import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import {
+  useDefaultSelection,
+  useSelection,
+} from "@/lib/libs/table/useSelection";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useTableSort } from "@/lib/libs/table/useTableSort";
-import {
-  ContextMenu,
-  ContextMenuList,
-  useContextMenu,
-} from "@/lib/components/context-menu";
+import { ContextMenuList } from "@/lib/components/context-menu";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import {
   FuzzyFinderDialog,
   useFuzzyFinder,
 } from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
-
-const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
-  {
-    accessorKey: "type",
-    header: "",
-    cell: (row) => {
-      const Icon = resolveIcon(row);
-      return <Icon className="size-4" />;
-    },
-    size: 24,
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-  },
-  {
-    accessorKey: "ext",
-    header: "Ext",
-    size: 24,
-  },
-  {
-    accessorKey: "sizeStr",
-    sortKey: "size",
-    header: "Size",
-    size: 84,
-  },
-  {
-    accessorKey: "modifiedAt",
-    sortKey: "modifiedTimestamp",
-    header: "Modified",
-    size: 148,
-  },
-];
-
-const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);
+import { cols, sortNames } from "./config/columns";
+import { useDirectory } from "./hooks/useDirectory";
+import { useDefaultPath } from "./hooks/useDefaultPath";
+import { FolderBreadcrumb } from "./components/FolderBreadcrumb";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
   const d = useDirectory(defaultPath.path);
-  const s = useDefaultSelection();
+  const s = useSelection(useDefaultSelection());
 
   const fuzzy = useFuzzyFinder({
     items: d.directoryData,
@@ -124,20 +78,20 @@ export function FileBrowser() {
     }
   };
 
-  function goPrev() {
-    if (!d.hasPrev) return;
-    d.goPrev().then(({ directoryData, current }) => {
-      setTimeout(() => {
-        if (!directoryData) return;
-        if (!d.settings.showDotFiles) {
-          directoryData = directoryData.filter((i) => !i.name.startsWith("."));
-        }
-        const idx = directoryData.findIndex((i) => i.name === current.name);
-        if (idx === -1) return;
-        table.selection?.selectManually(idx);
-      }, 5);
-    });
-  }
+  const onGoUpOrPrev = async (fn: typeof d.goPrev | typeof d.goUp) => {
+    const metadata = await fn();
+    if (!metadata) return;
+    let { directoryData, beforeNavigation } = metadata;
+
+    setTimeout(() => {
+      if (!directoryData) return;
+      const idx = directoryData.findIndex(
+        (i) => i.name === beforeNavigation.name,
+      );
+      if (idx === -1) return;
+      s?.selectManually(idx);
+    }, 5);
+  };
 
   useShortcuts([
     {
@@ -161,21 +115,22 @@ export function FileBrowser() {
     {
       key: ["Backspace", "h"],
       handler: (_) => {
-        goPrev();
+        onGoUpOrPrev(d.goPrev);
       },
     },
     {
       key: " ",
       handler: (_) => {
         if (s.state.lastSelected == null) {
-          table.selection?.selectManually(0);
+          s?.selectManually(0);
         }
       },
     },
     {
       key: "-",
-      handler: () => d.goUp(),
+      handler: () => onGoUpOrPrev(d.goUp),
     },
+    ...s.getShortcuts(table.data.length),
   ]);
 
   return (
@@ -214,7 +169,7 @@ export function FileBrowser() {
             table={table}
             sort={sort}
             onRowDoubleClick={openItem}
-            selection={table.selection}
+            selection={s}
             ContextMenu={getRowContextMenu({
               setAsDefaultPath: (p) => {
                 defaultPath.setPath(d.getFullName(p));
@@ -257,213 +212,6 @@ export function FileBrowser() {
   );
 }
 
-function FolderBreadcrumb({
-  d,
-  defaultPath,
-}: {
-  d: ReturnType<typeof useDirectory>;
-  defaultPath: ReturnType<typeof useDefaultPath>;
-}) {
-  const parts = getFolderNameParts(d.directory.fullName);
-  const menu = useContextMenu<number>();
-
-  return (
-    <div className="breadcrumbs text-sm">
-      {menu.isOpen && (
-        <ContextMenu menu={menu}>
-          <ContextMenuList
-            items={[
-              {
-                onClick: () => {
-                  defaultPath.setPath(reconstructDirectory(parts, menu.item!));
-                  menu.close();
-                },
-                view: "Set as default path",
-              },
-            ]}
-          />
-        </ContextMenu>
-      )}
-      <ul>
-        {parts.map((part, idx) => {
-          return (
-            <li
-              key={idx}
-              className="flex items-center gap-1"
-              onClick={() =>
-                d.cd({
-                  fullName: reconstructDirectory(parts, idx),
-                  name: part,
-                })
-              }
-              onContextMenu={(e) => {
-                e.preventDefault();
-                menu.onRightClick(e, idx);
-              }}
-            >
-              <a>
-                <FolderIcon className="size-4" />
-                <div>{part}</div>
-              </a>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-function getFolderNameParts(dir: string) {
-  return dir.split("/").filter(Boolean);
-}
-
-function reconstructDirectory(parts: string[], idx: number) {
-  return parts.slice(0, idx + 1).join("/") + "/";
-}
-
-type DirectoryInfo = {
-  fullName: string;
-  name: string;
-};
-
-function getDirectoryInfo(dir: string): DirectoryInfo {
-  const idx = dir.indexOf("/");
-  if (idx === -1) throw new Error("Invalid directory name");
-  if (idx === dir.length - 1) return { fullName: dir, name: dir };
-
-  const name = dir.slice(idx + 1);
-  return { fullName: dir, name };
-}
-
-function useDirectory(initialDirectory: string) {
-  const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
-  const [settings, setSettings] = useFileBrowserSettings();
-  const [directory, setDirectory] =
-    useState<DirectoryInfo>(initialDirectoryInfo);
-  const [_loading, setLoading] = useState(false);
-  const loading = useDebounce(_loading, 100);
-  const [_directoryData, setDirectoryData] = useState<
-    GetFilesAndFoldersInDirectoryItem[]
-  >([]);
-  const [error, setError] = useState<string | undefined>();
-
-  const forceRerender = useForceRerender();
-
-  useEffect(() => {
-    loadDirectory(initialDirectory);
-  }, []);
-
-  const loadDirectory = useCallback(async (dir: string) => {
-    // TODO: cancel previous request
-    setLoading(true);
-    try {
-      const result = await FileBrowserCache.load(dir);
-
-      result.sort((a, b) => {
-        if (a.type === "dir" && b.type === "dir") return 0;
-        if (a.type === "dir") return -1;
-        if (b.type === "dir") return 1;
-        return a.name.localeCompare(b.name);
-      });
-
-      setDirectoryData(result);
-      setError(undefined);
-      return result;
-    } catch (e) {
-      setError(errorToString(e));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const directoryData = useMemo(
-    () => DirectoryDataFromSettings.getDirectoryData(_directoryData, settings),
-    [_directoryData, settings],
-  );
-
-  const historyStack = useMemo(
-    () => new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
-    [],
-  );
-
-  const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
-    if (loading) return;
-    if (isNew) historyStack.goNew(newDirectory);
-    setDirectory(newDirectory);
-    return loadDirectory(newDirectory.fullName);
-  };
-
-  const preloadDirectory = (dir: string) => {
-    return FileBrowserCache.load(dir);
-  };
-
-  const getFullName = (dir: string) =>
-    mergeMaybeSlashed(directory.fullName, dir);
-
-  return {
-    changeDirectory: async (newDirectory: string) => {
-      cd(
-        {
-          fullName: getFullName(newDirectory),
-          name: newDirectory,
-        },
-        true,
-      );
-    },
-    cd: (dir: DirectoryInfo) => cd(dir, true),
-    loading,
-    directoryData,
-    directory,
-    goNext: () => {
-      forceRerender();
-      cd(historyStack.goNext(), false);
-    },
-    goPrev: async () => {
-      forceRerender();
-      const p = historyStack.goPrev();
-      const directoryData = await cd(p, false);
-      return {
-        directoryData:
-          directoryData &&
-          DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
-        prev: p,
-        current: directory,
-      };
-    },
-    goUp: async () => {
-      let parts = getFolderNameParts(directory.fullName);
-      if (parts.length === 1) {
-        if (parts[0] === "~") {
-          const home = await window.electron.getHomeDirectory();
-          parts = getFolderNameParts(home);
-        }
-      }
-      let fullName = parts.slice(0, parts.length - 1).join("/") + "/";
-      if (fullName[0] !== "/" && fullName[1] !== "~") {
-        fullName = "/" + fullName;
-      }
-      cd(
-        {
-          fullName,
-          name: parts[parts.length - 1],
-        },
-        true,
-      );
-    },
-    hasNext: historyStack.hasNext,
-    hasPrev: historyStack.hasPrev,
-    error,
-    settings,
-    toggleShowDotFiles: () =>
-      setSettings((s) => ({ ...s, showDotFiles: !s.showDotFiles })),
-    openFile: (filePath: string) =>
-      window.electron.openFile(getFullName(filePath)),
-    getFullName,
-    preloadDirectory,
-    setSettings,
-  };
-}
-
 function getRowContextMenu({
   setAsDefaultPath,
 }: {
@@ -502,130 +250,4 @@ function getRowContextMenu({
       />
     );
   };
-}
-
-function useDefaultPath() {
-  const [path, setPath] = useLocalStorage<string>("path", z.string(), "~/");
-  return { path, setPath };
-}
-
-function resolveIcon(item: GetFilesAndFoldersInDirectoryItem) {
-  if (item.type === "file") {
-    return FileIcon;
-  }
-  return FolderIcon;
-}
-
-type FileBrowserCacheOperation =
-  | {
-      loading: true;
-      promise: Promise<GetFilesAndFoldersInDirectoryItem[]>;
-    }
-  | {
-      loading: false;
-      loaded: GetFilesAndFoldersInDirectoryItem[];
-    };
-
-export class FileBrowserCache {
-  static cache = new Map<string, FileBrowserCacheOperation>();
-
-  static load = async (dir: string) => {
-    const cached = FileBrowserCache.cache.get(dir);
-    if (cached) {
-      if (!cached.loading) return cached.loaded;
-      return cached.promise;
-    }
-
-    const promise = window.electron
-      .getFilesAndFoldersInDirectory(dir)
-      .then((items) => {
-        FileBrowserCache.cache.set(dir, { loading: false, loaded: items });
-        setTimeout(() => {
-          FileBrowserCache.cache.delete(dir);
-        }, 500);
-        return items;
-      });
-    return promise;
-  };
-}
-
-const SettingsSchema = z.object({
-  showDotFiles: z.boolean(),
-  sort: z.object({
-    by: sortNames.nullish(),
-    order: z.enum(["asc", "desc"]).nullish(),
-  }),
-});
-
-type Settings = z.infer<typeof SettingsSchema>;
-
-function useFileBrowserSettings() {
-  return useLocalStorage("fbSettings", SettingsSchema, {
-    showDotFiles: false,
-    sort: {
-      by: "ext",
-      order: "asc",
-    },
-  });
-}
-
-class DirectoryDataFromSettings {
-  static lastSettings: Settings | undefined;
-  static lastData: GetFilesAndFoldersInDirectoryItem[] | undefined;
-  static lastResult: GetFilesAndFoldersInDirectoryItem[] | undefined;
-
-  static getDirectoryData(
-    d: GetFilesAndFoldersInDirectoryItem[],
-    settings: Settings,
-  ) {
-    if (settings === this.lastSettings && d === this.lastData)
-      return this.lastResult!;
-    this.lastSettings = settings;
-    this.lastData = d;
-    this.lastResult = this.getDirectoryDataWithoutCache(d, settings);
-    return this.lastResult;
-  }
-
-  private static getDirectoryDataWithoutCache(
-    d: GetFilesAndFoldersInDirectoryItem[],
-    settings: Settings,
-  ) {
-    let data = d;
-
-    if (!settings.showDotFiles)
-      data = data.filter((i) => !i.name.startsWith("."));
-
-    if (settings.sort.by === "name") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        return a.name.localeCompare(b.name) * times;
-      });
-    } else if (settings.sort.by === "modifiedTimestamp") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.modifiedTimestamp && !b.modifiedTimestamp) return 0;
-        if (!a.modifiedTimestamp) return -1;
-        if (!b.modifiedTimestamp) return 1;
-        return (a.modifiedTimestamp - b.modifiedTimestamp) * times;
-      });
-    } else if (settings.sort.by === "size") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.size && !b.size) return 0;
-        if (!a.size) return 1;
-        if (!b.size) return -1;
-        return (a.size - b.size) * times;
-      });
-    } else if (settings.sort.by === "ext") {
-      const times = settings.sort.order === "asc" ? 1 : -1;
-      data = data.sort((a, b) => {
-        if (!a.ext && !b.ext) return 0;
-        if (!a.ext) return 1;
-        if (!b.ext) return -1;
-        return a.ext.localeCompare(b.ext) * times;
-      });
-    }
-
-    return data;
-  }
 }

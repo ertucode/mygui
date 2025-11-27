@@ -83,8 +83,8 @@ export function Table<T>({
             </tr>
           </thead>
           <tbody
-            onKeyDown={(e) => {
-              selection?.onKeydown(e, table.rows.length);
+            onKeyDown={(_) => {
+              // selection?.onKeydown(e, table.rows.length);
             }}
             tabIndex={0}
           >

@@ -13,32 +13,8 @@ export function useShortcuts(
   shortcuts: ($Maybe<ShortcutWithHandler> | boolean)[],
 ) {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Sonra başka bir şeyler yapabiliriz
-
-      shortcuts.forEach((shortcut) => {
-        if (!shortcut || shortcut === true) return;
-
-        if (e.target instanceof HTMLInputElement) {
-          if (!shortcut.enabledIn) return;
-          if (typeof shortcut.enabledIn === "function") {
-            if (!shortcut.enabledIn(e)) return;
-          } else {
-            if (shortcut.enabledIn.current !== e.target) return;
-          }
-        }
-
-        if (Array.isArray(shortcut.key)) {
-          if (shortcut.key.some((k) => checkShortcut(k, e))) {
-            shortcut.handler(e);
-          }
-        } else {
-          if (checkShortcut(shortcut.key, e)) {
-            shortcut.handler(e);
-          }
-        }
-      });
-    };
+    const handleKeyDown = (e: KeyboardEvent) =>
+      handleKeyDownWithShortcuts(e, shortcuts);
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
@@ -63,4 +39,32 @@ function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {
 
   const _exhaustiveCheck: $ExpectNever<typeof shortcut> = shortcut;
   return _exhaustiveCheck;
+}
+
+export function handleKeyDownWithShortcuts(
+  e: KeyboardEvent,
+  shortcuts: ($Maybe<ShortcutWithHandler> | boolean)[],
+) {
+  shortcuts.forEach((shortcut) => {
+    if (!shortcut || shortcut === true) return;
+
+    if (e.target instanceof HTMLInputElement) {
+      if (!shortcut.enabledIn) return;
+      if (typeof shortcut.enabledIn === "function") {
+        if (!shortcut.enabledIn(e)) return;
+      } else {
+        if (shortcut.enabledIn.current !== e.target) return;
+      }
+    }
+
+    if (Array.isArray(shortcut.key)) {
+      if (shortcut.key.some((k) => checkShortcut(k, e))) {
+        shortcut.handler(e);
+      }
+    } else {
+      if (checkShortcut(shortcut.key, e)) {
+        shortcut.handler(e);
+      }
+    }
+  });
 }

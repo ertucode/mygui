@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { Dispatch, SetStateAction, useState } from "react";
 
 export type SelectionState = {
   indexes: Set<number>;
@@ -6,15 +6,12 @@ export type SelectionState = {
 };
 export type SelectionInput = {
   state: SelectionState;
-  setState: (state: SelectionState) => void;
+  setState: Dispatch<SetStateAction<SelectionState>>;
 };
 export function useSelection(props: SelectionInput) {
   const { state, setState } = props;
 
-  const select = (
-    index: number,
-    event: React.MouseEvent | React.KeyboardEvent,
-  ) => {
+  const select = (index: number, event: React.MouseEvent | KeyboardEvent) => {
     // event.preventDefault();
     // event.stopPropagation();
 
@@ -82,19 +79,21 @@ export function useSelection(props: SelectionInput) {
     setState({ indexes: new Set([index]), lastSelected: index });
   };
 
-  return {
-    select,
-    onKeydown: (event: React.KeyboardEvent, count: number) => {
-      if (event.key === "a" && (event.ctrlKey || event.metaKey)) {
+  const getShortcuts = (count: number) => [
+    {
+      key: [{ key: "a", metaKey: true }],
+      handler: (e: KeyboardEvent) => {
         setState({
           indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
           lastSelected: count - 1,
         });
-        return event.preventDefault();
-      }
-
-      const lastSelected = state.lastSelected ?? 0;
-      if (event.key === "ArrowUp" || event.key === "k") {
+        e.preventDefault();
+      },
+    },
+    {
+      key: ["ArrowUp", "k", "K"],
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
         if (state.indexes.has(lastSelected - 1)) {
           setState({
             indexes: Helpers.remove(state.indexes, lastSelected),
@@ -102,13 +101,18 @@ export function useSelection(props: SelectionInput) {
           });
         } else {
           if (lastSelected - 1 < 0) {
-            select(count - 1, event);
+            select(count - 1, e);
           } else {
-            select(lastSelected - 1, event);
+            select(lastSelected - 1, e);
           }
         }
-        return event.preventDefault();
-      } else if (event.key === "ArrowDown" || event.key === "j") {
+        e.preventDefault();
+      },
+    },
+    {
+      key: ["ArrowDown", "j", "J"],
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
         if (state.indexes.has(lastSelected + 1)) {
           setState({
             indexes: Helpers.remove(state.indexes, lastSelected),
@@ -116,20 +120,35 @@ export function useSelection(props: SelectionInput) {
           });
         } else {
           if (lastSelected + 1 === count) {
-            select(0, event);
+            select(0, e);
           } else {
-            select(lastSelected + 1, event);
+            select(lastSelected + 1, e);
           }
         }
-        return event.preventDefault();
-      } else if (event.key === "ArrowLeft") {
-        select(lastSelected - 10, event);
-        return event.preventDefault();
-      } else if (event.key === "ArrowRight") {
-        select(lastSelected + 10, event);
-        return event.preventDefault();
-      }
+        e.preventDefault();
+      },
     },
+    {
+      key: "ArrowLeft",
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
+        select(lastSelected - 10, e);
+        e.preventDefault();
+      },
+    },
+    {
+      key: "ArrowRight",
+      handler: (e: KeyboardEvent) => {
+        const lastSelected = state.lastSelected ?? 0;
+        select(lastSelected + 10, e);
+        e.preventDefault();
+      },
+    },
+  ];
+
+  return {
+    select,
+    getShortcuts,
     reset: () => {
       setState(defaultSelection());
     },
@@ -140,6 +159,8 @@ export function useSelection(props: SelectionInput) {
         lastSelected: index,
       });
     },
+    state,
+    setState,
   };
 }
 
