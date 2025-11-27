@@ -151,6 +151,11 @@ export function useDirectory(initialDirectory: string) {
       );
     },
     cd: (dir: DirectoryInfo) => cd(dir, true),
+    cdFull: (fullPath: string) => {
+      const parts = fullPath.split("/").filter(Boolean);
+      const name = parts[parts.length - 1] || fullPath;
+      return cd({ fullName: fullPath, name }, true);
+    },
     loading,
     directoryData,
     directory,

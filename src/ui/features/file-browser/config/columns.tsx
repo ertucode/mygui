@@ -7,8 +7,10 @@ export const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
     accessorKey: "type",
     header: "",
     cell: (row) => {
-      const Icon = resolveIcon(row);
-      return <Icon className="size-4" />;
+      if (row.type === "file") {
+        return <FileIcon className="size-4 text-green-500" />;
+      }
+      return <FolderIcon className="size-4 text-blue-500" />;
     },
     size: 24,
   },
@@ -36,10 +38,3 @@ export const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
 ];
 
 export const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);
-
-function resolveIcon(item: GetFilesAndFoldersInDirectoryItem) {
-  if (item.type === "file") {
-    return FileIcon;
-  }
-  return FolderIcon;
-}

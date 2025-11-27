@@ -9,7 +9,10 @@ import {
 } from "@/lib/libs/table/useSelection";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useTableSort } from "@/lib/libs/table/useTableSort";
-import { ContextMenuList } from "@/lib/components/context-menu";
+import {
+  ContextMenuItem,
+  ContextMenuList,
+} from "@/lib/components/context-menu";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import {
   FuzzyFinderDialog,
@@ -19,6 +22,8 @@ import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FolderBreadcrumb } from "./components/FolderBreadcrumb";
+import { FavoritesList } from "./components/FavoritesList";
+import { useFavorites } from "./hooks/useFavorites";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -133,6 +138,8 @@ export function FileBrowser() {
     ...s.getShortcuts(table.data.length),
   ]);
 
+  const favorites = useFavorites();
+
   return (
     <div className="flex flex-col items-stretch py-3 gap-3">
       <FuzzyFinderDialog fuzzy={fuzzy} />
@@ -158,55 +165,60 @@ export function FileBrowser() {
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
       </div>
-      <div className="relative h-160 flex flex-col max-h-160 overflow-y-auto">
-        {d.loading ? (
-          <div>Loading...</div>
-        ) : d.error ? (
-          <Alert children={d.error} />
-        ) : (
-          <Table
-            tableRef={tableRef}
-            table={table}
-            sort={sort}
-            onRowDoubleClick={openItem}
-            selection={s}
-            ContextMenu={getRowContextMenu({
-              setAsDefaultPath: (p) => {
-                defaultPath.setPath(d.getFullName(p));
-              },
-            })}
-            onRowDragStart={async (item, index, e) => {
-              const alreadySelected = s.state.indexes.has(index);
-              const files = alreadySelected
-                ? [...s.state.indexes].map((i) => {
-                    return d.getFullName(table.data[i].name);
-                  })
-                : [d.getFullName(item.name)];
+      <div className="flex gap-0">
+        <FavoritesList favorites={favorites} d={d} />
+        <div className="relative h-160 flex flex-col max-h-160 overflow-y-auto flex-1">
+          {d.loading ? (
+            <div>Loading...</div>
+          ) : d.error ? (
+            <Alert children={d.error} />
+          ) : (
+            <Table
+              tableRef={tableRef}
+              table={table}
+              sort={sort}
+              onRowDoubleClick={openItem}
+              selection={s}
+              ContextMenu={getRowContextMenu({
+                setAsDefaultPath: (p) => {
+                  defaultPath.setPath(d.getFullName(p));
+                },
+                favorites,
+                d,
+              })}
+              onRowDragStart={async (item, index, e) => {
+                const alreadySelected = s.state.indexes.has(index);
+                const files = alreadySelected
+                  ? [...s.state.indexes].map((i) => {
+                      return d.getFullName(table.data[i].name);
+                    })
+                  : [d.getFullName(item.name)];
 
-              const tableBody = e.currentTarget.closest("tbody");
-              window.electron.onDragStart({
-                files,
-                image: await captureDivAsBase64(tableBody!, (node) => {
-                  if (typeof node === "string") {
-                    return true;
-                  }
-                  if (!node.classList) {
-                    return true;
-                  }
-                  if (node.classList.contains("row-selected")) return true;
-                  const row = node.closest("tr");
-                  if (!row) return false;
-                  return row.classList.contains("row-selected");
-                }),
-              });
-            }}
-            onRowMouseDown={(item) => {
-              if (item.type === "dir") {
-                d.preloadDirectory(d.getFullName(item.name));
-              }
-            }}
-          ></Table>
-        )}
+                const tableBody = e.currentTarget.closest("tbody");
+                window.electron.onDragStart({
+                  files,
+                  image: await captureDivAsBase64(tableBody!, (node) => {
+                    if (typeof node === "string") {
+                      return true;
+                    }
+                    if (!node.classList) {
+                      return true;
+                    }
+                    if (node.classList.contains("row-selected")) return true;
+                    const row = node.closest("tr");
+                    if (!row) return false;
+                    return row.classList.contains("row-selected");
+                  }),
+                });
+              }}
+              onRowMouseDown={(item) => {
+                if (item.type === "dir") {
+                  d.preloadDirectory(d.getFullName(item.name));
+                }
+              }}
+            ></Table>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -214,8 +226,12 @@ export function FileBrowser() {
 
 function getRowContextMenu({
   setAsDefaultPath,
+  favorites,
+  d,
 }: {
   setAsDefaultPath: (path: string) => void;
+  favorites: ReturnType<typeof useFavorites>;
+  d: ReturnType<typeof useDirectory>;
 }) {
   return ({
     item,
@@ -224,6 +240,26 @@ function getRowContextMenu({
     item: GetFilesAndFoldersInDirectoryItem;
     close: () => void;
   }) => {
+    const fullPath = d.getFullName(item.name);
+    const isFavorite = favorites.isFavorite(fullPath);
+    const favoriteItem: ContextMenuItem = isFavorite
+      ? {
+          onClick: () => {
+            favorites.removeFavorite(fullPath);
+            close();
+          },
+          view: <div>Remove from favorites</div>,
+        }
+      : {
+          onClick: () => {
+            favorites.addFavorite({
+              fullPath,
+              type: "dir",
+            });
+            close();
+          },
+          view: <div>Set as favorite</div>,
+        };
     if (item.type === "dir")
       return (
         <ContextMenuList
@@ -235,19 +271,11 @@ function getRowContextMenu({
               },
               view: <div>Set as default path</div>,
             },
+            favoriteItem,
           ]}
         />
       );
 
-    return (
-      <ContextMenuList
-        items={[
-          {
-            onClick: () => {},
-            view: <div>TODO</div>,
-          },
-        ]}
-      />
-    );
+    return <ContextMenuList items={[favoriteItem]} />;
   };
 }

@@ -23,19 +23,21 @@ export type ContextMenuItem = {
 };
 
 export type ContextMenuListProps = {
-  items: ContextMenuItem[];
+  items: (ContextMenuItem | false | null | undefined)[];
 };
 
 export function ContextMenuList({ items }: ContextMenuListProps) {
   return (
     <ul className="menu bg-base-200 rounded-box w-56">
-      {items.map((item, idx) => {
-        return (
-          <li key={idx}>
-            <a onClick={item.onClick}>{item.view}</a>
-          </li>
-        );
-      })}
+      {items
+        .filter((i) => !!i)
+        .map((item, idx) => {
+          return (
+            <li key={idx}>
+              <a onClick={item.onClick}>{item.view}</a>
+            </li>
+          );
+        })}
     </ul>
   );
 }
