@@ -24,9 +24,9 @@ export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
       render={(favorite) => (
         <>
           {favorite.type === "dir" ? (
-            <FolderIcon className="w-4 h-4 text-blue-500" />
+            <FolderIcon className="size-4 min-w-4 text-blue-500" />
           ) : (
-            <FileIcon className="w-4 h-4 text-green-500" />
+            <FileIcon className="size-4 min-w-4 text-green-500" />
           )}
           <span className="truncate">{favoriteName(favorite)}</span>
         </>

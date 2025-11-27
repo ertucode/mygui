@@ -24,10 +24,7 @@ export function FileBrowserSidebarSection<T>({
 }: FileBrowserSidebarSectionProps<T>) {
   return (
     <div
-      className={clsx(
-        "flex flex-col gap-1 border-r border-base-300 min-w-48 pr-2",
-        className,
-      )}
+      className={clsx("flex flex-col gap-1 min-w-48 max-w-48 pr-2", className)}
     >
       <h3 className="text-sm font-semibold pl-2">{header}</h3>
       <div className="flex flex-col gap-1 overflow-y-auto">

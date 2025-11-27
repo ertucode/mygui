@@ -19,14 +19,20 @@ export function RecentsList({ recents, d, className }: RecentsListProps) {
       emptyMessage="No recent directories"
       getKey={(recent) => recent.fullPath}
       isSelected={(recent) => d.directory.fullName === recent.fullPath}
-      onClick={(recent) => d.cdFull(recent.fullPath)}
+      onClick={(recent) => {
+        if (recent.type === "dir") {
+          d.cdFull(recent.fullPath);
+        } else {
+          window.electron.openFile(recent.fullPath);
+        }
+      }}
       className={className}
       render={(recent) => (
         <>
           {recent.type === "dir" ? (
-            <FolderIcon className="w-4 h-4 text-blue-500" />
+            <FolderIcon className="size-4 min-w-4 text-blue-500" />
           ) : (
-            <FileIcon className="w-4 h-4 text-green-500" />
+            <FileIcon className="size-4 min-w-4 text-green-500" />
           )}
           <span className="truncate">{recentName(recent)}</span>
         </>

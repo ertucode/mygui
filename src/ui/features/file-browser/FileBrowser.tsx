@@ -145,7 +145,7 @@ export function FileBrowser() {
   const favorites = useFavorites();
 
   return (
-    <div className="flex flex-col items-stretch py-3 gap-3">
+    <div className="flex flex-col items-stretch py-3 gap-3 h-full">
       <FuzzyFinderDialog fuzzy={fuzzy} />
       <div className="flex gap-3">
         <label className="label">
@@ -169,12 +169,12 @@ export function FileBrowser() {
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
       </div>
-      <div className="flex gap-0">
-        <div className="flex flex-col h-160">
+      <div className="flex gap-0 h-full">
+        <div className="flex flex-col h-full">
           <FavoritesList favorites={favorites} d={d} className="flex-1" />
           <RecentsList recents={recents} d={d} className="flex-1" />
         </div>
-        <div className="relative h-160 flex flex-col max-h-160 overflow-y-auto flex-1">
+        <div className="relative h-full flex flex-col max-h-full overflow-y-auto flex-1">
           {d.loading ? (
             <div>Loading...</div>
           ) : d.error ? (
