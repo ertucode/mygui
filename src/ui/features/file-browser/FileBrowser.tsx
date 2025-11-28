@@ -26,6 +26,7 @@ import { FavoritesList } from "./components/FavoritesList";
 import { useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
+import { FilePreview } from "./components/FilePreview";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -144,8 +145,18 @@ export function FileBrowser() {
 
   const favorites = useFavorites();
 
+  // Get selected file for preview (only if exactly one file is selected)
+  const selectedItem =
+    s.state.indexes.size === 1 && s.state.lastSelected != null
+      ? table.data[s.state.lastSelected]
+      : null;
+  const previewFilePath =
+    selectedItem && selectedItem.type === "file"
+      ? d.getFullName(selectedItem.name)
+      : null;
+
   return (
-    <div className="flex flex-col items-stretch py-3 gap-3 h-full">
+    <div className="flex flex-col items-stretch gap-3 h-full p-6">
       <FuzzyFinderDialog fuzzy={fuzzy} />
       <div className="flex gap-3">
         <label className="label">
@@ -169,7 +180,7 @@ export function FileBrowser() {
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
       </div>
-      <div className="flex gap-0 h-full">
+      <div className="flex gap-0 flex-1">
         <div className="flex flex-col h-full">
           <FavoritesList favorites={favorites} d={d} className="flex-1" />
           <RecentsList recents={recents} d={d} className="flex-1" />
@@ -225,6 +236,12 @@ export function FileBrowser() {
               }}
             ></Table>
           )}
+        </div>
+        <div className="w-80 h-full border-l border-base-300 flex-shrink-0 pl-3">
+          <FilePreview
+            filePath={previewFilePath}
+            isFile={selectedItem?.type === "file"}
+          />
         </div>
       </div>
     </div>

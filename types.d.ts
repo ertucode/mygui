@@ -40,6 +40,7 @@ type EventResponseMapping = {
   onDragStart: Promise<unknown>;
   captureRect: Promise<unknown>;
   getHomeDirectory: string;
+  readFilePreview: Promise<{ content: string; isTruncated: boolean } | { error: string }>;
 };
 
 type EventRequestMapping = {
@@ -52,6 +53,7 @@ type EventRequestMapping = {
     image: string;
   };
   captureRect: Rect;
+  readFilePreview: string;
 };
 
 type EventRequest<Key extends keyof EventResponseMapping> =
@@ -85,6 +87,7 @@ interface Window {
     ) => Promise<unknown>;
     captureRect: (rect: Rect) => Promise<string>;
     getHomeDirectory: () => Promise<string>;
+    readFilePreview: (filePath: string) => Promise<{ content: string; isTruncated: boolean } | { error: string }>;
   };
 }
 

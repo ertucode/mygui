@@ -17,6 +17,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   onDragStart: (req) => ipcInvoke("onDragStart", req),
   captureRect: (rect) => ipcInvoke("captureRect", rect),
   getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
+  readFilePreview: (filePath: string) => ipcInvoke("readFilePreview", filePath),
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(
