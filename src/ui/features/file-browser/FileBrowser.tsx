@@ -295,7 +295,7 @@ function getRowContextMenu({
           onClick: () => {
             favorites.addFavorite({
               fullPath,
-              type: "dir",
+              type: item.type,
             });
             close();
           },
