@@ -3,11 +3,14 @@ import { ipcHandle, isDev } from "./util.js";
 import { getStaticData, pollResources } from "./resourceManager.js";
 import { getPreloadPath, getUIPath } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
-import { getInitializedFuzzyFinder } from "./utils/get-initialized-fuzzy-finder.js";
 import { getFilesAndFoldersInDirectory } from "./utils/file-browser-helpers.js";
 import { openFile } from "./utils/open-file.js";
+import { getInitializedFuzzyFinder } from "./utils/get-initialized-fuzzy-finder.js";
 import { expandHome } from "./utils/expand-home.js";
 import { base64ImageToTempPath } from "./utils/base64-image-to-temp-path.js";
+import { captureRect } from "./utils/capture-rect.js";
+import { getFileContent } from "./utils/get-file-content.js";
+import { deleteFiles } from "./utils/delete-files.js";
 
 app.on("ready", () => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -47,24 +50,10 @@ app.on("ready", () => {
   ipcHandle("onDragStart", async ({ files, image }, event) => {
     event.sender.startDrag({
       files: files.map((file) => expandHome(file)),
-      //icon: path.join(__dirname, "assets", "file-drag.png"),
-      // icon: base64ImageToTempPath(app, await captureRect(rect, event)),
       icon: base64ImageToTempPath(app, image),
       file: "",
     });
   });
-
-  async function captureRect(
-    rect: Electron.Rectangle,
-    event: Electron.IpcMainInvokeEvent,
-  ) {
-    const win = BrowserWindow.fromWebContents(event.sender)!;
-    const image = await win.capturePage(rect);
-    const width = 800;
-    return image
-      .resize({ width, height: width * image.getAspectRatio() })
-      .toDataURL();
-  }
 
   ipcHandle("captureRect", async (rect, event) => {
     return captureRect(rect, event);
@@ -74,61 +63,6 @@ app.on("ready", () => {
     return "/" + app.getPath("home");
   });
 
-  ipcHandle("readFilePreview", async (filePath: string) => {
-    try {
-      const fs = await import("fs/promises");
-      
-      // Expand home directory if needed
-      const fullPath = expandHome(filePath);
-      
-      // Check file size first
-      const stats = await fs.stat(fullPath);
-      const maxSize = 1024 * 1024; // 1MB
-      
-      if (stats.size > maxSize) {
-        return { error: `File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 1MB.` };
-      }
-      
-      // Read file content
-      const content = await fs.readFile(fullPath, "utf-8");
-      
-      return { content, isTruncated: false };
-    } catch (error) {
-      if (error instanceof Error) {
-        return { error: error.message };
-      }
-      return { error: "Unknown error reading file" };
-    }
-  });
-
-  ipcHandle("deleteFiles", async (filePaths: string[]) => {
-    try {
-      const fs = await import("fs/promises");
-      
-      // Delete all files/directories
-      await Promise.all(
-        filePaths.map(async (filePath) => {
-          const fullPath = expandHome(filePath);
-          
-          // Check if it's a file or directory
-          const stats = await fs.stat(fullPath);
-          
-          if (stats.isDirectory()) {
-            // Delete directory recursively
-            await fs.rm(fullPath, { recursive: true, force: true });
-          } else {
-            // Delete file
-            await fs.unlink(fullPath);
-          }
-        })
-      );
-      
-      return { success: true };
-    } catch (error) {
-      if (error instanceof Error) {
-        return { success: false, error: error.message };
-      }
-      return { success: false, error: "Unknown error deleting files" };
-    }
-  });
+  ipcHandle("readFilePreview", getFileContent);
+  ipcHandle("deleteFiles", deleteFiles);
 });
