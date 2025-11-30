@@ -204,5 +204,6 @@ export function useDirectory(
     getFullName,
     preloadDirectory,
     setSettings,
+    reload: () => loadDirectory(directory.fullName),
   };
 }

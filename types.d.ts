@@ -41,6 +41,7 @@ type EventResponseMapping = {
   captureRect: Promise<unknown>;
   getHomeDirectory: string;
   readFilePreview: Promise<{ content: string; isTruncated: boolean } | { error: string }>;
+  deleteFiles: Promise<{ success: boolean; error?: string }>;
 };
 
 type EventRequestMapping = {
@@ -54,6 +55,7 @@ type EventRequestMapping = {
   };
   captureRect: Rect;
   readFilePreview: string;
+  deleteFiles: string[];
 };
 
 type EventRequest<Key extends keyof EventResponseMapping> =
@@ -88,6 +90,7 @@ interface Window {
     captureRect: (rect: Rect) => Promise<string>;
     getHomeDirectory: () => Promise<string>;
     readFilePreview: (filePath: string) => Promise<{ content: string; isTruncated: boolean } | { error: string }>;
+    deleteFiles: (filePaths: string[]) => Promise<{ success: boolean; error?: string }>;
   };
 }
 

@@ -18,6 +18,7 @@ import {
   FuzzyFinderDialog,
   useFuzzyFinder,
 } from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
+import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
@@ -33,6 +34,7 @@ export function FileBrowser() {
   const recents = useRecents();
   const d = useDirectory(defaultPath.path, recents);
   const s = useSelection(useDefaultSelection());
+  const confirmation = useConfirmation();
 
   const fuzzy = useFuzzyFinder({
     items: d.directoryData,
@@ -103,45 +105,95 @@ export function FileBrowser() {
     }, 5);
   };
 
-  useShortcuts([
-    {
-      key: ["Enter", "l"],
-      handler: (_) => {
-        if (fuzzy.open) {
-          fuzzy.close();
-          fuzzy.setQuery("");
-          tableRef.current?.querySelector("tbody")?.focus();
-        }
-        if (s.state.lastSelected == null || s.state.indexes.size !== 1) {
-          openItem(table.data[0]);
-        } else {
-          openItem(table.data[s.state.lastSelected]);
+  const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
+    const paths = items.map((item) => d.getFullName(item.name));
+
+    confirmation.confirm({
+      title: "Confirm Delete",
+      message: (
+        <p>
+          Are you sure you want to delete{" "}
+          {items.length === 1 ? `"${items[0].name}"` : `${items.length} items`}?
+        </p>
+      ),
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          // Delete all selected files/folders
+          await window.electron.deleteFiles(paths);
+
+          // Remove from favorites if they were favorited
+          paths.forEach((path) => {
+            if (favorites.isFavorite(path)) {
+              favorites.removeFavorite(path);
+            }
+          });
+
+          // Reload the directory without affecting history
+          await d.reload();
+
+          // Clear selection
+          s.reset();
+        } catch (error) {
+          console.error("Error deleting files:", error);
         }
       },
-      enabledIn: (e) =>
-        (e.target as HTMLInputElement).id === "fuzzy-finder-input" &&
-        e.key === "Enter",
-    },
-    {
-      key: ["Backspace", "h"],
-      handler: (_) => {
-        onGoUpOrPrev(d.goPrev);
+    });
+  };
+
+  useShortcuts(
+    [
+      {
+        key: ["Enter", "l"],
+        handler: (_) => {
+          if (fuzzy.open) {
+            fuzzy.close();
+            fuzzy.setQuery("");
+            tableRef.current?.querySelector("tbody")?.focus();
+          }
+          if (s.state.lastSelected == null || s.state.indexes.size !== 1) {
+            openItem(table.data[0]);
+          } else {
+            openItem(table.data[s.state.lastSelected]);
+          }
+        },
+        enabledIn: (e) =>
+          (e.target as HTMLInputElement).id === "fuzzy-finder-input" &&
+          e.key === "Enter",
       },
-    },
-    {
-      key: " ",
-      handler: (_) => {
-        if (s.state.lastSelected == null) {
-          s?.selectManually(0);
-        }
+      {
+        key: ["Backspace", "h"],
+        handler: (_) => {
+          onGoUpOrPrev(d.goPrev);
+        },
       },
-    },
+      {
+        key: " ",
+        handler: (_) => {
+          if (s.state.lastSelected == null) {
+            s?.selectManually(0);
+          }
+        },
+      },
+      {
+        key: "-",
+        handler: () => onGoUpOrPrev(d.goUp),
+      },
+      {
+        key: { key: "Backspace", metaKey: true },
+        handler: () => {
+          // Command+Delete on macOS
+          if (s.state.indexes.size === 0) return;
+          const itemsToDelete = [...s.state.indexes].map((i) => table.data[i]);
+          handleDelete(itemsToDelete);
+        },
+      },
+      ...s.getShortcuts(table.data.length),
+    ],
     {
-      key: "-",
-      handler: () => onGoUpOrPrev(d.goUp),
+      isDisabled: confirmation.isOpen,
     },
-    ...s.getShortcuts(table.data.length),
-  ]);
+  );
 
   const favorites = useFavorites();
 
@@ -220,6 +272,9 @@ export function FileBrowser() {
                 },
                 favorites,
                 d,
+                handleDelete,
+                selection: s,
+                tableData: table.data,
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
@@ -269,10 +324,16 @@ function getRowContextMenu({
   setAsDefaultPath,
   favorites,
   d,
+  handleDelete,
+  selection,
+  tableData,
 }: {
   setAsDefaultPath: (path: string) => void;
   favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
+  handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
+  selection: ReturnType<typeof useSelection>;
+  tableData: GetFilesAndFoldersInDirectoryItem[];
 }) {
   return ({
     item,
@@ -283,6 +344,8 @@ function getRowContextMenu({
   }) => {
     const fullPath = d.getFullName(item.name);
     const isFavorite = favorites.isFavorite(fullPath);
+    const itemIndex = tableData.findIndex((i) => i.name === item.name);
+
     const favoriteItem: ContextMenuItem = isFavorite
       ? {
           onClick: () => {
@@ -301,6 +364,30 @@ function getRowContextMenu({
           },
           view: <div>Set as favorite</div>,
         };
+
+    const deleteItem: ContextMenuItem = {
+      onClick: () => {
+        const isSelected =
+          itemIndex !== -1 && selection.state.indexes.has(itemIndex);
+        const itemsToDelete =
+          isSelected && selection.state.indexes.size > 0
+            ? [...selection.state.indexes].map((i) => tableData[i])
+            : [item];
+        handleDelete(itemsToDelete);
+        close();
+      },
+      view: (
+        <div>
+          Delete{" "}
+          {itemIndex !== -1 &&
+          selection.state.indexes.has(itemIndex) &&
+          selection.state.indexes.size > 1
+            ? `(${selection.state.indexes.size} items)`
+            : ""}
+        </div>
+      ),
+    };
+
     if (item.type === "dir")
       return (
         <ContextMenuList
@@ -313,10 +400,11 @@ function getRowContextMenu({
               view: <div>Set as default path</div>,
             },
             favoriteItem,
+            deleteItem,
           ]}
         />
       );
 
-    return <ContextMenuList items={[favoriteItem]} />;
+    return <ContextMenuList items={[favoriteItem, deleteItem]} />;
   };
 }

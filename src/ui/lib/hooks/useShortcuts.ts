@@ -9,17 +9,24 @@ type ShortcutWithHandler = {
   handler: (e: KeyboardEvent) => void;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
 };
+export type UseShortcutsOptions = {
+  isDisabled?: boolean;
+};
 export function useShortcuts(
   shortcuts: ($Maybe<ShortcutWithHandler> | boolean)[],
+  opts?: UseShortcutsOptions,
 ) {
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) =>
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (opts?.isDisabled) return;
       handleKeyDownWithShortcuts(e, shortcuts);
+    };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [shortcuts]);
+  }, [shortcuts, opts]);
 }
 
 function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {

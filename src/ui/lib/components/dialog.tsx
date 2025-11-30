@@ -1,11 +1,14 @@
 import { type ReactNode, useEffect, useRef } from "react";
+import { cn } from "../functions/clsx";
 
 export function Dialog({
   children,
   onClose,
+  className,
 }: {
   children: ReactNode;
   onClose?: () => void;
+  className?: string;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -32,13 +35,7 @@ export function Dialog({
 
   return (
     <dialog className="modal" ref={dialogRef} onClose={onClose}>
-      <div
-        className="modal-box"
-        style={{
-          maxWidth: "80vw",
-          maxHeight: "80vh",
-        }}
-      >
+      <div className={cn("modal-box max-w-[80vw] max-h-[80vh]", className)}>
         {children}
       </div>
     </dialog>
