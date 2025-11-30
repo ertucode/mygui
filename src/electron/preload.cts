@@ -1,10 +1,6 @@
 import electron from "electron";
 
 electron.contextBridge.exposeInMainWorld("electron", {
-  subscribeStatistics: (callback: (statistics: any) => void) => {
-    return ipcOn("statistics", callback);
-  },
-  getStatistics: () => ipcInvoke("getStaticData", undefined),
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
   convertDocxToPdf: (file: File) =>
     ipcInvoke("docxToPdf", electron.webUtils.getPathForFile(file)),

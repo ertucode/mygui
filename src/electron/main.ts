@@ -1,6 +1,5 @@
 import { app, BrowserWindow, screen } from "electron";
 import { ipcHandle, isDev } from "./util.js";
-import { getStaticData, pollResources } from "./resourceManager.js";
 import { getPreloadPath, getUIPath } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
 import { getFilesAndFoldersInDirectory } from "./utils/file-browser-helpers.js";
@@ -29,9 +28,6 @@ app.on("ready", () => {
     mainWindow.loadFile(getUIPath());
   }
 
-  pollResources(mainWindow);
-
-  ipcHandle("getStaticData", () => getStaticData());
   ipcHandle("docxToPdf", (filePath: string) =>
     convertDocxToPdf(filePath, undefined, { copyBase64ToClipboard: true }),
   );

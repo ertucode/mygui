@@ -1,12 +1,3 @@
-type Statistics = {
-  cpuUsage: number;
-  ramUsage: number;
-  storageData: {
-    total: number;
-    usage: number;
-  };
-};
-
 type GetFilesAndFoldersInDirectoryItem = (
   | {
       type: "file";
@@ -24,15 +15,7 @@ type GetFilesAndFoldersInDirectoryItem = (
   name: string;
 };
 
-type StatisticData = {
-  totalStorage: number;
-  cpuModel: string;
-  totalMemoryGB: number;
-};
-
 type EventResponseMapping = {
-  statistics: Statistics;
-  getStaticData: StatisticData;
   docxToPdf: Promise<string>;
   fuzzyFind: string[];
   getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
@@ -40,7 +23,9 @@ type EventResponseMapping = {
   onDragStart: Promise<unknown>;
   captureRect: Promise<unknown>;
   getHomeDirectory: string;
-  readFilePreview: Promise<{ content: string; isTruncated: boolean } | { error: string }>;
+  readFilePreview: Promise<
+    { content: string; isTruncated: boolean } | { error: string }
+  >;
   deleteFiles: Promise<{ success: boolean; error?: string }>;
 };
 
@@ -72,10 +57,6 @@ type Rect = {
 
 interface Window {
   electron: {
-    subscribeStatistics: (
-      callback: (statistics: Statistics) => void,
-    ) => UnsubscribeFunction;
-    getStatistics: () => Promise<StatisticData>;
     getFilePath: (file: File) => string;
     convertDocxToPdf: (file: File) => Promise<string>;
     convertDocxToPdfByPath: (filePath: string) => Promise<string>;
@@ -89,8 +70,12 @@ interface Window {
     ) => Promise<unknown>;
     captureRect: (rect: Rect) => Promise<string>;
     getHomeDirectory: () => Promise<string>;
-    readFilePreview: (filePath: string) => Promise<{ content: string; isTruncated: boolean } | { error: string }>;
-    deleteFiles: (filePaths: string[]) => Promise<{ success: boolean; error?: string }>;
+    readFilePreview: (
+      filePath: string,
+    ) => Promise<{ content: string; isTruncated: boolean } | { error: string }>;
+    deleteFiles: (
+      filePaths: string[],
+    ) => Promise<{ success: boolean; error?: string }>;
   };
 }
 
