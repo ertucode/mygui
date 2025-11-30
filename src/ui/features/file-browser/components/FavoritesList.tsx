@@ -1,4 +1,4 @@
-import { FolderIcon, FileIcon } from "lucide-react";
+import { FolderIcon, FileIcon, Trash2Icon } from "lucide-react";
 import { useFavorites, type FavoriteItem } from "../hooks/useFavorites";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
@@ -20,6 +20,19 @@ export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) => d.directory.fullName === favorite.fullPath}
       onClick={(favorite) => d.cdFull(favorite.fullPath)}
+      getContextMenuItems={(favorite) => [
+        {
+          view: (
+            <div className="flex items-center gap-2">
+              <Trash2Icon className="size-4" />
+              <span>Delete</span>
+            </div>
+          ),
+          onClick: () => {
+            favorites.removeFavorite(favorite.fullPath);
+          },
+        },
+      ]}
       className={className}
       render={(favorite) => (
         <>
