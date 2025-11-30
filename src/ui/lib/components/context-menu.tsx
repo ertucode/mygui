@@ -1,4 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 export type ContextMenuProps<T> = {
   children: React.ReactNode;
@@ -12,7 +18,9 @@ export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
       className="fixed z-50"
       style={{ top: menu.position?.y, left: menu.position?.x }}
     >
-      {children}
+      <ContextMenuContext.Provider value={menu}>
+        {children}
+      </ContextMenuContext.Provider>
     </div>
   );
 }
@@ -27,6 +35,7 @@ export type ContextMenuListProps = {
 };
 
 export function ContextMenuList({ items }: ContextMenuListProps) {
+  const menu = useContext(ContextMenuContext);
   return (
     <ul className="menu bg-base-200 rounded-box w-56">
       {items
@@ -34,7 +43,14 @@ export function ContextMenuList({ items }: ContextMenuListProps) {
         .map((item, idx) => {
           return (
             <li key={idx}>
-              <a onClick={item.onClick}>{item.view}</a>
+              <a
+                onClick={() => {
+                  item.onClick();
+                  menu.close();
+                }}
+              >
+                {item.view}
+              </a>
             </li>
           );
         })}
@@ -86,3 +102,7 @@ export function useContextMenu<T>() {
     close: () => setState(null),
   };
 }
+
+const ContextMenuContext = createContext<
+  ReturnType<typeof useContextMenu<any>>
+>({} as ReturnType<typeof useContextMenu>);
