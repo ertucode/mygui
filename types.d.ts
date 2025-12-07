@@ -28,6 +28,7 @@ type EventResponseMapping = {
   >;
   deleteFiles: Promise<{ success: boolean; error?: string }>;
   createFileOrFolder: Promise<{ success: boolean; error?: string; path?: string }>;
+  getPreviewPreloadPath: string;
 };
 
 type EventRequestMapping = {
@@ -85,6 +86,7 @@ interface Window {
       parentDir: string,
       name: string,
     ) => Promise<{ success: boolean; error?: string; path?: string }>;
+    getPreviewPreloadPath: () => Promise<string>;
     getStartingDirectory: () => string | undefined | null;
   };
 }

@@ -10,6 +10,14 @@ export function getPreloadPath() {
   );
 }
 
+export function getPreviewPreloadPath() {
+  return path.join(
+    app.getAppPath(),
+    isDev() ? "." : "..",
+    "/dist-electron/preload-preview.cjs",
+  );
+}
+
 export function getUIPath() {
   return path.join(app.getAppPath(), "/dist-react/index.html");
 }

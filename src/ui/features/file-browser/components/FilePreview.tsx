@@ -1,6 +1,5 @@
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { CopyIcon } from "lucide-react";
 
 type FilePreviewProps = {
   filePath: string | null;
@@ -9,22 +8,22 @@ type FilePreviewProps = {
   fileExt: string | null | undefined;
 };
 
-type ContentType = "image" | "pdf" | "text";
-
-const IMAGE_EXTENSIONS = new Set([
-  ".jpg",
-  ".jpeg",
-  ".png",
-  ".gif",
-  ".webp",
-  ".bmp",
-  ".ico",
-  ".svg",
-]);
-
-const PDF_EXTENSIONS = new Set([".pdf"]);
-
-const MAX_TEXT_SIZE = 1 * 1024 * 1024; // 1MB for text files
+// Declare webview element type for TypeScript
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      webview: React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & {
+          src?: string;
+          preload?: string;
+          nodeintegration?: string;
+          webpreferences?: string;
+        },
+        HTMLElement
+      >;
+    }
+  }
+}
 
 export function FilePreview({
   filePath,
@@ -32,175 +31,68 @@ export function FilePreview({
   fileSize,
   fileExt,
 }: FilePreviewProps) {
-  const [content, setContent] = useState<string | null>(null);
-  const [contentType, setContentType] = useState<ContentType>("text");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [copied, setCopied] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const webviewRef = useRef<any>(null);
+  const [isWebviewReady, setIsWebviewReady] = useState(false);
+  const [preloadPath, setPreloadPath] = useState<string | null>(null);
 
-  const debouncedFilePath = useDebounce(filePath, 150);
+  // Get the preview URL - in dev it's the vite server, in prod it's the file
+  const previewUrl =
+    import.meta.env.MODE === "development"
+      ? "http://localhost:5123/preview.html"
+      : "./preview.html";
 
-  const handleCopy = async () => {
-    if (content && contentType === "text") {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const fetchPreview = (path: string) => {
-    setLoading(true);
-    setError(null);
-
-    window.electron
-      .readFilePreview(path)
-      .then((result) => {
-        if ("error" in result) {
-          setError(result.error);
-          setContent(null);
-          setContentType("text");
-        } else {
-          setContent(result.content);
-          setContentType(result.contentType);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load file preview");
-        setContent(null);
-        setContentType("text");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  // Check if file is too large for text preview
-  const ext = fileExt || "";
-  const isImage = IMAGE_EXTENSIONS.has(ext);
-  const isPdf = PDF_EXTENSIONS.has(ext);
-  const isTextTooLarge =
-    !isImage && !isPdf && fileSize != null && fileSize > MAX_TEXT_SIZE;
-
+  // Get the preload path on mount
   useEffect(() => {
-    if (!debouncedFilePath || !isFile) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
-      return;
-    }
+    window.electron.getPreviewPreloadPath().then(setPreloadPath);
+  }, []);
 
-    if (isTextTooLarge) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
-      return;
-    }
+  // Set up dom-ready listener once
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview) return;
 
-    fetchPreview(debouncedFilePath);
-  }, [debouncedFilePath, isFile, isTextTooLarge]);
+    const handleDomReady = () => {
+      setIsWebviewReady(true);
+    };
 
-  if (!filePath) {
+    webview.addEventListener("dom-ready", handleDomReady);
+    return () => {
+      webview.removeEventListener("dom-ready", handleDomReady);
+    };
+  }, [preloadPath]); // Re-run when preloadPath changes (webview mounts)
+
+  // Send file data to webview when it changes or webview becomes ready
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview || !isWebviewReady) return;
+
+    webview.send("preview-file", {
+      filePath,
+      isFile,
+      fileSize: fileSize ?? null,
+      fileExt: fileExt ?? null,
+    });
+  }, [filePath, isFile, fileSize, fileExt, isWebviewReady]);
+
+  // Don't render webview until we have the preload path
+  if (!preloadPath) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        No file selected
-      </div>
-    );
-  }
-
-  if (!isFile) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Directory preview not available
-      </div>
-    );
-  }
-
-  if (isTextTooLarge && !content && !loading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
-        <div>
-          File too large for preview
-          <br />
-          <span className="text-xs">
-            ({((fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max 1MB)
-          </span>
-        </div>
-        <button
-          className="btn btn-xs btn-ghost"
-          onClick={() => filePath && fetchPreview(filePath)}
-        >
-          Preview anyway
-        </button>
-      </div>
-    );
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        <span className="loading loading-spinner size-10" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4">
-        {error}
-      </div>
-    );
-  }
-
-  if (content === null) {
-    return null;
-  }
-
-  if (contentType === "image") {
-    return (
-      <div className="h-full flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-3 rounded-xl flex items-center justify-center">
-          <img
-            src={content}
-            alt="Preview"
-            className="max-w-full max-h-full object-contain"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (contentType === "pdf") {
-    return (
-      <div className="h-full flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 bg-base-200 rounded-xl overflow-hidden">
-          <iframe
-            src={content}
-            title="PDF Preview"
-            className="w-full h-full border-0"
-          />
-        </div>
+      <div className="h-full w-full flex items-center justify-center text-gray-500">
+        <span className="loading loading-spinner size-6" />
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-3 rounded-xl flex flex-col">
-        <button
-          className="btn btn-xs btn-ghost self-end flex-shrink-0"
-          onClick={handleCopy}
-          title="Copy contents"
-        >
-          <CopyIcon className="size-3" />
-          {copied ? "Copied!" : "Copy"}
-        </button>
-        <pre className="text-[10px] leading-tight whitespace-pre-wrap break-words font-mono">
-          {content}
-        </pre>
-      </div>
+    <div className="h-full w-full">
+      <webview
+        ref={webviewRef as any}
+        src={previewUrl}
+        preload={`file://${preloadPath}`}
+        webpreferences="contextIsolation=yes"
+        style={{ width: "100%", height: "100%" }}
+      />
     </div>
   );
 }

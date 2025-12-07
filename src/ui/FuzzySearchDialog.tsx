@@ -22,7 +22,6 @@ export default function FuzzySearchDialog({
       return;
     }
     const res = await window.electron.fuzzyFind(q);
-    console.log("Searching for", res);
     setResults(res);
     setHighlight(0);
   }, 100);
