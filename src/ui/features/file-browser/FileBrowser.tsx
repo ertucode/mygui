@@ -145,17 +145,24 @@ export function FileBrowser() {
     [
       {
         key: ["Enter", "l"],
-        handler: (_) => {
+        handler: (e) => {
+          function resolveItemToOpen() {
+            if (s.state.lastSelected == null || s.state.indexes.size !== 1) {
+              return table.data[0];
+            } else {
+              return table.data[s.state.lastSelected];
+            }
+          }
+
+          const itemToOpen = resolveItemToOpen();
+          if (itemToOpen.type === "file" && e.key === "l") return;
+
           if (fuzzy.open) {
             fuzzy.close();
             fuzzy.setQuery("");
             tableRef.current?.querySelector("tbody")?.focus();
           }
-          if (s.state.lastSelected == null || s.state.indexes.size !== 1) {
-            openItem(table.data[0]);
-          } else {
-            openItem(table.data[s.state.lastSelected]);
-          }
+          openItem(itemToOpen);
         },
         enabledIn: (e) =>
           (e.target as HTMLInputElement).id === "fuzzy-finder-input" &&
@@ -251,10 +258,14 @@ export function FileBrowser() {
       </div>
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
-          <FavoritesList favorites={favorites} d={d} className="flex-1 min-h-0" />
+          <FavoritesList
+            favorites={favorites}
+            d={d}
+            className="flex-1 min-h-0"
+          />
           <RecentsList recents={recents} d={d} className="flex-1 min-h-0" />
         </div>
-        <div className="relative flex flex-col min-h-0 overflow-y-auto flex-1">
+        <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           {d.loading ? (
             <div>Loading...</div>
           ) : d.error ? (

@@ -17,23 +17,43 @@ export const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
   {
     accessorKey: "name",
     header: "Name",
+    cell: (row) => (
+      <span className="block truncate max-w-xs" title={row.name}>
+        {row.name}
+      </span>
+    ),
   },
   {
     accessorKey: "ext",
     header: "Ext",
     size: 24,
+    cell: (row) => (
+      <span className="block truncate" style={{ maxWidth: 24 }} title={row.ext ?? undefined}>
+        {row.ext}
+      </span>
+    ),
   },
   {
     accessorKey: "sizeStr",
     sortKey: "size",
     header: "Size",
     size: 84,
+    cell: (row) => (
+      <span className="block truncate" style={{ maxWidth: 84 }} title={row.sizeStr ?? undefined}>
+        {row.sizeStr}
+      </span>
+    ),
   },
   {
     accessorKey: "modifiedAt",
     sortKey: "modifiedTimestamp",
     header: "Modified",
     size: 148,
+    cell: (row) => (
+      <span className="block truncate" style={{ maxWidth: 148 }} title={row.modifiedAt ?? undefined}>
+        {row.modifiedAt}
+      </span>
+    ),
   },
 ];
 
