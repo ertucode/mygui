@@ -17,6 +17,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
+  getPreviewPreloadPath: () => ipcInvoke("getPreviewPreloadPath", undefined),
   getStartingDirectory: () => {
     const arg = process.argv.find((x) => x.startsWith("--initial-path="));
     const staticData = arg ? arg.replace("--initial-path=", "") : null;

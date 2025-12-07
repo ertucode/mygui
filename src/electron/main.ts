@@ -1,6 +1,6 @@
 import { app, BrowserWindow, Menu, screen } from "electron";
 import { ipcHandle, isDev } from "./util.js";
-import { getPreloadPath, getUIPath } from "./pathResolver.js";
+import { getPreloadPath, getPreviewPreloadPath, getUIPath } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
 import { getFilesAndFoldersInDirectory } from "./utils/file-browser-helpers.js";
 import { openFile } from "./utils/open-file.js";
@@ -79,6 +79,7 @@ app.on("ready", () => {
       y: 0,
       webPreferences: {
         preload: getPreloadPath(),
+        webviewTag: true,
         additionalArguments: initialPath
           ? [`--initial-path=${initialPath}`]
           : [],
@@ -132,4 +133,5 @@ app.on("ready", () => {
   ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
     createFileOrFolder(parentDir, name),
   );
+  ipcHandle("getPreviewPreloadPath", () => getPreviewPreloadPath());
 });
