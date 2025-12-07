@@ -10,6 +10,7 @@ import { base64ImageToTempPath } from "./utils/base64-image-to-temp-path.js";
 import { captureRect } from "./utils/capture-rect.js";
 import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
+import { createFileOrFolder } from "./utils/create-file-or-folder.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -128,4 +129,7 @@ app.on("ready", () => {
 
   ipcHandle("readFilePreview", getFileContent);
   ipcHandle("deleteFiles", deleteFiles);
+  ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
+    createFileOrFolder(parentDir, name),
+  );
 });

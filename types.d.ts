@@ -27,6 +27,7 @@ type EventResponseMapping = {
     { content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" } | { error: string }
   >;
   deleteFiles: Promise<{ success: boolean; error?: string }>;
+  createFileOrFolder: Promise<{ success: boolean; error?: string; path?: string }>;
 };
 
 type EventRequestMapping = {
@@ -41,6 +42,10 @@ type EventRequestMapping = {
   captureRect: Rect;
   readFilePreview: string;
   deleteFiles: string[];
+  createFileOrFolder: {
+    parentDir: string;
+    name: string;
+  };
 };
 
 type EventRequest<Key extends keyof EventResponseMapping> =
@@ -76,6 +81,10 @@ interface Window {
     deleteFiles: (
       filePaths: string[],
     ) => Promise<{ success: boolean; error?: string }>;
+    createFileOrFolder: (
+      parentDir: string,
+      name: string,
+    ) => Promise<{ success: boolean; error?: string; path?: string }>;
     getStartingDirectory: () => string | undefined | null;
   };
 }

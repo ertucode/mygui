@@ -33,21 +33,13 @@ export async function getFileContent(filePath: string) {
   try {
     // Expand home directory if needed
     const fullPath = expandHome(filePath);
-
-    // Check file size first
-    const stats = await fs.stat(fullPath);
-    const maxSize = 10 * 1024 * 1024; // 10MB
-
-    if (stats.size > maxSize) {
-      return {
-        error: `File too large (${(stats.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 10MB.`,
-      };
-    }
-
     const ext = path.extname(fullPath).toLowerCase();
 
+    const isImage = IMAGE_EXTENSIONS.has(ext);
+    const isPdf = PDF_EXTENSIONS.has(ext);
+
     // Handle image files
-    if (IMAGE_EXTENSIONS.has(ext)) {
+    if (isImage) {
       const buffer = await fs.readFile(fullPath);
       const base64 = buffer.toString("base64");
       const mimeType = MIME_TYPES[ext] || "application/octet-stream";
@@ -57,7 +49,7 @@ export async function getFileContent(filePath: string) {
     }
 
     // Handle PDF files
-    if (PDF_EXTENSIONS.has(ext)) {
+    if (isPdf) {
       const buffer = await fs.readFile(fullPath);
       const base64 = buffer.toString("base64");
       const mimeType = MIME_TYPES[ext] || "application/pdf";

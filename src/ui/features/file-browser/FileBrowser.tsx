@@ -1,5 +1,14 @@
-import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
-import { useRef } from "react";
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  ArrowUpIcon,
+  FolderCogIcon,
+  StarIcon,
+  StarOffIcon,
+  Trash2Icon,
+  FilePlusIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/lib/components/alert";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
@@ -28,6 +37,8 @@ import { useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
 import { FilePreview } from "./components/FilePreview";
+import { NewItemDialog } from "./components/NewItemDialog";
+import { TextWithIcon } from "@/lib/components/text-with-icon";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -35,6 +46,38 @@ export function FileBrowser() {
   const d = useDirectory(defaultPath.path, recents);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
+  const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const handleCreateNewItem = async (
+    name: string,
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const result = await window.electron.createFileOrFolder(
+        d.directory.fullName,
+        name,
+      );
+      if (result.success) {
+        await d.reload();
+        setNewItemDialogOpen(false);
+        setError(null);
+
+        // Set pending selection for the newly created item
+        const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
+        setPendingSelection(itemName);
+      } else if (result.error) {
+        setError(result.error);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+  };
 
   const fuzzy = useFuzzyFinder({
     items: d.directoryData,
@@ -62,7 +105,50 @@ export function FileBrowser() {
     selection: s,
   });
 
-  const tableRef = useRef<HTMLTableElement>(null);
+  const scrollRowIntoViewIfNeeded = (
+    rowIndex: number,
+    block: ScrollLogicalPosition = "nearest",
+  ) => {
+    const row = tableRef.current?.querySelector(
+      `tbody tr:nth-child(${rowIndex + 1})`,
+    );
+    if (row) {
+      const scrollContainer = tableRef.current?.closest(
+        ".overflow-auto",
+      ) as HTMLElement | null;
+      if (scrollContainer) {
+        const containerRect = scrollContainer.getBoundingClientRect();
+        const rowRect = row.getBoundingClientRect();
+        const isInView =
+          rowRect.top >= containerRect.top &&
+          rowRect.bottom <= containerRect.bottom;
+        if (!isInView) {
+          row.scrollIntoView({ block });
+        }
+      }
+    }
+  };
+
+  // Handle pending selection after data reload
+  useEffect(() => {
+    if (pendingSelection && table.data.length > 0) {
+      const newItemIndex = table.data.findIndex(
+        (item) => item.name === pendingSelection,
+      );
+      if (newItemIndex !== -1) {
+        s.selectManually(newItemIndex);
+        scrollRowIntoViewIfNeeded(newItemIndex, "center");
+      }
+      setPendingSelection(null);
+    }
+  }, [pendingSelection, table.data]);
+
+  // Scroll to selected row when selection changes (keyboard navigation)
+  useEffect(() => {
+    if (s.state.lastSelected != null) {
+      scrollRowIntoViewIfNeeded(s.state.lastSelected);
+    }
+  }, [s.state.lastSelected]);
 
   const sort = useTableSort(
     {
@@ -107,6 +193,14 @@ export function FileBrowser() {
 
   const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
     const paths = items.map((item) => d.getFullName(item.name));
+    const deletedNames = new Set(items.map((item) => item.name));
+
+    // Find the smallest index among items being deleted
+    const deletedIndexes = items
+      .map((item) => table.data.findIndex((d) => d.name === item.name))
+      .filter((idx) => idx !== -1)
+      .sort((a, b) => a - b);
+    const smallestDeletedIndex = deletedIndexes[0] ?? 0;
 
     confirmation.confirm({
       title: "Confirm Delete",
@@ -132,8 +226,21 @@ export function FileBrowser() {
           // Reload the directory without affecting history
           await d.reload();
 
-          // Clear selection
-          s.reset();
+          // Select the nearest item (prefer top, fallback to bottom)
+          const remainingItems = table.data.filter(
+            (item) => !deletedNames.has(item.name),
+          );
+          if (remainingItems.length > 0) {
+            // Find the item that should now be at or near the smallest deleted index
+            const newIndex = Math.min(
+              smallestDeletedIndex - 1,
+              remainingItems.length - 1,
+            );
+            const itemToSelect = remainingItems[newIndex];
+            setPendingSelection(itemToSelect.name);
+          } else {
+            s.reset();
+          }
         } catch (error) {
           console.error("Error deleting files:", error);
         }
@@ -195,10 +302,17 @@ export function FileBrowser() {
           handleDelete(itemsToDelete);
         },
       },
+      {
+        key: { key: "n", metaKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          setNewItemDialogOpen(true);
+        },
+      },
       ...s.getShortcuts(table.data.length),
     ],
     {
-      isDisabled: confirmation.isOpen,
+      isDisabled: confirmation.isOpen || newItemDialogOpen,
     },
   );
 
@@ -220,6 +334,11 @@ export function FileBrowser() {
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
       <FuzzyFinderDialog fuzzy={fuzzy} />
+      <NewItemDialog
+        isOpen={newItemDialogOpen}
+        onClose={() => setNewItemDialogOpen(false)}
+        onSubmit={handleCreateNewItem}
+      />
       <div className="flex gap-3">
         <label className="label">
           <input
@@ -277,8 +396,8 @@ export function FileBrowser() {
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           {d.loading ? (
             <div>Loading...</div>
-          ) : d.error ? (
-            <Alert children={d.error} />
+          ) : d.error || error ? (
+            <Alert children={(d.error || error)!} />
           ) : (
             <Table
               tableRef={tableRef}
@@ -295,6 +414,7 @@ export function FileBrowser() {
                 handleDelete,
                 selection: s,
                 tableData: table.data,
+                onNewItem: () => setNewItemDialogOpen(true),
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
@@ -333,6 +453,8 @@ export function FileBrowser() {
           <FilePreview
             filePath={previewFilePath}
             isFile={selectedItem?.type === "file"}
+            fileSize={selectedItem?.size}
+            fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
           />
         </div>
       </div>
@@ -347,6 +469,7 @@ function getRowContextMenu({
   handleDelete,
   selection,
   tableData,
+  onNewItem,
 }: {
   setAsDefaultPath: (path: string) => void;
   favorites: ReturnType<typeof useFavorites>;
@@ -354,6 +477,7 @@ function getRowContextMenu({
   handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
   selection: ReturnType<typeof useSelection>;
   tableData: GetFilesAndFoldersInDirectoryItem[];
+  onNewItem: () => void;
 }) {
   return ({
     item,
@@ -372,7 +496,11 @@ function getRowContextMenu({
             favorites.removeFavorite(fullPath);
             close();
           },
-          view: <div>Remove from favorites</div>,
+          view: (
+            <TextWithIcon icon={StarOffIcon}>
+              Remove from favorites
+            </TextWithIcon>
+          ),
         }
       : {
           onClick: () => {
@@ -382,7 +510,7 @@ function getRowContextMenu({
             });
             close();
           },
-          view: <div>Set as favorite</div>,
+          view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
         };
 
     const deleteItem: ContextMenuItem = {
@@ -397,15 +525,23 @@ function getRowContextMenu({
         close();
       },
       view: (
-        <div>
-          Delete{" "}
+        <TextWithIcon icon={Trash2Icon}>
+          Delete
           {itemIndex !== -1 &&
           selection.state.indexes.has(itemIndex) &&
           selection.state.indexes.size > 1
-            ? `(${selection.state.indexes.size} items)`
+            ? ` (${selection.state.indexes.size} items)`
             : ""}
-        </div>
+        </TextWithIcon>
       ),
+    };
+
+    const newItem: ContextMenuItem = {
+      onClick: () => {
+        onNewItem();
+        close();
+      },
+      view: <TextWithIcon icon={FilePlusIcon}>New file or folder</TextWithIcon>,
     };
 
     if (item.type === "dir")
@@ -417,14 +553,19 @@ function getRowContextMenu({
                 setAsDefaultPath(item.name);
                 close();
               },
-              view: <div>Set as default path</div>,
+              view: (
+                <TextWithIcon icon={FolderCogIcon}>
+                  Set as default path
+                </TextWithIcon>
+              ),
             },
             favoriteItem,
+            newItem,
             deleteItem,
           ]}
         />
       );
 
-    return <ContextMenuList items={[favoriteItem, deleteItem]} />;
+    return <ContextMenuList items={[favoriteItem, newItem, deleteItem]} />;
   };
 }

@@ -1,22 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { CopyIcon } from "lucide-react";
 
 type FilePreviewProps = {
   filePath: string | null;
   isFile: boolean;
+  fileSize: number | null | undefined;
+  fileExt: string | null | undefined;
 };
 
 type ContentType = "image" | "pdf" | "text";
 
-export function FilePreview({ filePath, isFile }: FilePreviewProps) {
+const IMAGE_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".gif",
+  ".webp",
+  ".bmp",
+  ".ico",
+  ".svg",
+]);
+
+const PDF_EXTENSIONS = new Set([".pdf"]);
+
+const MAX_TEXT_SIZE = 1 * 1024 * 1024; // 1MB for text files
+
+export function FilePreview({
+  filePath,
+  isFile,
+  fileSize,
+  fileExt,
+}: FilePreviewProps) {
   const [content, setContent] = useState<string | null>(null);
   const [contentType, setContentType] = useState<ContentType>("text");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const debouncedFilePath = useDebounce(filePath, 5);
+  const debouncedFilePath = useDebounce(filePath, 150);
 
   const handleCopy = async () => {
     if (content && contentType === "text") {
@@ -26,20 +48,12 @@ export function FilePreview({ filePath, isFile }: FilePreviewProps) {
     }
   };
 
-  useEffect(() => {
-    if (!debouncedFilePath || !isFile) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
+  const fetchPreview = (path: string) => {
     setLoading(true);
     setError(null);
 
     window.electron
-      .readFilePreview(debouncedFilePath)
+      .readFilePreview(path)
       .then((result) => {
         if ("error" in result) {
           setError(result.error);
@@ -59,7 +73,34 @@ export function FilePreview({ filePath, isFile }: FilePreviewProps) {
       .finally(() => {
         setLoading(false);
       });
-  }, [debouncedFilePath, isFile]);
+  };
+
+  // Check if file is too large for text preview
+  const ext = fileExt || "";
+  const isImage = IMAGE_EXTENSIONS.has(ext);
+  const isPdf = PDF_EXTENSIONS.has(ext);
+  const isTextTooLarge =
+    !isImage && !isPdf && fileSize != null && fileSize > MAX_TEXT_SIZE;
+
+  useEffect(() => {
+    if (!debouncedFilePath || !isFile) {
+      setContent(null);
+      setContentType("text");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (isTextTooLarge) {
+      setContent(null);
+      setContentType("text");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    fetchPreview(debouncedFilePath);
+  }, [debouncedFilePath, isFile, isTextTooLarge]);
 
   if (!filePath) {
     return (
@@ -77,10 +118,30 @@ export function FilePreview({ filePath, isFile }: FilePreviewProps) {
     );
   }
 
+  if (isTextTooLarge && !content && !loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
+        <div>
+          File too large for preview
+          <br />
+          <span className="text-xs">
+            ({((fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max 1MB)
+          </span>
+        </div>
+        <button
+          className="btn btn-xs btn-ghost"
+          onClick={() => filePath && fetchPreview(filePath)}
+        >
+          Preview anyway
+        </button>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
-        Loading preview...
+        <span className="loading loading-spinner size-10" />
       </div>
     );
   }
