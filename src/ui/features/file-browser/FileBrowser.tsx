@@ -230,6 +230,15 @@ export function FileBrowser() {
           />
           Show dot files
         </label>
+        <label className="label">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-sm"
+            checked={d.settings.foldersOnTop}
+            onChange={() => d.toggleFoldersOnTop()}
+          />
+          Folders on top
+        </label>
       </div>
       <div className="flex items-center gap-3">
         <button
