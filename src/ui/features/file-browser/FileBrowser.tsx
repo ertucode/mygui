@@ -309,7 +309,7 @@ export function FileBrowser() {
             ></Table>
           )}
         </div>
-        <div className="w-80 h-full border-l border-base-300 flex-shrink-0 pl-3">
+        <div className="hidden min-[1000px]:block w-80 h-full border-l border-base-300 flex-shrink-0 pl-3">
           <FilePreview
             filePath={previewFilePath}
             isFile={selectedItem?.type === "file"}

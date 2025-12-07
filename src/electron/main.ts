@@ -72,8 +72,10 @@ app.on("ready", () => {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
     const mainWindow = new BrowserWindow({
-      width,
-      height,
+      width: width / 2,
+      height: height / 3,
+      x: 0,
+      y: 0,
       webPreferences: {
         preload: getPreloadPath(),
         additionalArguments: initialPath
