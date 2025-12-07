@@ -15,6 +15,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
   getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
   readFilePreview: (filePath: string) => ipcInvoke("readFilePreview", filePath),
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
+  getStartingDirectory: () => {
+    const arg = process.argv.find((x) => x.startsWith("--initial-path="));
+    const staticData = arg ? arg.replace("--initial-path=", "") : null;
+    return staticData;
+  },
 } satisfies Window["electron"]);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

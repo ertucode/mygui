@@ -1,7 +1,14 @@
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import z from "zod";
 
+const startingDirectory = window.electron.getStartingDirectory();
+
 export function useDefaultPath() {
-  const [path, setPath] = useLocalStorage<string>("path", z.string(), "~/");
+  const [path, setPath] = useLocalStorage<string>(
+    "path",
+    z.string(),
+    "~/",
+    startingDirectory,
+  );
   return { path, setPath };
 }

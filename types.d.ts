@@ -76,6 +76,7 @@ interface Window {
     deleteFiles: (
       filePaths: string[],
     ) => Promise<{ success: boolean; error?: string }>;
+    getStartingDirectory: () => string | undefined | null;
   };
 }
 

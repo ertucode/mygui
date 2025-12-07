@@ -1,4 +1,4 @@
-import { app, BrowserWindow, screen } from "electron";
+import { app, BrowserWindow, Menu, screen } from "electron";
 import { ipcHandle, isDev } from "./util.js";
 import { getPreloadPath, getUIPath } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
@@ -12,21 +12,86 @@ import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
 
 app.on("ready", () => {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
-
-  const mainWindow = new BrowserWindow({
-    width,
-    height,
-    webPreferences: {
-      preload: getPreloadPath(),
+  const menuTemplate: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: "File",
+      submenu: [
+        {
+          label: "New Window",
+          accelerator: "CmdOrCtrl+N",
+          click: () => {
+            createWindow();
+          },
+        },
+        { type: "separator" },
+        {
+          label: "Close Window",
+          accelerator: "CmdOrCtrl+W",
+          role: "close",
+        },
+        {
+          label: "Quit",
+          accelerator: "CmdOrCtrl+Q",
+          role: "quit",
+        },
+      ],
     },
-  });
+    {
+      label: "Edit",
+      submenu: [
+        { label: "Undo", accelerator: "CmdOrCtrl+Z", role: "undo" },
+        { label: "Redo", accelerator: "Shift+CmdOrCtrl+Z", role: "redo" },
+        { type: "separator" },
+        { label: "Cut", accelerator: "CmdOrCtrl+X", role: "cut" },
+        { label: "Copy", accelerator: "CmdOrCtrl+C", role: "copy" },
+        { label: "Paste", accelerator: "CmdOrCtrl+V", role: "paste" },
+      ],
+    },
+    {
+      label: "View",
+      submenu: [
+        { label: "Reload", accelerator: "CmdOrCtrl+R", role: "reload" },
+        {
+          label: "Toggle Developer Tools",
+          accelerator: "Alt+CmdOrCtrl+I",
+          role: "toggleDevTools",
+        },
+        { type: "separator" },
+        {
+          label: "Toggle Fullscreen",
+          accelerator: "Ctrl+Command+F",
+          role: "togglefullscreen",
+        },
+      ],
+    },
+  ];
+  const menu = Menu.buildFromTemplate(menuTemplate);
+  Menu.setApplicationMenu(menu);
 
-  if (isDev()) {
-    mainWindow.loadURL("http://localhost:5123");
-  } else {
-    mainWindow.loadFile(getUIPath());
+  function createWindow(initialPath?: string) {
+    const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+    const mainWindow = new BrowserWindow({
+      width,
+      height,
+      webPreferences: {
+        preload: getPreloadPath(),
+        additionalArguments: initialPath
+          ? [`--initial-path=${initialPath}`]
+          : [],
+      },
+    });
+
+    if (isDev()) {
+      mainWindow.loadURL("http://localhost:5123");
+    } else {
+      mainWindow.loadFile(getUIPath());
+    }
   }
+  const initialPath = process.argv
+    .find((a) => a.startsWith("--initial-path="))
+    ?.replace("--initial-path=", "");
+  createWindow(initialPath);
 
   ipcHandle("docxToPdf", (filePath: string) =>
     convertDocxToPdf(filePath, undefined, { copyBase64ToClipboard: true }),
