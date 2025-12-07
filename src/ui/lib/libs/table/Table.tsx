@@ -50,12 +50,12 @@ export function Table<T>({
         </ContextMenu>
       )}
 
-      <div className="relative">
+      <div className="relative h-full min-h-0 overflow-auto">
         {children}
 
         <table
           ref={tableRef}
-          className="w-full overflow-auto table table-zebra table-xs border border-base-content/5 "
+          className="w-full table table-zebra table-xs border border-base-content/5"
         >
           <thead>
             <tr>

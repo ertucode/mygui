@@ -5,11 +5,10 @@
     light --preferslight;
 }
 
-body {
+html,
+body,
+#root {
   @apply bg-base-100;
   height: 100vh;
-}
-
-html {
-  height: 100vh;
+  overflow: hidden;
 }

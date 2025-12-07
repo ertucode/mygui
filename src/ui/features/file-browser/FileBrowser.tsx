@@ -211,7 +211,7 @@ export function FileBrowser() {
   const navigationButtonIconClassName = "size-4";
 
   return (
-    <div className="flex flex-col items-stretch gap-3 h-full p-6">
+    <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
       <FuzzyFinderDialog fuzzy={fuzzy} />
       <div className="flex gap-3">
         <label className="label">
@@ -249,12 +249,12 @@ export function FileBrowser() {
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
       </div>
-      <div className="flex gap-0 flex-1">
-        <div className="flex flex-col h-full">
-          <FavoritesList favorites={favorites} d={d} className="flex-1" />
-          <RecentsList recents={recents} d={d} className="flex-1" />
+      <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+          <FavoritesList favorites={favorites} d={d} className="flex-1 min-h-0" />
+          <RecentsList recents={recents} d={d} className="flex-1 min-h-0" />
         </div>
-        <div className="relative h-full flex flex-col max-h-full overflow-y-auto flex-1">
+        <div className="relative flex flex-col min-h-0 overflow-y-auto flex-1">
           {d.loading ? (
             <div>Loading...</div>
           ) : d.error ? (
@@ -309,7 +309,7 @@ export function FileBrowser() {
             ></Table>
           )}
         </div>
-        <div className="hidden min-[1000px]:block w-80 h-full border-l border-base-300 flex-shrink-0 pl-3">
+        <div className="hidden min-[1000px]:flex flex-col w-80 min-h-0 overflow-hidden border-l border-base-300 flex-shrink-0 pl-3">
           <FilePreview
             filePath={previewFilePath}
             isFile={selectedItem?.type === "file"}

@@ -91,10 +91,10 @@ export function FilePreview({ filePath, isFile }: FilePreviewProps) {
   }
 
   return (
-    <div className="h-full max-h-full flex flex-col">
-      <div className="flex-1 overflow-auto bg-base-200 p-3 rounded-xl flex flex-col">
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-3 rounded-xl flex flex-col">
         <button
-          className="btn btn-xs btn-ghost self-end"
+          className="btn btn-xs btn-ghost self-end flex-shrink-0"
           onClick={handleCopy}
           title="Copy contents"
         >
