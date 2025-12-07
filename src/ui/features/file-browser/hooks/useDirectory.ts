@@ -199,6 +199,8 @@ export function useDirectory(
     settings,
     toggleShowDotFiles: () =>
       setSettings((s) => ({ ...s, showDotFiles: !s.showDotFiles })),
+    toggleFoldersOnTop: () =>
+      setSettings((s) => ({ ...s, foldersOnTop: !s.foldersOnTop })),
     openFile: (filePath: string) =>
       window.electron.openFile(getFullName(filePath)),
     getFullName,
