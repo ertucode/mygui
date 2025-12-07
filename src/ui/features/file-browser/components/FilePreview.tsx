@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type FilePreviewProps = {
   filePath: string | null;
