@@ -1,5 +1,5 @@
 import { ipcMain } from "electron";
-import { getUIPath } from "./pathResolver.js";
+import { getPreviewHtmlPath, getUIPath } from "./pathResolver.js";
 import { pathToFileURL } from "url";
 
 export function isDev() {
@@ -33,9 +33,9 @@ export function validateEventFrame(frame: Electron.WebFrameMain) {
     return;
   }
 
-  if (frame.url !== pathToFileURL(getUIPath()).toString()) {
-    throw new Error(
-      "Malicious attempt to send IPC messages to the UI. This is a security risk.",
-    );
-  }
+  if (frame.url === pathToFileURL(getUIPath()).toString()) return;
+  if (frame.url === pathToFileURL(getPreviewHtmlPath()).toString()) return;
+  throw new Error(
+    "Malicious attempt to send IPC messages to the UI. This is a security risk.",
+  );
 }
