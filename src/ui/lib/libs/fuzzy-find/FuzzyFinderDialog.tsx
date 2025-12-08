@@ -8,13 +8,13 @@ export type UseFuzzyFinderProps<T> = {
   items: T[];
   keys: (keyof T & string)[];
   maxCount?: number;
-  onClose?: () => void;
   onResultChange?: (items: T[]) => void;
   setHighlight: Dispatch<SetStateAction<number>>;
 };
 
-export type FuzzyFinderDialogProps<T> = {
+export type FuzzyFinderInputProps<T> = {
   fuzzy: ReturnType<typeof useFuzzyFinder<T>>;
+  className?: string;
 };
 
 export function useFuzzyFinder<T>({
@@ -24,9 +24,7 @@ export function useFuzzyFinder<T>({
   keys,
   maxCount,
   setHighlight,
-  ...props
 }: UseFuzzyFinderProps<T>) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState(_query ?? "");
 
   const fuse = useMemo(() => {
@@ -40,13 +38,14 @@ export function useFuzzyFinder<T>({
   }, [items]);
 
   const results = useMemo(() => {
-    if (!open) return items;
     if (!query) return items.slice(0, maxCount);
 
     const results = fuse.search(query, { limit: maxCount ?? items.length });
+    if (results.length === 0) return [];
+
     setHighlight(0);
     return results.map((result) => result.item);
-  }, [query, fuse, maxCount, open]);
+  }, [query, fuse, maxCount]);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -55,7 +54,7 @@ export function useFuzzyFinder<T>({
       key: { key: "/" },
       handler: (e) => {
         e.preventDefault();
-        setOpen(true);
+        inputRef.current?.focus();
         if (query) {
           setTimeout(() => {
             const i = inputRef.current;
@@ -66,70 +65,46 @@ export function useFuzzyFinder<T>({
         }
       },
     },
-    {
-      key: { key: "A" },
-      handler: (e) => {
-        if (
-          open &&
-          inputRef.current?.selectionStart !== inputRef.current?.selectionEnd
-        ) {
-          e.preventDefault();
-          inputRef.current!.selectionStart = query.length;
-        }
-      },
-      enabledIn: inputRef,
-    },
   ]);
 
-  const close = () => {
-    setOpen(false);
-    props.onClose?.();
+  const clearQuery = () => {
+    setQuery("");
   };
 
   return {
-    open,
-    close,
     query,
     setQuery,
+    clearQuery,
     results,
     inputRef,
     setHighlight,
   };
 }
 
-export function FuzzyFinderDialog<T>({
-  fuzzy: {
-    open,
-    inputRef,
-    query,
-    setQuery,
-    close: close,
-    setHighlight,
-    results,
-  },
-}: FuzzyFinderDialogProps<T>) {
-  if (!open) return null;
-
+export function FuzzyFinderInput<T>({
+  fuzzy: { inputRef, query, setQuery, clearQuery, setHighlight, results },
+  className,
+}: FuzzyFinderInputProps<T>) {
   return (
-    <div className="absolute top-20 left-10 right-10 bg-base-100 z-50000000 flex flex-col gap-3">
-      <input
-        id="fuzzy-finder-input"
-        type="text"
-        ref={inputRef}
-        className="input w-full text-sm h-6 border-none! highlight-red-100"
-        placeholder="Type to search..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        onBlur={close}
-        onKeyDown={(e) => {
-          if (e.key === "Escape") close();
-          if (e.key === "j" && e.ctrlKey)
-            setHighlight((h) => Math.min(h + 1, results.length - 1));
-          if (e.key === "k" && e.ctrlKey)
-            setHighlight((h) => Math.max(h - 1, 0));
-        }}
-        autoFocus
-      />
-    </div>
+    <input
+      id="fuzzy-finder-input"
+      type="text"
+      ref={inputRef}
+      className={`input text-sm h-6 ${className ?? ""}`}
+      placeholder="Search... (/)"
+      value={query}
+      onChange={(e) => {
+        setQuery(e.target.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          clearQuery();
+          e.currentTarget.blur();
+        }
+        if (e.key === "j" && e.ctrlKey)
+          setHighlight((h) => Math.min(h + 1, results.length - 1));
+        if (e.key === "k" && e.ctrlKey) setHighlight((h) => Math.max(h - 1, 0));
+      }}
+    />
   );
 }

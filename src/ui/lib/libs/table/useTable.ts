@@ -8,6 +8,7 @@ export type UseTableOptions<T> = {
   columns: ColumnDef<T>[];
   data: T[];
   selection?: ReturnType<typeof useSelection>;
+  resetSelectionOnDataChange?: boolean;
 };
 
 export function useTable<T>(opts: UseTableOptions<T>) {
@@ -41,7 +42,9 @@ export function useTable<T>(opts: UseTableOptions<T>) {
   }, [data, cols]);
 
   useEffect(() => {
-    opts?.selection?.reset();
+    if (opts.resetSelectionOnDataChange !== false) {
+      opts?.selection?.reset();
+    }
   }, [data]);
 
   return {

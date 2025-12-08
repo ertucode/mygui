@@ -24,7 +24,7 @@ import {
 } from "@/lib/components/context-menu";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import {
-  FuzzyFinderDialog,
+  FuzzyFinderInput,
   useFuzzyFinder,
 } from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
 import { useConfirmation } from "@/lib/hooks/useConfirmation";
@@ -50,6 +50,10 @@ export function FileBrowser() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+
+  useEffect(() => {
+    s.reset();
+  }, [d.directoryData]);
 
   const handleCreateNewItem = async (
     name: string,
@@ -103,6 +107,7 @@ export function FileBrowser() {
     columns: cols,
     data: fuzzy.results,
     selection: s,
+    resetSelectionOnDataChange: false,
   });
 
   const scrollRowIntoViewIfNeeded = (
@@ -264,9 +269,8 @@ export function FileBrowser() {
           const itemToOpen = resolveItemToOpen();
           if (itemToOpen.type === "file" && e.key === "l") return;
 
-          if (fuzzy.open) {
-            fuzzy.close();
-            fuzzy.setQuery("");
+          if ((e.target as HTMLInputElement).id === "fuzzy-finder-input") {
+            fuzzy.clearQuery();
             tableRef.current?.querySelector("tbody")?.focus();
           }
           openItem(itemToOpen);
@@ -333,7 +337,6 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
-      <FuzzyFinderDialog fuzzy={fuzzy} />
       <NewItemDialog
         isOpen={newItemDialogOpen}
         onClose={() => setNewItemDialogOpen(false)}
@@ -380,9 +383,10 @@ export function FileBrowser() {
         >
           {<ArrowUpIcon className={navigationButtonIconClassName} />}
         </button>
-        <div>
+        <div className="flex-1">
           <FolderBreadcrumb d={d} defaultPath={defaultPath} />
         </div>
+        <FuzzyFinderInput fuzzy={fuzzy} className="w-48 min-[1000px]:w-80" />
       </div>
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div className="flex flex-col h-full min-h-0 overflow-hidden">
@@ -449,7 +453,7 @@ export function FileBrowser() {
             ></Table>
           )}
         </div>
-        <div className="hidden min-[1000px]:flex flex-col w-80 min-h-0 overflow-hidden border-l border-base-300 flex-shrink-0 pl-3">
+        <div className="hidden min-[1000px]:flex flex-col w-80 min-h-0 overflow-hidden flex-shrink-0 pl-3">
           <FilePreview
             filePath={previewFilePath}
             isFile={selectedItem?.type === "file"}
