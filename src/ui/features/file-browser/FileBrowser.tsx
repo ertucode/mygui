@@ -233,7 +233,7 @@ export function FileBrowser() {
           if (remainingItems.length > 0) {
             // Find the item that should now be at or near the smallest deleted index
             const newIndex = Math.min(
-              smallestDeletedIndex - 1,
+              smallestDeletedIndex,
               remainingItems.length - 1,
             );
             const itemToSelect = remainingItems[newIndex];
