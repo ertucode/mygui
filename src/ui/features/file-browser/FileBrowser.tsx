@@ -303,7 +303,7 @@ export function FileBrowser() {
         },
       },
       {
-        key: { key: "n", metaKey: true },
+        key: { key: "n", ctrlKey: true },
         handler: (e) => {
           e.preventDefault();
           setNewItemDialogOpen(true);
