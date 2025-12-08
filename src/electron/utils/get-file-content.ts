@@ -14,6 +14,7 @@ const IMAGE_EXTENSIONS = new Set([
 ]);
 
 const PDF_EXTENSIONS = new Set([".pdf"]);
+const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
 
 const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -27,7 +28,7 @@ const MIME_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
 };
 
-export type FileContentType = "image" | "pdf" | "text";
+export type FileContentType = "image" | "pdf" | "text" | "docx";
 
 export async function getFileContent(filePath: string) {
   try {
@@ -37,6 +38,7 @@ export async function getFileContent(filePath: string) {
 
     const isImage = IMAGE_EXTENSIONS.has(ext);
     const isPdf = PDF_EXTENSIONS.has(ext);
+    const isDocx = DOCX_EXTENSIONS.has(ext);
 
     // Handle image files
     if (isImage) {
@@ -56,6 +58,14 @@ export async function getFileContent(filePath: string) {
       const dataUrl = `data:${mimeType};base64,${base64}`;
 
       return { content: dataUrl, isTruncated: false, contentType: "pdf" as const };
+    }
+
+    // Handle DOCX files
+    if (DOCX_EXTENSIONS.has(ext)) {
+      const buffer = await fs.readFile(fullPath);
+      const base64 = buffer.toString("base64");
+
+      return { content: base64, isTruncated: false, contentType: "docx" as const };
     }
 
     // Read text file content
