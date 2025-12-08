@@ -21,3 +21,7 @@ export function getPreviewPreloadPath() {
 export function getUIPath() {
   return path.join(app.getAppPath(), "/dist-react/index.html");
 }
+
+export function getPreviewHtmlPath(): string {
+  return path.join(app.getAppPath(), "/dist-react/preview.html") as string;
+}
