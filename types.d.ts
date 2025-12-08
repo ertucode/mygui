@@ -24,7 +24,7 @@ type EventResponseMapping = {
   captureRect: Promise<unknown>;
   getHomeDirectory: string;
   readFilePreview: Promise<
-    { content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" } | { error: string }
+    { content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" | "xlsx" } | { error: string }
   >;
   deleteFiles: Promise<{ success: boolean; error?: string }>;
   createFileOrFolder: Promise<{ success: boolean; error?: string; path?: string }>;
@@ -78,7 +78,7 @@ interface Window {
     getHomeDirectory: () => Promise<string>;
     readFilePreview: (
       filePath: string,
-    ) => Promise<{ content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" } | { error: string }>;
+    ) => Promise<{ content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" | "xlsx" } | { error: string }>;
     deleteFiles: (
       filePaths: string[],
     ) => Promise<{ success: boolean; error?: string }>;

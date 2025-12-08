@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
 
-type ContentType = "image" | "pdf" | "text" | "docx";
+type ContentType = "image" | "pdf" | "text" | "docx" | "xlsx";
 
 type PreviewData = {
   filePath: string;
@@ -78,18 +78,26 @@ export function PreviewApp() {
   ]);
   const PDF_EXTENSIONS = new Set([".pdf"]);
   const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
+  const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
   const MAX_TEXT_SIZE = 1 * 1024 * 1024; // 1MB
+  const MAX_XLSX_SIZE = 10 * 1024 * 1024; // 10MB
 
   const ext = previewData?.fileExt || "";
   const isImage = IMAGE_EXTENSIONS.has(ext);
   const isPdf = PDF_EXTENSIONS.has(ext);
   const isDocx = DOCX_EXTENSIONS.has(ext);
+  const isXlsx = XLSX_EXTENSIONS.has(ext);
   const isTextTooLarge =
     !isImage &&
     !isPdf &&
     !isDocx &&
+    !isXlsx &&
     previewData?.fileSize != null &&
     previewData.fileSize > MAX_TEXT_SIZE;
+  const isXlsxTooLarge =
+    isXlsx &&
+    previewData?.fileSize != null &&
+    previewData.fileSize > MAX_XLSX_SIZE;
 
   useEffect(() => {
     if (!previewData?.filePath || !previewData.isFile) {
@@ -100,7 +108,7 @@ export function PreviewApp() {
       return;
     }
 
-    if (isTextTooLarge) {
+    if (isTextTooLarge || isXlsxTooLarge) {
       setContent(null);
       setContentType("text");
       setError(null);
@@ -109,7 +117,7 @@ export function PreviewApp() {
     }
 
     fetchPreview(previewData.filePath);
-  }, [previewData, isTextTooLarge]);
+  }, [previewData, isTextTooLarge, isXlsxTooLarge]);
 
   if (!previewData?.filePath) {
     return (
@@ -127,7 +135,8 @@ export function PreviewApp() {
     );
   }
 
-  if (isTextTooLarge && !content && !loading) {
+  if ((isTextTooLarge || isXlsxTooLarge) && !content && !loading) {
+    const maxSize = isXlsxTooLarge ? 10 : 1;
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
         <div>
@@ -135,7 +144,7 @@ export function PreviewApp() {
           <br />
           <span className="text-xs">
             ({((previewData.fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max
-            1MB)
+            {maxSize}MB)
           </span>
         </div>
         <button
@@ -200,6 +209,10 @@ export function PreviewApp() {
 
   if (contentType === "docx") {
     return <DocxPreview base64Content={content} />;
+  }
+
+  if (contentType === "xlsx") {
+    return <XlsxPreview jsonContent={content} />;
   }
 
   return (
@@ -303,6 +316,73 @@ padding: 0 !important;
         ref={containerRef}
         className="flex-1 min-h-0 overflow-auto bg-white rounded-xl p-2"
       />
+    </div>
+  );
+}
+
+function XlsxPreview({ jsonContent }: { jsonContent: string }) {
+  const [activeSheet, setActiveSheet] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [sheets, setSheets] = useState<Record<string, unknown[][]>>({});
+
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(jsonContent) as Record<string, unknown[][]>;
+      setSheets(parsed);
+      const sheetNames = Object.keys(parsed);
+      if (sheetNames.length > 0 && !activeSheet) {
+        setActiveSheet(sheetNames[0]);
+      }
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to parse spreadsheet data");
+    }
+  }, [jsonContent]);
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 p-4">
+        {error}
+      </div>
+    );
+  }
+
+  const sheetNames = Object.keys(sheets);
+  const currentData = sheets[activeSheet] || [];
+
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      {sheetNames.length > 1 && (
+        <div className="flex gap-1 mb-2 flex-wrap">
+          {sheetNames.map((name) => (
+            <button
+              key={name}
+              className={`btn btn-xs ${activeSheet === name ? "btn-primary" : "btn-ghost"}`}
+              onClick={() => setActiveSheet(name)}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200 rounded-xl">
+        <table className="table table-xs table-pin-rows table-pin-cols">
+          <tbody>
+            {currentData.map((row, rowIndex) => (
+              <tr key={rowIndex} className={rowIndex === 0 ? "bg-base-300 font-semibold" : ""}>
+                {(row as unknown[]).map((cell, colIndex) => (
+                  <td
+                    key={colIndex}
+                    className="border border-base-300 px-2 py-1 text-[10px] whitespace-nowrap"
+                  >
+                    {cell != null ? String(cell) : ""}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
