@@ -34,6 +34,7 @@ import { NewItemDialog } from "./components/NewItemDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
+import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -294,6 +295,22 @@ export function FileBrowser() {
 
   const favorites = useFavorites();
 
+  const sidebarPanel = useResizablePanel({
+    storageKey: "file-browser-sidebar-width",
+    defaultWidth: 120,
+    minWidth: 80,
+    maxWidth: 300,
+    direction: "left",
+  });
+
+  const previewPanel = useResizablePanel({
+    storageKey: "file-browser-preview-width",
+    defaultWidth: 320,
+    minWidth: 200,
+    maxWidth: 600,
+    direction: "right",
+  });
+
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
     s.state.indexes.size === 1 && s.state.lastSelected != null
@@ -319,7 +336,10 @@ export function FileBrowser() {
         onGoUpOrPrev={onGoUpOrPrev}
       />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
-        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div
+          className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0"
+          style={{ width: sidebarPanel.width }}
+        >
           <FavoritesList
             favorites={favorites}
             d={d}
@@ -327,6 +347,10 @@ export function FileBrowser() {
           />
           <RecentsList recents={recents} d={d} className="flex-1 min-h-0" />
         </div>
+        <ResizeHandle
+          onMouseDown={sidebarPanel.handleMouseDown}
+          direction="left"
+        />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           {d.loading ? (
             <div>Loading...</div>
@@ -383,12 +407,21 @@ export function FileBrowser() {
             ></Table>
           )}
         </div>
-        <div className="hidden min-[1000px]:flex flex-col w-80 min-h-0 overflow-hidden flex-shrink-0 pl-3">
+        <ResizeHandle
+          onMouseDown={previewPanel.handleMouseDown}
+          direction="right"
+          className="hidden min-[1000px]:block"
+        />
+        <div
+          className="hidden min-[1000px]:flex flex-col min-h-0 overflow-hidden flex-shrink-0"
+          style={{ width: previewPanel.width }}
+        >
           <FilePreview
             filePath={previewFilePath}
             isFile={selectedItem?.type === "file"}
             fileSize={selectedItem?.size}
             fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
+            isResizing={previewPanel.isDragging}
           />
         </div>
       </div>
