@@ -89,7 +89,7 @@ export function FilePreview({
         ref={webviewRef as any}
         src={previewUrl}
         preload={`file://${preloadPath}`}
-        webpreferences="contextIsolation=yes"
+        webpreferences="contextIsolation=yes, webSecurity=no"
         style={{ width: "100%", height: "100%" }}
       />
     </div>

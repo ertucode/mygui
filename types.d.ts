@@ -1,15 +1,15 @@
 type FileCategory =
-  | 'image'
-  | 'video'
-  | 'audio'
-  | 'document'
-  | 'spreadsheet'
-  | 'presentation'
-  | 'archive'
-  | 'code'
-  | 'font'
-  | 'executable'
-  | 'other';
+  | "image"
+  | "video"
+  | "audio"
+  | "document"
+  | "spreadsheet"
+  | "presentation"
+  | "archive"
+  | "code"
+  | "font"
+  | "executable"
+  | "other";
 
 type GetFilesAndFoldersInDirectoryItem = (
   | {
@@ -39,10 +39,26 @@ type EventResponseMapping = {
   captureRect: Promise<unknown>;
   getHomeDirectory: string;
   readFilePreview: Promise<
-    { content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" | "xlsx" } | { error: string }
+    | {
+        content: string;
+        isTruncated: boolean;
+        contentType:
+          | "image"
+          | "pdf"
+          | "text"
+          | "docx"
+          | "xlsx"
+          | "video"
+          | "video-unsupported";
+      }
+    | { error: string }
   >;
   deleteFiles: Promise<{ success: boolean; error?: string }>;
-  createFileOrFolder: Promise<{ success: boolean; error?: string; path?: string }>;
+  createFileOrFolder: Promise<{
+    success: boolean;
+    error?: string;
+    path?: string;
+  }>;
   getPreviewPreloadPath: string;
 };
 
@@ -91,9 +107,14 @@ interface Window {
     ) => Promise<unknown>;
     captureRect: (rect: Rect) => Promise<string>;
     getHomeDirectory: () => Promise<string>;
-    readFilePreview: (
-      filePath: string,
-    ) => Promise<{ content: string; isTruncated: boolean; contentType: "image" | "pdf" | "text" | "docx" | "xlsx" } | { error: string }>;
+    readFilePreview: (filePath: string) => Promise<
+      | {
+          content: string;
+          isTruncated: boolean;
+          contentType: "image" | "pdf" | "text" | "docx" | "xlsx";
+        }
+      | { error: string }
+    >;
     deleteFiles: (
       filePaths: string[],
     ) => Promise<{ success: boolean; error?: string }>;

@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, FilmIcon, AlertCircleIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
-import { isImageExtension } from "../../common/file-category";
+import { isImageExtension, isVideoExtension } from "../../common/file-category";
 
-type ContentType = "image" | "pdf" | "text" | "docx" | "xlsx";
+type ContentType = "image" | "pdf" | "text" | "docx" | "xlsx" | "video" | "video-unsupported";
 
 type PreviewData = {
   filePath: string;
@@ -78,11 +78,13 @@ export function PreviewApp() {
   const isPdf = PDF_EXTENSIONS.has(ext);
   const isDocx = DOCX_EXTENSIONS.has(ext);
   const isXlsx = XLSX_EXTENSIONS.has(ext);
+  const isVideo = isVideoExtension(ext);
   const isTextTooLarge =
     !isImage &&
     !isPdf &&
     !isDocx &&
     !isXlsx &&
+    !isVideo &&
     previewData?.fileSize != null &&
     previewData.fileSize > MAX_TEXT_SIZE;
   const isXlsxTooLarge =
@@ -204,6 +206,14 @@ export function PreviewApp() {
 
   if (contentType === "xlsx") {
     return <XlsxPreview jsonContent={content} />;
+  }
+
+  if (contentType === "video") {
+    return <VideoPreview src={content} />;
+  }
+
+  if (contentType === "video-unsupported") {
+    return <VideoUnsupportedPreview jsonContent={content} />;
   }
 
   return (
@@ -373,6 +383,74 @@ function XlsxPreview({ jsonContent }: { jsonContent: string }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </div>
+  );
+}
+
+function VideoPreview({ src }: { src: string }) {
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      {error ? (
+        <div className="flex-1 flex items-center justify-center text-red-500 p-4 text-center">
+          <div>
+            <AlertCircleIcon className="size-8 mx-auto mb-2" />
+            <div>{error}</div>
+          </div>
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-hidden bg-base-200 rounded-xl flex items-center justify-center p-2">
+          <video
+            src={src}
+            controls
+            className="max-w-full max-h-full rounded"
+            onError={() => setError("Failed to load video. Format may not be supported.")}
+          >
+            Your browser does not support video playback.
+          </video>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function VideoUnsupportedPreview({ jsonContent }: { jsonContent: string }) {
+  const [metadata, setMetadata] = useState<{
+    path: string;
+    size: string;
+    format: string;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      setMetadata(JSON.parse(jsonContent));
+    } catch {
+      // ignore parse errors
+    }
+  }, [jsonContent]);
+
+  if (!metadata) {
+    return (
+      <div className="flex items-center justify-center h-full text-gray-500">
+        Unable to load video metadata
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-4 rounded-xl flex flex-col items-center justify-center text-center gap-3">
+        <FilmIcon className="size-12 text-gray-400" />
+        <div className="space-y-1">
+          <div className="text-sm font-medium">{metadata.format} Video</div>
+          <div className="text-xs text-gray-500">{metadata.size}</div>
+        </div>
+        <div className="text-xs text-gray-400 max-w-[200px]">
+          {metadata.message}
+        </div>
       </div>
     </div>
   );
