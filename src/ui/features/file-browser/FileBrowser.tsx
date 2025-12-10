@@ -307,7 +307,7 @@ export function FileBrowser() {
     storageKey: "file-browser-preview-width",
     defaultWidth: 320,
     minWidth: 200,
-    maxWidth: 600,
+    maxWidth: 900,
     direction: "right",
   });
 
