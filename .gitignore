@@ -14,6 +14,9 @@ dist-react
 dist-electron
 *.local
 
+vendor-bin/**
+!vendor-bin/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
