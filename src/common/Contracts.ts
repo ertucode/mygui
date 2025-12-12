@@ -79,6 +79,23 @@ export type EventResponseMapping = {
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
 };
 
+export type StringSearchOptions = {
+  directory: string;
+  query: string;
+  /** Custom working directory - can be relative (subdirectory) or absolute (starts with / or ~) */
+  cwd?: string;
+  /** Glob patterns for files to include (e.g., "*.ts", "*.{js,jsx}") */
+  includePatterns?: string[];
+  /** Glob patterns for files to exclude (e.g., "node_modules/**", "*.min.js") */
+  excludePatterns?: string[];
+  /** Use regex search instead of literal string */
+  useRegex?: boolean;
+  /** Case sensitive search */
+  caseSensitive?: boolean;
+  /** Search in hidden files and directories (default: true) */
+  searchHidden?: boolean;
+};
+
 export type EventRequestMapping = {
   docxToPdf: string;
   getFilesAndFoldersInDirectory: string;
@@ -101,7 +118,7 @@ export type EventRequestMapping = {
   copyFiles: { filePaths: string[]; cut: boolean };
   pasteFiles: { destinationDir: string };
   fuzzyFileFinder: { directory: string; query: string };
-  searchStringRecursively: { directory: string; query: string };
+  searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
 };
 
@@ -172,8 +189,7 @@ export type WindowElectron = {
     query: string,
   ) => Promise<GenericResult<string[]>>;
   searchStringRecursively: (
-    directory: string,
-    query: string,
+    options: StringSearchOptions,
   ) => Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: (
     directory: string,

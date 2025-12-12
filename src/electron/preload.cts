@@ -2,6 +2,7 @@ import electron from "electron";
 import {
   EventRequestMapping,
   EventResponseMapping,
+  StringSearchOptions,
   WindowElectron,
 } from "../common/Contracts";
 
@@ -36,8 +37,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("pasteFiles", { destinationDir }),
   fuzzyFileFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFileFinder", { directory, query }),
-  searchStringRecursively: (directory: string, query: string) =>
-    ipcInvoke("searchStringRecursively", { directory, query }),
+  searchStringRecursively: (options: StringSearchOptions) =>
+    ipcInvoke("searchStringRecursively", options),
   fuzzyFolderFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
 } satisfies WindowElectron);
