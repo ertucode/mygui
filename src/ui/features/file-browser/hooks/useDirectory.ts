@@ -210,6 +210,7 @@ export function useDirectory(
       return await cdWithMetadata(info, true);
     },
     hasPrev,
+    hasNext,
     error,
     settings,
     toggleShowDotFiles: () =>
