@@ -51,6 +51,8 @@ app.on("ready", () => {
         { label: "Cut", accelerator: "CmdOrCtrl+X", role: "cut" },
         { label: "Copy", accelerator: "CmdOrCtrl+C", role: "copy" },
         { label: "Paste", accelerator: "CmdOrCtrl+V", role: "paste" },
+        { type: "separator" },
+        { label: "Select All", accelerator: "CmdOrCtrl+A", role: "selectAll" },
       ],
     },
     {
