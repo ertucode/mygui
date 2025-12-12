@@ -47,7 +47,6 @@ export type GetFilesAndFoldersInDirectoryItem = (
 
 export type EventResponseMapping = {
   docxToPdf: Promise<string>;
-  fuzzyFind: string[];
   getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
@@ -82,7 +81,6 @@ export type EventResponseMapping = {
 
 export type EventRequestMapping = {
   docxToPdf: string;
-  fuzzyFind: string;
   getFilesAndFoldersInDirectory: string;
   openFile: string;
   onDragStart: {
@@ -123,7 +121,6 @@ export type WindowElectron = {
   getFilePath: (file: File) => string;
   convertDocxToPdf: (file: File) => Promise<string>;
   convertDocxToPdfByPath: (filePath: string) => Promise<string>;
-  fuzzyFind: (query: string) => Promise<string[]>;
   getFilesAndFoldersInDirectory: (
     directory: string,
   ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
@@ -133,11 +130,21 @@ export type WindowElectron = {
   ) => Promise<unknown>;
   captureRect: (rect: Rect) => Promise<string>;
   getHomeDirectory: () => Promise<string>;
-  readFilePreview: (filePath: string, allowBigSize?: boolean) => Promise<
+  readFilePreview: (
+    filePath: string,
+    allowBigSize?: boolean,
+  ) => Promise<
     | {
         content: string;
         isTruncated: boolean;
-        contentType: "image" | "pdf" | "text" | "docx" | "xlsx" | "video" | "video-unsupported";
+        contentType:
+          | "image"
+          | "pdf"
+          | "text"
+          | "docx"
+          | "xlsx"
+          | "video"
+          | "video-unsupported";
       }
     | { error: string }
     | { error: "FILE_TOO_LARGE" }
