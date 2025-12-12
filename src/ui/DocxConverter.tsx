@@ -7,6 +7,7 @@ import {
   type DragEvent,
 } from "react";
 import FuzzySearchDialog from "./FuzzySearchDialog";
+import { getWindowElectron } from "./getWindowElectron";
 
 export function DocxConverter() {
   const [droppedFile, _setDroppedFile] = useState<File | null>(null);
@@ -33,10 +34,10 @@ export function DocxConverter() {
     function () {
       const getPromise = () => {
         if (lastDropRef.current === "fuzzy" && fuzzySelectedFile) {
-          return window.electron.convertDocxToPdfByPath(fuzzySelectedFile);
+          return getWindowElectron().convertDocxToPdfByPath(fuzzySelectedFile);
         } else if (lastDropRef.current === "drop" && droppedFile) {
           if (!isDocx(droppedFile)) return;
-          return window.electron.convertDocxToPdf(droppedFile);
+          return getWindowElectron().convertDocxToPdf(droppedFile);
         }
       };
       const p = getPromise();

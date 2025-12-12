@@ -1,4 +1,9 @@
 import electron from "electron";
+import {
+  EventRequestMapping,
+  EventResponseMapping,
+  WindowElectron,
+} from "../common/Contracts";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
@@ -17,13 +22,15 @@ electron.contextBridge.exposeInMainWorld("electron", {
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
+  renameFileOrFolder: (fullPath: string, newName: string) =>
+    ipcInvoke("renameFileOrFolder", { fullPath, newName }),
   getPreviewPreloadPath: () => ipcInvoke("getPreviewPreloadPath", undefined),
   getStartingDirectory: () => {
     const arg = process.argv.find((x) => x.startsWith("--initial-path="));
     const staticData = arg ? arg.replace("--initial-path=", "") : null;
     return staticData;
   },
-} satisfies Window["electron"]);
+} satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(
   key: Key,

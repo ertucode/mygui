@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { getPreviewHtmlPath, getUIPath } from "./pathResolver.js";
 import { pathToFileURL } from "url";
+import { EventResponseMapping, EventRequest } from "../common/Contracts.js";
 
 export function isDev() {
   return process.env.NODE_ENV === "development";

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { debounce } from "lodash";
 import { Dialog } from "./lib/components/dialog";
+import { getWindowElectron } from "./getWindowElectron";
 
 type FuzzySearchDialogProps = {
   onClose: () => void;
@@ -21,7 +22,7 @@ export default function FuzzySearchDialog({
       setResults([]);
       return;
     }
-    const res = await window.electron.fuzzyFind(q);
+    const res = await getWindowElectron().fuzzyFind(q);
     setResults(res);
     setHighlight(0);
   }, 100);

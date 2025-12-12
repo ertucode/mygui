@@ -1,3 +1,5 @@
+import { getWindowElectron } from "@/getWindowElectron";
+
 export async function captureDivAsBase64(
   element: HTMLElement,
   _filter?: (node: Element) => boolean,
@@ -12,7 +14,7 @@ export async function captureDivAsBase64(
   document.body.appendChild(clone);
 
   // const _rect = clone.getBoundingClientRect();
-  const base64 = await window.electron.captureRect({
+  const base64 = await getWindowElectron().captureRect({
     width: 0,
     height: 0,
     x: 0,

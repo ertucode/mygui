@@ -1,10 +1,10 @@
-import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { createFormDialog } from "@/lib/libs/form/createFormDialog";
-import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import { FilePlusIcon } from "lucide-react";
 import z from "zod";
+import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { PencilIcon } from "lucide-react";
 
-export const NewItemDialog = createFormDialog<
+export const RenameDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
   { name: string },
   {
@@ -18,18 +18,18 @@ export const NewItemDialog = createFormDialog<
   getConfigs: () => [
     {
       field: "name",
-      label: 'Name (End with "/" to create a folder)',
+      label: "Name",
       type: "input",
     },
   ],
   getFormParams: (item) => ({
-    defaultValues: {
-      name: item?.name,
+    values: {
+      name: item?.name!,
     },
   }),
   getTexts: () => ({
-    title: "New File or Folder",
-    buttonLabel: "Create",
-    buttonIcon: FilePlusIcon,
+    title: "Rename",
+    buttonLabel: "Rename",
+    buttonIcon: PencilIcon,
   }),
 });

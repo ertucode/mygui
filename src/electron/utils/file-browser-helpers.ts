@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { expandHome } from "./expand-home.js";
 import { getCategoryFromExtension } from "../../common/file-category.js";
+import { GetFilesAndFoldersInDirectoryItem } from "../../common/Contracts.js";
 
 export function formatSize(bytes: number | null): string {
   if (bytes === null) return "";

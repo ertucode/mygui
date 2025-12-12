@@ -2,8 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { CopyIcon, FilmIcon, AlertCircleIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
 import { isImageExtension, isVideoExtension } from "../../common/file-category";
+import { getWindowElectron } from "@/getWindowElectron";
 
-type ContentType = "image" | "pdf" | "text" | "docx" | "xlsx" | "video" | "video-unsupported";
+type ContentType =
+  | "image"
+  | "pdf"
+  | "text"
+  | "docx"
+  | "xlsx"
+  | "video"
+  | "video-unsupported";
 
 type PreviewData = {
   filePath: string;
@@ -44,7 +52,7 @@ export function PreviewApp() {
     setLoading(true);
     setError(null);
 
-    window.electron
+    getWindowElectron()
       .readFilePreview(path)
       .then((result) => {
         if ("error" in result) {
@@ -336,7 +344,9 @@ function XlsxPreview({ jsonContent }: { jsonContent: string }) {
       }
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to parse spreadsheet data");
+      setError(
+        err instanceof Error ? err.message : "Failed to parse spreadsheet data",
+      );
     }
   }, [jsonContent]);
 
@@ -370,7 +380,10 @@ function XlsxPreview({ jsonContent }: { jsonContent: string }) {
         <table className="table table-xs table-pin-rows table-pin-cols">
           <tbody>
             {currentData.map((row, rowIndex) => (
-              <tr key={rowIndex} className={rowIndex === 0 ? "bg-base-300 font-semibold" : ""}>
+              <tr
+                key={rowIndex}
+                className={rowIndex === 0 ? "bg-base-300 font-semibold" : ""}
+              >
                 {(row as unknown[]).map((cell, colIndex) => (
                   <td
                     key={colIndex}
@@ -406,7 +419,9 @@ function VideoPreview({ src }: { src: string }) {
             src={src}
             controls
             className="max-w-full max-h-full rounded"
-            onError={() => setError("Failed to load video. Format may not be supported.")}
+            onError={() =>
+              setError("Failed to load video. Format may not be supported.")
+            }
           >
             Your browser does not support video playback.
           </video>
