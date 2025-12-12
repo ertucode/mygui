@@ -2,7 +2,14 @@ import { RefObject, useEffect, useRef } from "react";
 
 type ShortcutDefinition =
   | string
-  | { key: string; metaKey?: boolean; shiftKey?: boolean; ctrlKey?: boolean };
+  | {
+      key: string;
+      isCode?: boolean;
+      metaKey?: boolean;
+      shiftKey?: boolean;
+      ctrlKey?: boolean;
+      altKey?: boolean;
+    };
 
 type ShortcutWithHandler = {
   key: ShortcutDefinition | ShortcutDefinition[];
@@ -58,18 +65,21 @@ function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {
     return e.key === shortcut;
   }
 
-  if (typeof shortcut === "object" && "key" in shortcut) {
-    if (shortcut.metaKey !== undefined && e.metaKey !== shortcut.metaKey)
-      return false;
-    if (shortcut.shiftKey !== undefined && e.shiftKey !== shortcut.shiftKey)
-      return false;
-    if (shortcut.ctrlKey !== undefined && e.ctrlKey !== shortcut.ctrlKey)
-      return false;
-    return e.key === shortcut.key;
+  if (shortcut.metaKey !== undefined && e.metaKey !== shortcut.metaKey)
+    return false;
+  if (shortcut.shiftKey !== undefined && e.shiftKey !== shortcut.shiftKey)
+    return false;
+  if (shortcut.ctrlKey !== undefined && e.ctrlKey !== shortcut.ctrlKey)
+    return false;
+  if (shortcut.altKey !== undefined && e.altKey !== shortcut.altKey)
+    return false;
+
+  // When isCode is true, match against e.code instead of e.key
+  if (shortcut.isCode) {
+    return e.code === shortcut.key;
   }
 
-  const _exhaustiveCheck: $ExpectNever<typeof shortcut> = shortcut;
-  return _exhaustiveCheck;
+  return e.key === shortcut.key;
 }
 
 function checkEnabledIn(

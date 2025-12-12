@@ -456,6 +456,17 @@ export function FileBrowser() {
           document.querySelector("webview")?.openDevTools();
         },
       },
+      // Option+1 through Option+9 to open favorites
+      ...Array.from({ length: 9 }, (_, i) => ({
+        key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
+        handler: (e: KeyboardEvent) => {
+          e.preventDefault();
+          const favorite = favorites.favorites[i];
+          if (favorite) {
+            d.cdFull(favorite.fullPath);
+          }
+        },
+      })),
       ...s.getShortcuts(table.data.length),
     ],
     {
