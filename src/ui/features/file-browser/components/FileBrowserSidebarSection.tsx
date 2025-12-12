@@ -16,7 +16,7 @@ interface FileBrowserSidebarSectionProps<T> {
   onClick: (item: T) => void;
   getKey: (item: T) => string;
   className?: string;
-  getContextMenuItems?: (item: T) => ContextMenuItem[];
+  getContextMenuItems?: (item: T) => (ContextMenuItem | false | undefined)[];
 }
 
 export function FileBrowserSidebarSection<T>({

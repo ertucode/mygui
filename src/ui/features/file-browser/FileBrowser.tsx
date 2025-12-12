@@ -31,7 +31,7 @@ import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FavoritesList } from "./components/FavoritesList";
-import { useFavorites } from "./hooks/useFavorites";
+import { FavoriteItem, useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
 import { TagsList } from "./components/TagsList";
@@ -40,7 +40,10 @@ import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { RenameDialog } from "./components/RenameDialog";
-import { FuzzyFileFinderDialog, FinderTab } from "./components/FuzzyFileFinderDialog";
+import {
+  FuzzyFileFinderDialog,
+  FinderTab,
+} from "./components/FuzzyFileFinderDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
@@ -469,7 +472,7 @@ export function FileBrowser() {
           e.preventDefault();
           const favorite = favorites.favorites[i];
           if (favorite) {
-            d.cdFull(favorite.fullPath);
+            openFavorite(favorite);
           }
         },
       })),
@@ -479,6 +482,14 @@ export function FileBrowser() {
       isDisabled: someDialogIsOpened,
     },
   );
+
+  const openFavorite = (favorite: FavoriteItem) => {
+    if (favorite.type === "dir") {
+      d.cdFull(favorite.fullPath);
+    } else {
+      d.openFileFull(favorite.fullPath);
+    }
+  };
 
   // TODO: fix inference
   const dialogs = useDialogs<
@@ -569,8 +580,14 @@ export function FileBrowser() {
             favorites={favorites}
             d={d}
             className="flex-1 min-h-0 basis-0"
+            defaultPath={defaultPath}
+            openFavorite={openFavorite}
           />
-          <RecentsList recents={recents} d={d} className="flex-1 min-h-0 basis-0" />
+          <RecentsList
+            recents={recents}
+            d={d}
+            className="flex-1 min-h-0 basis-0"
+          />
           <TagsList tags={tags} d={d} className="flex-1 min-h-0 basis-0" />
         </div>
         <ResizeHandle
@@ -602,7 +619,8 @@ export function FileBrowser() {
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
                 tags,
-                openAssignTagsDialog: (fullPath: string) => setAssignTagsPath(fullPath),
+                openAssignTagsDialog: (fullPath: string) =>
+                  setAssignTagsPath(fullPath),
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
