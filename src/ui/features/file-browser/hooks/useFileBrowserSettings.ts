@@ -1,6 +1,7 @@
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import z from "zod";
 import { sortNames } from "../config/columns";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 
 const fileCategoryFilter = z.enum([
   "all",

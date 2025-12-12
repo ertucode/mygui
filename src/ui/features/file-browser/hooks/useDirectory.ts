@@ -16,6 +16,8 @@ import {
   useFileBrowserSettings,
 } from "./useFileBrowserSettings";
 import { useRecents } from "./useRecents";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { getWindowElectron } from "@/getWindowElectron";
 
 type DirectoryInfo = {
   fullName: string;
@@ -51,7 +53,7 @@ class FileBrowserCache {
       return cached.promise;
     }
 
-    const promise = window.electron
+    const promise = getWindowElectron()
       .getFilesAndFoldersInDirectory(dir)
       .then((items) => {
         FileBrowserCache.cache.set(dir, { loading: false, loaded: items });
@@ -164,7 +166,7 @@ export function useDirectory(
   };
 
   const openFile = (filePath: string) =>
-    window.electron.openFile(getFullName(filePath));
+    getWindowElectron().openFile(getFullName(filePath));
 
   return {
     changeDirectory,
@@ -191,7 +193,7 @@ export function useDirectory(
       let parts = getFolderNameParts(directory.fullName);
       if (parts.length === 1) {
         if (parts[0] === "~") {
-          const home = await window.electron.getHomeDirectory();
+          const home = await getWindowElectron().getHomeDirectory();
           parts = getFolderNameParts(home);
         }
       }

@@ -1,7 +1,5 @@
-import { type LucideIcon } from "lucide-react";
-
 type TextWithIconProps = {
-  icon: LucideIcon;
+  icon?: $Maybe<React.ComponentType<{ className?: string }>>;
   children: React.ReactNode;
   iconClassName?: string;
 };
@@ -13,7 +11,7 @@ export function TextWithIcon({
 }: TextWithIconProps) {
   return (
     <div className="flex items-center gap-2">
-      <Icon className={iconClassName} />
+      {Icon && <Icon className={iconClassName} />}
       {children}
     </div>
   );

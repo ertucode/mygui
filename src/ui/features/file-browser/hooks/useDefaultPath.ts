@@ -1,7 +1,8 @@
+import { getWindowElectron } from "@/getWindowElectron";
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
 import z from "zod";
 
-const startingDirectory = window.electron.getStartingDirectory();
+const startingDirectory = getWindowElectron().getStartingDirectory();
 
 export function useDefaultPath() {
   const [path, setPath] = useLocalStorage<string>(

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import type { ColumnDef } from "@/lib/libs/table/table-types";
 import z from "zod";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { FileCategory } from "@common/file-category";
 
 /**
  * Icon and color mapping for file categories

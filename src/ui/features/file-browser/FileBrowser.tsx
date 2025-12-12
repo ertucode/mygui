@@ -4,6 +4,7 @@ import {
   StarOffIcon,
   Trash2Icon,
   FilePlusIcon,
+  PencilIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/lib/components/alert";
@@ -31,10 +32,20 @@ import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
+import { RenameDialog } from "./components/RenameDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
+import {
+  DialogsReturn,
+  renderAsContextMenu,
+  useDialogs,
+} from "@/lib/hooks/useDialogs";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { getWindowElectron } from "@/getWindowElectron";
+import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
+import { errorResponseToMessage, GenericError } from "@common/GenericError";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -42,7 +53,6 @@ export function FileBrowser() {
   const d = useDirectory(defaultPath.path, recents);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
-  const [newItemDialogOpen, setNewItemDialogOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -53,29 +63,56 @@ export function FileBrowser() {
 
   const handleCreateNewItem = async (
     name: string,
-  ): Promise<{ success: boolean; error?: string }> => {
+  ): Promise<ResultHandlerResult> => {
     try {
-      const result = await window.electron.createFileOrFolder(
+      const result = await getWindowElectron().createFileOrFolder(
         d.directory.fullName,
         name,
       );
       if (result.success) {
         await d.reload();
-        setNewItemDialogOpen(false);
         setError(null);
 
         // Set pending selection for the newly created item
         const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
         setPendingSelection(itemName);
       } else if (result.error) {
-        setError(result.error);
+        setError(errorResponseToMessage(result.error));
       }
       return result;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred";
       setError(errorMessage);
-      return { success: false, error: errorMessage };
+      return GenericError.Message(errorMessage);
+    }
+  };
+
+  const handleRename = async (
+    newName: string,
+  ): Promise<ResultHandlerResult> => {
+    const item = dialogs.currentRef.current?.item;
+    if (!item) return GenericError.Message("No item selected");
+
+    try {
+      const fullPath = d.getFullName(item.name);
+      const result = await getWindowElectron().renameFileOrFolder(
+        fullPath,
+        newName,
+      );
+      if (result.success) {
+        await d.reload();
+        setError(null);
+
+        // Set pending selection for the renamed item
+        setPendingSelection(newName);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      setError(errorMessage);
+      return GenericError.Message(errorMessage);
     }
   };
 
@@ -184,7 +221,7 @@ export function FileBrowser() {
       onConfirm: async () => {
         try {
           // Delete all selected files/folders
-          await window.electron.deleteFiles(paths);
+          await getWindowElectron().deleteFiles(paths);
 
           // Remove from favorites if they were favorited
           paths.forEach((path) => {
@@ -276,7 +313,10 @@ export function FileBrowser() {
         key: { key: "n", ctrlKey: true },
         handler: (e) => {
           e.preventDefault();
-          setNewItemDialogOpen(true);
+          dialogs.show(
+            dialogs.dialogs[1],
+            {} as GetFilesAndFoldersInDirectoryItem,
+          );
         },
       },
       {
@@ -289,7 +329,37 @@ export function FileBrowser() {
       ...s.getShortcuts(table.data.length),
     ],
     {
-      isDisabled: confirmation.isOpen || newItemDialogOpen,
+      isDisabled: confirmation.isOpen,
+    },
+  );
+
+  // TODO: fix inference
+  const dialogs = useDialogs<
+    [
+      {
+        onSubmit: typeof handleRename;
+      },
+      {
+        onSubmit: typeof handleCreateNewItem;
+      },
+    ],
+    GetFilesAndFoldersInDirectoryItem
+  >(
+    {
+      title: "Rename",
+      component: RenameDialog,
+      props: {
+        onSubmit: handleRename,
+      },
+      icon: PencilIcon,
+    },
+    {
+      title: "New File or Folder",
+      component: NewItemDialog,
+      props: {
+        onSubmit: handleCreateNewItem,
+      },
+      icon: FilePlusIcon,
     },
   );
 
@@ -323,11 +393,7 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
-      <NewItemDialog
-        isOpen={newItemDialogOpen}
-        onClose={() => setNewItemDialogOpen(false)}
-        onSubmit={handleCreateNewItem}
-      />
+      {dialogs.RenderOutside}
       <FileBrowserOptionsSection d={d} />
       <FileBrowserNavigationAndInputSection
         d={d}
@@ -372,7 +438,7 @@ export function FileBrowser() {
                 handleDelete,
                 selection: s,
                 tableData: table.data,
-                onNewItem: () => setNewItemDialogOpen(true),
+                dialogs: dialogs as any, // TODO: fix this
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
@@ -383,7 +449,7 @@ export function FileBrowser() {
                   : [d.getFullName(item.name)];
 
                 const tableBody = e.currentTarget.closest("tbody");
-                window.electron.onDragStart({
+                getWindowElectron().onDragStart({
                   files,
                   image: await captureDivAsBase64(tableBody!, (node) => {
                     if (typeof node === "string") {
@@ -436,7 +502,7 @@ function getRowContextMenu({
   handleDelete,
   selection,
   tableData,
-  onNewItem,
+  dialogs,
 }: {
   setAsDefaultPath: (path: string) => void;
   favorites: ReturnType<typeof useFavorites>;
@@ -444,7 +510,7 @@ function getRowContextMenu({
   handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
   selection: ReturnType<typeof useSelection>;
   tableData: GetFilesAndFoldersInDirectoryItem[];
-  onNewItem: () => void;
+  dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
 }) {
   return ({
     item,
@@ -503,13 +569,7 @@ function getRowContextMenu({
       ),
     };
 
-    const newItem: ContextMenuItem = {
-      onClick: () => {
-        onNewItem();
-        close();
-      },
-      view: <TextWithIcon icon={FilePlusIcon}>New file or folder</TextWithIcon>,
-    };
+    const commonItems = renderAsContextMenu(item, dialogs);
 
     if (item.type === "dir")
       return (
@@ -527,12 +587,14 @@ function getRowContextMenu({
               ),
             },
             favoriteItem,
-            newItem,
             deleteItem,
+            ...commonItems,
           ]}
         />
       );
 
-    return <ContextMenuList items={[favoriteItem, newItem, deleteItem]} />;
+    return (
+      <ContextMenuList items={[favoriteItem, deleteItem, ...commonItems]} />
+    );
   };
 }

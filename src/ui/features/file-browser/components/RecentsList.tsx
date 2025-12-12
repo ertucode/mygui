@@ -2,6 +2,7 @@ import { FileIcon, FolderIcon } from "lucide-react";
 import { useRecents, type RecentItem } from "../hooks/useRecents";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
+import { getWindowElectron } from "@/getWindowElectron";
 
 interface RecentsListProps {
   recents: ReturnType<typeof useRecents>;
@@ -23,7 +24,7 @@ export function RecentsList({ recents, d, className }: RecentsListProps) {
         if (recent.type === "dir") {
           d.cdFull(recent.fullPath);
         } else {
-          window.electron.openFile(recent.fullPath);
+          getWindowElectron().openFile(recent.fullPath);
         }
       }}
       className={className}

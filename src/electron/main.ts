@@ -15,6 +15,7 @@ import { captureRect } from "./utils/capture-rect.js";
 import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
 import { createFileOrFolder } from "./utils/create-file-or-folder.js";
+import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -136,6 +137,9 @@ app.on("ready", () => {
   ipcHandle("deleteFiles", deleteFiles);
   ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
     createFileOrFolder(parentDir, name),
+  );
+  ipcHandle("renameFileOrFolder", ({ fullPath, newName }) =>
+    renameFileOrFolder(fullPath, newName),
   );
   ipcHandle("getPreviewPreloadPath", () => getPreviewPreloadPath());
 });

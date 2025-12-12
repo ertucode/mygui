@@ -2,13 +2,19 @@ import { type ReactNode, useEffect, useRef } from "react";
 import { cn } from "../functions/clsx";
 
 export function Dialog({
+  title,
   children,
   onClose,
   className,
+  style,
+  footer,
 }: {
+  title?: ReactNode;
   children: ReactNode;
   onClose?: () => void;
   className?: string;
+  style?: React.CSSProperties;
+  footer?: ReactNode;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -35,8 +41,16 @@ export function Dialog({
 
   return (
     <dialog className="modal" ref={dialogRef} onClose={onClose}>
-      <div className={cn("modal-box max-w-[80vw] max-h-[80vh]", className)}>
-        {children}
+      <div
+        className={cn(
+          "modal-box max-w-[80vw] max-h-[80vh] flex flex-col gap-3",
+          className,
+        )}
+        style={style}
+      >
+        {title && <h3 className="font-bold text-lg">{title}</h3>}
+        <div>{children}</div>
+        <div className="self-end">{footer && footer}</div>
       </div>
     </dialog>
   );
