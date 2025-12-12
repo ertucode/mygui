@@ -1,6 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { getWindowElectron } from "@/getWindowElectron";
-import { SearchIcon, XIcon, FileIcon } from "lucide-react";
+import {
+  SearchIcon,
+  XIcon,
+  FileIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+} from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { StringSearchResult } from "@common/Contracts";
 import { useDirectory } from "../hooks/useDirectory";
@@ -25,7 +31,24 @@ export function StringFinderTab({
   const listRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Search with debounce when query changes
+  // Advanced search options
+  const [showAdvanced, setShowAdvanced] = useState(true);
+  const [cwd, setCwd] = useState("");
+  const [includePatterns, setIncludePatterns] = useState("");
+  const [excludePatterns, setExcludePatterns] = useState("");
+  const [useRegex, setUseRegex] = useState(true);
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [searchHidden, setSearchHidden] = useState(true);
+
+  // Parse comma-separated patterns into array
+  const parsePatterns = (input: string): string[] => {
+    return input
+      .split(",")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+  };
+
+  // Search with debounce when query or options change
   useEffect(() => {
     if (!isOpen) return;
 
@@ -46,10 +69,16 @@ export function StringFinderTab({
       setIsLoading(true);
       setError(null);
       try {
-        const result = await getWindowElectron().searchStringRecursively(
-          directory.directory.fullName,
+        const result = await getWindowElectron().searchStringRecursively({
+          directory: directory.directory.fullName,
           query,
-        );
+          cwd: cwd.trim() || undefined,
+          includePatterns: parsePatterns(includePatterns),
+          excludePatterns: parsePatterns(excludePatterns),
+          useRegex,
+          caseSensitive,
+          searchHidden,
+        });
         if (result.success) {
           setSearchResults(result.data);
           setSelectedIndex(0);
@@ -68,7 +97,17 @@ export function StringFinderTab({
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [isOpen, directory.directory.fullName, query]);
+  }, [
+    isOpen,
+    directory.directory.fullName,
+    query,
+    cwd,
+    includePatterns,
+    excludePatterns,
+    useRegex,
+    caseSensitive,
+    searchHidden,
+  ]);
 
   // Reset and focus when dialog opens
   useEffect(() => {
@@ -77,6 +116,7 @@ export function StringFinderTab({
       setSelectedIndex(0);
       setError(null);
       setSearchResults([]);
+      // Don't reset advanced options so user can keep their filters
       setTimeout(() => inputRef.current?.focus(), 50);
     }
   }, [isOpen]);
@@ -164,23 +204,125 @@ export function StringFinderTab({
       {/* Left panel - Results list */}
       <div className="flex flex-col gap-3 w-[350px] min-w-[300px] h-full flex-shrink-0">
         {/* Input section */}
-        <div className="relative flex-shrink-0">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type to search in files..."
-            className="input input-bordered w-full text-sm focus:outline-offset-[-2px]"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
+        <div className="flex flex-col gap-2 flex-shrink-0">
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type to search in files..."
+              className="input input-bordered w-full text-sm focus:outline-offset-[-2px]"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Toggle advanced options */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 self-start"
+          >
+            {showAdvanced ? (
+              <ChevronUpIcon className="w-3 h-3" />
+            ) : (
+              <ChevronDownIcon className="w-3 h-3" />
+            )}
+            Advanced options
+          </button>
+
+          {/* Advanced options panel */}
+          {showAdvanced && (
+            <div className="flex flex-col gap-3 p-3 bg-base-200 rounded-lg text-xs border border-base-300">
+              {/* Directory / CWD */}
+              <div>
+                <label className="block font-medium text-base-content mb-1">
+                  Directory
+                </label>
+                <input
+                  type="text"
+                  value={cwd}
+                  onChange={(e) => setCwd(e.target.value)}
+                  placeholder="e.g., src/components or ~/projects or /absolute/path"
+                  className="input input-bordered input-sm w-full bg-base-100"
+                />
+                <p className="text-base-content/60 mt-1">
+                  Relative to current dir, or absolute if starts with / or ~
+                </p>
+              </div>
+
+              {/* Include patterns */}
+              <div>
+                <label className="block font-medium text-base-content mb-1">
+                  Include files
+                </label>
+                <input
+                  type="text"
+                  value={includePatterns}
+                  onChange={(e) => setIncludePatterns(e.target.value)}
+                  placeholder="e.g., *.ts, *.tsx, src/**/*.js"
+                  className="input input-bordered input-sm w-full bg-base-100"
+                />
+                <p className="text-base-content/60 mt-1">
+                  Glob patterns, comma-separated
+                </p>
+              </div>
+
+              {/* Exclude patterns */}
+              <div>
+                <label className="block font-medium text-base-content mb-1">
+                  Exclude files
+                </label>
+                <input
+                  type="text"
+                  value={excludePatterns}
+                  onChange={(e) => setExcludePatterns(e.target.value)}
+                  placeholder="e.g., node_modules/**, *.min.js, dist/**"
+                  className="input input-bordered input-sm w-full bg-base-100"
+                />
+                <p className="text-base-content/60 mt-1">
+                  Glob patterns, comma-separated
+                </p>
+              </div>
+
+              {/* Checkboxes for options */}
+              <div className="flex flex-wrap gap-4 pt-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useRegex}
+                    onChange={(e) => setUseRegex(e.target.checked)}
+                    className="checkbox checkbox-xs checkbox-primary"
+                  />
+                  <span className="text-base-content">Use regex</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={caseSensitive}
+                    onChange={(e) => setCaseSensitive(e.target.checked)}
+                    className="checkbox checkbox-xs checkbox-primary"
+                  />
+                  <span className="text-base-content">Case sensitive</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={searchHidden}
+                    onChange={(e) => setSearchHidden(e.target.checked)}
+                    className="checkbox checkbox-xs checkbox-primary"
+                  />
+                  <span className="text-base-content">Hidden files</span>
+                </label>
+              </div>
+            </div>
           )}
         </div>
 
@@ -261,13 +403,18 @@ export function StringFinderTab({
           <>
             {/* File header */}
             <div className="flex items-center gap-2 pb-2 border-b border-gray-200 flex-shrink-0">
-              <FileIcon className="w-4 h-4 text-gray-400" />
+              <FileIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
               <span className="text-sm font-medium truncate">
                 {getFileNameAndFolder(selectedResult.filePath).fileName}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 flex-shrink-0">
                 Line {selectedResult.matchLineNumber}
               </span>
+              {getFileNameAndFolder(selectedResult.filePath).folder && (
+                <span className="text-xs text-gray-400 truncate ml-auto">
+                  {getFileNameAndFolder(selectedResult.filePath).folder}
+                </span>
+              )}
             </div>
 
             {/* Context lines */}

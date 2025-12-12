@@ -146,8 +146,8 @@ app.on("ready", () => {
   ipcHandle("fuzzyFileFinder", ({ directory, query }) =>
     fuzzyFileFinder(directory, query),
   );
-  ipcHandle("searchStringRecursively", ({ directory, query }) =>
-    searchStringRecursively(directory, query),
+  ipcHandle("searchStringRecursively", (options) =>
+    searchStringRecursively(options),
   );
   ipcHandle("fuzzyFolderFinder", ({ directory, query }) =>
     fuzzyFolderFinder(directory, query),

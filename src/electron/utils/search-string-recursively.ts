@@ -1,43 +1,98 @@
 import { spawn } from "child_process";
+import path from "path";
 import { expandHome } from "./expand-home.js";
 import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
 import { rgPath } from "./get-vendor-path.js";
 import { errorToString } from "../../common/errorToString.js";
-import { ContextLine, StringSearchResult } from "../../common/Contracts.js";
+import {
+  ContextLine,
+  StringSearchOptions,
+  StringSearchResult,
+} from "../../common/Contracts.js";
 
 const CONTEXT_LINES = 15; // 15 lines before and after = 30 lines total around match
 
 export function searchStringRecursively(
-  target: string,
-  query: string,
+  options: StringSearchOptions,
   signal?: AbortSignal,
 ) {
+  const {
+    directory,
+    query,
+    cwd,
+    includePatterns = [],
+    excludePatterns = [],
+    useRegex = false,
+    caseSensitive = false,
+    searchHidden = true,
+  } = options;
+
   return new Promise<GenericResult<StringSearchResult[]>>((resolve, reject) => {
     if (!query.trim()) {
       resolve(Result.Success([]));
       return;
     }
 
-    const child = spawn(
-      rgPath,
-      [
-        "--line-number",
-        "--no-heading",
-        "--hidden",
-        "--follow",
-        "--glob=!**/.git/**",
-        "--smart-case",
-        `--context=${CONTEXT_LINES}`,
-        "--context-separator=<<<RG_CONTEXT_SEP>>>",
-        "--max-count=10", // Limit matches per file since we're getting lots of context
-        query,
-        ".",
-      ],
-      {
-        cwd: expandHome(target),
-      },
-    );
+    // Build the search directory path
+    // If cwd starts with / or ~, treat it as an absolute path
+    const isAbsolutePath = cwd && (cwd.startsWith("/") || cwd.startsWith("~"));
+    let searchDir: string;
+
+    if (isAbsolutePath) {
+      searchDir = expandHome(cwd);
+    } else {
+      const baseDir = expandHome(directory);
+      searchDir = cwd ? path.join(baseDir, cwd) : baseDir;
+    }
+
+    // Build ripgrep arguments
+    const args: string[] = [
+      "--line-number",
+      "--no-heading",
+      "--glob=!**/.git/**",
+      `--context=${CONTEXT_LINES}`,
+      "--context-separator=<<<RG_CONTEXT_SEP>>>",
+      "--max-count=10", // Limit matches per file since we're getting lots of context
+    ];
+
+    // Hidden files toggle
+    if (searchHidden) {
+      args.push("--hidden");
+    }
+
+    // Case sensitivity
+    if (caseSensitive) {
+      args.push("--case-sensitive");
+    } else {
+      args.push("--smart-case");
+    }
+
+    // Regex mode
+    if (!useRegex) {
+      args.push("--fixed-strings");
+    }
+
+    // Include patterns (glob)
+    for (const pattern of includePatterns) {
+      if (pattern.trim()) {
+        args.push(`--glob=${pattern.trim()}`);
+      }
+    }
+
+    // Exclude patterns (glob with !)
+    for (const pattern of excludePatterns) {
+      if (pattern.trim()) {
+        args.push(`--glob=!${pattern.trim()}`);
+      }
+    }
+
+    // Add query and search path
+    args.push(query, ".");
+
+    const child = spawn(rgPath, args, {
+      cwd: searchDir,
+    });
 
     // Handle abort signal
     if (signal) {
@@ -87,23 +142,23 @@ export function searchStringRecursively(
 
 function parseRipgrepOutput(output: string): StringSearchResult[] {
   const results: StringSearchResult[] = [];
-  
+
   // Split by context separator
   const blocks = output.split("<<<RG_CONTEXT_SEP>>>");
-  
+
   for (const block of blocks) {
-    const lines = block.split("\n").filter(line => line.trim());
+    const lines = block.split("\n").filter((line) => line.trim());
     if (lines.length === 0) continue;
-    
+
     const contextLines: ContextLine[] = [];
     let matchLineNumber: number | null = null;
     let matchContent: string | null = null;
     let currentFilePath: string | null = null;
-    
+
     for (const line of lines) {
       // Format for match: filePath:lineNumber:content
       // Format for context: filePath-lineNumber-content
-      
+
       // Try to parse as match first (uses :)
       const matchResult = parseLineAsMatch(line);
       if (matchResult) {
@@ -124,11 +179,11 @@ function parseRipgrepOutput(output: string): StringSearchResult[] {
         }
       }
     }
-    
+
     if (currentFilePath && matchLineNumber !== null && matchContent !== null) {
       // Sort context lines by line number
       contextLines.sort((a, b) => a.lineNumber - b.lineNumber);
-      
+
       results.push({
         filePath: currentFilePath,
         matchLineNumber,
@@ -137,7 +192,7 @@ function parseRipgrepOutput(output: string): StringSearchResult[] {
       });
     }
   }
-  
+
   return results;
 }
 
@@ -149,11 +204,11 @@ function parseLineAsMatch(line: string): {
 } | null {
   // Find the pattern: path followed by : or - then number then : or -
   // We need to handle Windows paths and paths with colons carefully
-  
+
   // Look for :number: or -number- pattern
   const matchPattern = /:(\d+):/;
   const contextPattern = /-(\d+)-/;
-  
+
   let isMatch = false;
   let match = line.match(matchPattern);
   if (match && match.index !== undefined) {
@@ -161,23 +216,23 @@ function parseLineAsMatch(line: string): {
     const filePath = line.slice(0, match.index);
     const lineNumber = parseInt(match[1], 10);
     const content = line.slice(match.index + match[0].length);
-    
+
     if (!isNaN(lineNumber) && filePath) {
       return { filePath, lineNumber, content, isMatch };
     }
   }
-  
+
   match = line.match(contextPattern);
   if (match && match.index !== undefined) {
     isMatch = false;
     const filePath = line.slice(0, match.index);
     const lineNumber = parseInt(match[1], 10);
     const content = line.slice(match.index + match[0].length);
-    
+
     if (!isNaN(lineNumber) && filePath) {
       return { filePath, lineNumber, content, isMatch };
     }
   }
-  
+
   return null;
 }
