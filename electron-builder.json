@@ -3,7 +3,12 @@
   "files": ["dist-electron", "dist-react", "assets"],
   "extraResources": [
     "dist-electron/electron/preload.cjs",
-    "dist-electron/electron/preload-preview.cjs"
+    "dist-electron/electron/preload-preview.cjs",
+    {
+      "from": "vendor-bin",
+      "to": "vendor-bin",
+      "filter": ["*"]
+    }
   ],
   "mac": {
     "target": ["dmg"]

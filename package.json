@@ -12,7 +12,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "transpile:electron": "tsc -p ./src/electron/tsconfig.json",
-    "build": "npm run transpile:electron && npm run build:react && electron-builder --mac --arm64"
+    "build": "npm run transpile:electron && npm run build:react && electron-builder --mac --arm64",
+    "build-vendor": "node scripts/build-all.mjs",
+    "build-everything": "npm run build-vendor && npm run build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
