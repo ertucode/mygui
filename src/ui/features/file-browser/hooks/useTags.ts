@@ -1,5 +1,4 @@
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
-import { useState } from "react";
 import { z } from "zod";
 
 // 7 predefined tag colors
