@@ -6,6 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
+import { errorResponseToMessage, GenericError } from "@common/GenericError";
 
 export type ToastSeverity = "success" | "error" | "warning" | "info";
 export type ToastLocation =
@@ -29,7 +30,7 @@ interface Toast extends ToastOptions {
 }
 
 interface ToastContextType {
-  show: (options: ToastOptions) => void;
+  show: (options: ToastOptions | GenericError.ResultType) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -62,22 +63,6 @@ const getLocationClasses = (location: ToastLocation = "top-right") => {
   }
 };
 
-const getSeverityClasses = (severity: ToastSeverity) => {
-  return "";
-  // switch (severity) {
-  //   case "success":
-  //     return "alert-success";
-  //   case "error":
-  //     return "alert-error";
-  //   case "warning":
-  //     return "alert-warning";
-  //   case "info":
-  //     return "alert-info";
-  //   default:
-  //     return "alert-info";
-  // }
-};
-
 const getSeverityIcon = (severity: ToastSeverity) => {
   switch (severity) {
     case "success":
@@ -97,7 +82,7 @@ const ToastItem: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({
 }) => {
   return (
     <div
-      className={`alert alert-vertical sm:alert-horizontal ${getSeverityClasses(toast.severity)} shadow-lg min-w-[300px] max-w-md`}
+      className={`alert alert-vertical sm:alert-horizontal shadow-lg min-w-[300px] max-w-md`}
     >
       {getSeverityIcon(toast.severity)}
       <div>
@@ -128,7 +113,14 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const show = useCallback(
-    (options: ToastOptions) => {
+    (opts: ToastOptions | GenericError.ResultType) => {
+      const options: ToastOptions =
+        "error" in opts
+          ? {
+              severity: "error",
+              message: errorResponseToMessage(opts.error),
+            }
+          : opts;
       const id = Math.random().toString(36).substring(2, 9);
       const newToast: Toast = { ...options, id };
 

@@ -55,14 +55,12 @@ export type EventResponseMapping = {
       }
     | { error: string }
   >;
-  deleteFiles: Promise<{ success: boolean; error?: string }>;
-  createFileOrFolder: Promise<{
-    success: boolean;
-    error?: string;
-    path?: string;
-  }>;
+  deleteFiles: Promise<GenericResult<void>>;
+  createFileOrFolder: Promise<GenericResult<{ path: string }>>;
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>;
   getPreviewPreloadPath: string;
+  copyFiles: Promise<GenericResult<void>>;
+  pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
 };
 
 export type EventRequestMapping = {
@@ -85,6 +83,8 @@ export type EventRequestMapping = {
     fullPath: string;
     newName: string;
   };
+  copyFiles: { filePaths: string[]; cut: boolean };
+  pasteFiles: { destinationDir: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -121,9 +121,7 @@ export type WindowElectron = {
       }
     | { error: string }
   >;
-  deleteFiles: (
-    filePaths: string[],
-  ) => Promise<{ success: boolean; error?: string }>;
+  deleteFiles: (filePaths: string[]) => Promise<GenericResult<void>>;
   createFileOrFolder: (
     parentDir: string,
     name: string,
@@ -134,4 +132,11 @@ export type WindowElectron = {
   ) => Promise<GenericResult<{ newPath: string }>>;
   getPreviewPreloadPath: () => Promise<string>;
   getStartingDirectory: () => string | undefined | null;
+  copyFiles: (
+    filePaths: string[],
+    cut: boolean,
+  ) => Promise<GenericResult<void>>;
+  pasteFiles: (
+    destinationDir: string,
+  ) => Promise<GenericResult<{ pastedItems: string[] }>>;
 };

@@ -6,7 +6,7 @@ import {
   getUIPath,
 } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
-import { getFilesAndFoldersInDirectory } from "./utils/file-browser-helpers.js";
+import { getFilesAndFoldersInDirectory } from "./utils/get-files-and-folders-in-directory.js";
 import { openFile } from "./utils/open-file.js";
 import { getInitializedFuzzyFinder } from "./utils/get-initialized-fuzzy-finder.js";
 import { expandHome } from "./utils/expand-home.js";
@@ -16,6 +16,8 @@ import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
 import { createFileOrFolder } from "./utils/create-file-or-folder.js";
 import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
+import { copyFiles } from "./utils/copy-files.js";
+import { pasteFiles } from "./utils/paste-files.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -144,4 +146,6 @@ app.on("ready", () => {
     renameFileOrFolder(fullPath, newName),
   );
   ipcHandle("getPreviewPreloadPath", () => getPreviewPreloadPath());
+  ipcHandle("copyFiles", ({ filePaths, cut }) => copyFiles(filePaths, cut));
+  ipcHandle("pasteFiles", ({ destinationDir }) => pasteFiles(destinationDir));
 });

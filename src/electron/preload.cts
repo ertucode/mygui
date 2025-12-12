@@ -30,6 +30,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     const staticData = arg ? arg.replace("--initial-path=", "") : null;
     return staticData;
   },
+  copyFiles: (filePaths: string[], cut: boolean) =>
+    ipcInvoke("copyFiles", { filePaths, cut }),
+  pasteFiles: (destinationDir: string) =>
+    ipcInvoke("pasteFiles", { destinationDir }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

@@ -5,6 +5,9 @@ import {
   Trash2Icon,
   FilePlusIcon,
   PencilIcon,
+  CopyIcon,
+  ScissorsIcon,
+  ClipboardPasteIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Alert } from "@/lib/components/alert";
@@ -46,6 +49,7 @@ import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
+import { useToast } from "@/lib/components/toast";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
@@ -198,6 +202,31 @@ export function FileBrowser() {
     }, 5);
   };
 
+  const toast = useToast();
+  const handleCopy = async (
+    items: GetFilesAndFoldersInDirectoryItem[],
+    cut: boolean = false,
+  ) => {
+    const paths = items.map((item) => d.getFullName(item.name));
+    const result = await getWindowElectron().copyFiles(paths, cut);
+    if (!result.success) {
+      toast.show(result);
+    }
+  };
+
+  const handlePaste = async () => {
+    const result = await getWindowElectron().pasteFiles(d.directory.fullName);
+    if (result.success) {
+      await d.reload();
+      // Select the first pasted item
+      if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
+        setPendingSelection(result.data.pastedItems[0]);
+      }
+    } else {
+      toast.show(result);
+    }
+  };
+
   const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
     const paths = items.map((item) => d.getFullName(item.name));
     const deletedNames = new Set(items.map((item) => item.name));
@@ -221,7 +250,12 @@ export function FileBrowser() {
       onConfirm: async () => {
         try {
           // Delete all selected files/folders
-          await getWindowElectron().deleteFiles(paths);
+          const result = await getWindowElectron().deleteFiles(paths);
+
+          if (!result.success) {
+            setError(errorResponseToMessage(result.error));
+            return;
+          }
 
           // Remove from favorites if they were favorited
           paths.forEach((path) => {
@@ -250,6 +284,9 @@ export function FileBrowser() {
           }
         } catch (error) {
           console.error("Error deleting files:", error);
+          setError(
+            error instanceof Error ? error.message : "Error deleting files",
+          );
         }
       },
     });
@@ -325,6 +362,56 @@ export function FileBrowser() {
           e.preventDefault();
           d.reload();
         },
+      },
+      {
+        key: { key: "c", metaKey: true },
+        handler: (e) => {
+          // Check if user is selecting text
+          const selection = window.getSelection();
+          if (selection && selection.toString().length > 0) {
+            return; // Allow default text copy
+          }
+
+          e.preventDefault();
+          if (s.state.indexes.size === 0) return;
+          const itemsToCopy = [...s.state.indexes].map((i) => table.data[i]);
+          handleCopy(itemsToCopy, false);
+        },
+        enabledIn: () => true,
+      },
+      {
+        key: { key: "x", metaKey: true },
+        handler: (e) => {
+          // Check if user is selecting text
+          const selection = window.getSelection();
+          if (selection && selection.toString().length > 0) {
+            return; // Allow default text cut
+          }
+
+          e.preventDefault();
+          if (s.state.indexes.size === 0) return;
+          const itemsToCut = [...s.state.indexes].map((i) => table.data[i]);
+          handleCopy(itemsToCut, true);
+        },
+        enabledIn: () => true,
+      },
+      {
+        key: { key: "v", metaKey: true },
+        handler: (e) => {
+          // Check if user is in an input field
+          const target = e.target as HTMLElement;
+          if (
+            target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.isContentEditable
+          ) {
+            return; // Allow default paste in inputs
+          }
+
+          e.preventDefault();
+          handlePaste();
+        },
+        enabledIn: () => true,
       },
       ...s.getShortcuts(table.data.length),
     ],
@@ -436,6 +523,8 @@ export function FileBrowser() {
                 favorites,
                 d,
                 handleDelete,
+                handleCopy,
+                handlePaste,
                 selection: s,
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
@@ -500,6 +589,8 @@ function getRowContextMenu({
   favorites,
   d,
   handleDelete,
+  handleCopy,
+  handlePaste,
   selection,
   tableData,
   dialogs,
@@ -508,6 +599,11 @@ function getRowContextMenu({
   favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
   handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
+  handleCopy: (
+    items: GetFilesAndFoldersInDirectoryItem[],
+    cut: boolean,
+  ) => void;
+  handlePaste: () => void;
   selection: ReturnType<typeof useSelection>;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
@@ -546,23 +642,60 @@ function getRowContextMenu({
           view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
         };
 
+    const isSelected =
+      itemIndex !== -1 && selection.state.indexes.has(itemIndex);
+    const selectedItems =
+      isSelected && selection.state.indexes.size > 0
+        ? [...selection.state.indexes].map((i) => tableData[i])
+        : [item];
+
+    const copyItem: ContextMenuItem = {
+      onClick: () => {
+        handleCopy(selectedItems, false);
+        close();
+      },
+      view: (
+        <TextWithIcon icon={CopyIcon}>
+          Copy
+          {isSelected && selection.state.indexes.size > 1
+            ? ` (${selection.state.indexes.size} items)`
+            : ""}
+        </TextWithIcon>
+      ),
+    };
+
+    const cutItem: ContextMenuItem = {
+      onClick: () => {
+        handleCopy(selectedItems, true);
+        close();
+      },
+      view: (
+        <TextWithIcon icon={ScissorsIcon}>
+          Cut
+          {isSelected && selection.state.indexes.size > 1
+            ? ` (${selection.state.indexes.size} items)`
+            : ""}
+        </TextWithIcon>
+      ),
+    };
+
+    const pasteItem: ContextMenuItem = {
+      onClick: () => {
+        handlePaste();
+        close();
+      },
+      view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
+    };
+
     const deleteItem: ContextMenuItem = {
       onClick: () => {
-        const isSelected =
-          itemIndex !== -1 && selection.state.indexes.has(itemIndex);
-        const itemsToDelete =
-          isSelected && selection.state.indexes.size > 0
-            ? [...selection.state.indexes].map((i) => tableData[i])
-            : [item];
-        handleDelete(itemsToDelete);
+        handleDelete(selectedItems);
         close();
       },
       view: (
         <TextWithIcon icon={Trash2Icon}>
           Delete
-          {itemIndex !== -1 &&
-          selection.state.indexes.has(itemIndex) &&
-          selection.state.indexes.size > 1
+          {isSelected && selection.state.indexes.size > 1
             ? ` (${selection.state.indexes.size} items)`
             : ""}
         </TextWithIcon>
@@ -587,6 +720,9 @@ function getRowContextMenu({
               ),
             },
             favoriteItem,
+            copyItem,
+            cutItem,
+            pasteItem,
             deleteItem,
             ...commonItems,
           ]}
@@ -594,7 +730,16 @@ function getRowContextMenu({
       );
 
     return (
-      <ContextMenuList items={[favoriteItem, deleteItem, ...commonItems]} />
+      <ContextMenuList
+        items={[
+          favoriteItem,
+          copyItem,
+          cutItem,
+          pasteItem,
+          deleteItem,
+          ...commonItems,
+        ]}
+      />
     );
   };
 }

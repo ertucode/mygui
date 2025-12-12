@@ -1,11 +1,13 @@
 import fs from "fs/promises";
 import path from "path";
 import { expandHome } from "./expand-home.js";
+import { GenericError, GenericResult } from "../../common/GenericError.js";
+import { Result } from "../../common/Result.js";
 
 export async function createFileOrFolder(
   parentDir: string,
   name: string,
-): Promise<{ success: boolean; error?: string; path?: string }> {
+): Promise<GenericResult<{ path: string }>> {
   try {
     const expandedParent = expandHome(parentDir);
     const fullPath = path.join(expandedParent, name);
@@ -23,11 +25,11 @@ export async function createFileOrFolder(
       await fs.writeFile(fullPath, "");
     }
 
-    return { success: true, path: fullPath };
+    return Result.Success({ path: fullPath });
   } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : String(error),
-    };
+    if (error instanceof Error) {
+      return GenericError.Message(error.message);
+    }
+    return GenericError.Unknown(error);
   }
 }
