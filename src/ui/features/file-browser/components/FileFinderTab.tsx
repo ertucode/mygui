@@ -4,6 +4,7 @@ import { FileIcon, XIcon } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { useDirectory } from "../hooks/useDirectory";
 import { FilePreview } from "./FilePreview";
+import { Alert } from "@/lib/components/alert";
 
 type FileFinderTabProps = {
   directory: ReturnType<typeof useDirectory>;
@@ -182,9 +183,7 @@ export function FileFinderTab({
             </div>
           )}
 
-          {error && (
-            <div className="text-center text-red-500 py-4">Error: {error}</div>
-          )}
+          {error && <Alert className="m-6">{error}</Alert>}
 
           {!isLoading && !error && (
             <div ref={listRef} className="overflow-y-auto flex-1">

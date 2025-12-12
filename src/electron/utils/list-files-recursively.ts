@@ -4,16 +4,15 @@ import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
 import { rgPath } from "./get-vendor-path.js";
 
-export function listFilesRecursively(
-  target: string,
-  signal?: AbortSignal,
-) {
+export function listFilesRecursively(target: string, signal?: AbortSignal) {
   return new Promise<GenericResult<string[]>>((resolve, reject) => {
     const files: string[] = [];
 
+    const errors: string[] = [];
+
     const child = spawn(
       rgPath,
-      ["--files", "--hidden", "--follow", "--glob=!**/.git/**", "--smart-case"],
+      ["--files", "--hidden", "--glob=!**/.git/**", "--smart-case"],
       {
         cwd: expandHome(target),
       },
@@ -45,16 +44,22 @@ export function listFilesRecursively(
     });
 
     child.stderr.on("data", (chunk) => {
-      console.error("rg stderr:", chunk.toString());
+      console.error("rg stderr data:", chunk.toString());
+      errors.push(chunk.toString());
     });
 
     child.on("error", (err) => {
+      console.error("rg onerror error:", err);
       resolve(GenericError.Unknown(err));
     });
 
     child.on("close", (code) => {
       if (code !== 0) {
-        return resolve(GenericError.Unknown(`rg exited with ${code}`));
+        console.log(`rg exited with ${code}`);
+        return resolve(
+          GenericError.Message(`rg exited with ${code} 
+${errors.map((e) => e.trim()).join("\n")}`),
+        );
       }
       resolve(Result.Success(files));
     });

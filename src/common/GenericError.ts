@@ -1,3 +1,4 @@
+import { errorToString } from "./errorToString.js";
 import { _ResultOnlyError, Result } from "./Result.js";
 
 export type GenericError =
@@ -85,6 +86,10 @@ export function errorResponseToMessage(error: GenericError) {
   }
   if (error.type === "http") {
     return `${error.status}: ${error.message}`;
+  }
+
+  if (error.type === "unknown") {
+    return errorToString(error.error);
   }
 
   // TODO
