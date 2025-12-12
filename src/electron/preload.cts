@@ -11,7 +11,6 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("docxToPdf", electron.webUtils.getPathForFile(file)),
   convertDocxToPdfByPath: (filePath: string) =>
     ipcInvoke("docxToPdf", filePath),
-  fuzzyFind: (query: string) => ipcInvoke("fuzzyFind", query),
   getFilesAndFoldersInDirectory: (directory: string) =>
     ipcInvoke("getFilesAndFoldersInDirectory", directory),
   openFile: (filePath: string) => ipcInvoke("openFile", filePath),
