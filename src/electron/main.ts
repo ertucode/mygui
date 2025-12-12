@@ -18,6 +18,7 @@ import { createFileOrFolder } from "./utils/create-file-or-folder.js";
 import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
 import { copyFiles } from "./utils/copy-files.js";
 import { pasteFiles } from "./utils/paste-files.js";
+import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -148,4 +149,7 @@ app.on("ready", () => {
   ipcHandle("getPreviewPreloadPath", () => getPreviewPreloadPath());
   ipcHandle("copyFiles", ({ filePaths, cut }) => copyFiles(filePaths, cut));
   ipcHandle("pasteFiles", ({ destinationDir }) => pasteFiles(destinationDir));
+  ipcHandle("fuzzyFileFinder", ({ directory, query }) =>
+    fuzzyFileFinder(directory, query),
+  );
 });

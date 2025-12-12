@@ -1,7 +1,7 @@
 import {
   FuzzyFinderInput,
   useFuzzyFinder,
-} from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
+} from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
 import { useDirectory } from "../hooks/useDirectory";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";

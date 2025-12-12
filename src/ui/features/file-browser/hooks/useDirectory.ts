@@ -153,6 +153,7 @@ export function useDirectory(
     };
   };
 
+  const hasNext = historyStack.hasNext;
   const hasPrev = historyStack.hasPrev;
 
   const changeDirectory = async (newDirectory: string) => {
@@ -179,9 +180,10 @@ export function useDirectory(
     loading,
     directoryData,
     directory,
-    goNext: () => {
+    goNext: async () => {
+      if (!hasNext) return;
       forceRerender();
-      cd(historyStack.goNext(), false);
+      return await cdWithMetadata(historyStack.goNext(), false);
     },
     goPrev: async () => {
       if (!hasPrev) return;
@@ -207,7 +209,6 @@ export function useDirectory(
       };
       return await cdWithMetadata(info, true);
     },
-    hasNext: historyStack.hasNext,
     hasPrev,
     error,
     settings,

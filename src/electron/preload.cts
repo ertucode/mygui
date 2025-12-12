@@ -34,6 +34,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("copyFiles", { filePaths, cut }),
   pasteFiles: (destinationDir: string) =>
     ipcInvoke("pasteFiles", { destinationDir }),
+  fuzzyFileFinder: (directory: string, query: string) =>
+    ipcInvoke("fuzzyFileFinder", { directory, query }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

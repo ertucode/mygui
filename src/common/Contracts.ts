@@ -61,6 +61,7 @@ export type EventResponseMapping = {
   getPreviewPreloadPath: string;
   copyFiles: Promise<GenericResult<void>>;
   pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
+  fuzzyFileFinder: Promise<GenericResult<string[]>>;
 };
 
 export type EventRequestMapping = {
@@ -85,6 +86,7 @@ export type EventRequestMapping = {
   };
   copyFiles: { filePaths: string[]; cut: boolean };
   pasteFiles: { destinationDir: string };
+  fuzzyFileFinder: { directory: string; query: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -139,4 +141,8 @@ export type WindowElectron = {
   pasteFiles: (
     destinationDir: string,
   ) => Promise<GenericResult<{ pastedItems: string[] }>>;
+  fuzzyFileFinder: (
+    directory: string,
+    query: string,
+  ) => Promise<GenericResult<string[]>>;
 };

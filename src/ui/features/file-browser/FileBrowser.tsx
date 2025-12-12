@@ -24,7 +24,7 @@ import {
   ContextMenuList,
 } from "@/lib/components/context-menu";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
-import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderDialog";
+import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { cols, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
@@ -36,6 +36,7 @@ import { useRecents } from "./hooks/useRecents";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { RenameDialog } from "./components/RenameDialog";
+import { FuzzyFileFinderDialog } from "./components/FuzzyFileFinderDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
@@ -319,9 +320,15 @@ export function FileBrowser() {
           e.key === "Enter",
       },
       {
-        key: ["h"],
+        key: { key: "o", ctrlKey: true },
         handler: (_) => {
           onGoUpOrPrev(d.goPrev);
+        },
+      },
+      {
+        key: { key: "i", ctrlKey: true },
+        handler: (_) => {
+          onGoUpOrPrev(d.goNext);
         },
       },
       {
@@ -333,7 +340,7 @@ export function FileBrowser() {
         },
       },
       {
-        key: "-",
+        key: ["-", "h"],
         handler: () => onGoUpOrPrev(d.goUp),
       },
       {
@@ -480,6 +487,7 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
+      <FuzzyFileFinderDialog directory={d} />
       {dialogs.RenderOutside}
       <FileBrowserOptionsSection d={d} />
       <FileBrowserNavigationAndInputSection

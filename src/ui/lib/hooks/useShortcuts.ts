@@ -100,8 +100,7 @@ export function handleKeyDownWithShortcuts(
 
   // Get all sequence shortcuts to determine max length and check for matches
   const sequenceShortcuts = shortcuts.filter(
-    (s): s is SequenceShortcut =>
-      !!s && s !== true && isSequenceShortcut(s),
+    (s): s is SequenceShortcut => !!s && s !== true && isSequenceShortcut(s),
   );
 
   // Check if we should reset the buffer (timeout exceeded)
@@ -118,7 +117,9 @@ export function handleKeyDownWithShortcuts(
     sequenceBuffer.lastTime = now;
 
     // Keep buffer at max needed length
-    const maxLength = Math.max(...sequenceShortcuts.map((s) => s.sequence.length));
+    const maxLength = Math.max(
+      ...sequenceShortcuts.map((s) => s.sequence.length),
+    );
     if (sequenceBuffer.keys.length > maxLength) {
       sequenceBuffer.keys = sequenceBuffer.keys.slice(-maxLength);
     }
