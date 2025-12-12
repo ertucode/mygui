@@ -1,15 +1,25 @@
-import { FolderIcon, FileIcon, Trash2Icon } from "lucide-react";
+import { FolderIcon, FileIcon, Trash2Icon, FolderCogIcon } from "lucide-react";
 import { useFavorites, type FavoriteItem } from "../hooks/useFavorites";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
+import { TextWithIcon } from "@/lib/components/text-with-icon";
+import { useDefaultPath } from "../hooks/useDefaultPath";
 
 interface FavoritesListProps {
   favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
+  defaultPath: ReturnType<typeof useDefaultPath>;
   className?: string;
+  openFavorite: (favorite: FavoriteItem) => void;
 }
 
-export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
+export function FavoritesList({
+  favorites,
+  d,
+  className,
+  defaultPath,
+  openFavorite,
+}: FavoritesListProps) {
   const f = favorites.favorites;
 
   return (
@@ -19,24 +29,19 @@ export function FavoritesList({ favorites, d, className }: FavoritesListProps) {
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) => d.directory.fullName === favorite.fullPath}
-      onClick={(favorite) => {
-        if (favorite.type === "dir") {
-          d.cdFull(favorite.fullPath);
-        } else {
-          d.openFileFull(favorite.fullPath);
-        }
-      }}
+      onClick={openFavorite}
       getContextMenuItems={(favorite) => [
         {
+          view: <TextWithIcon icon={Trash2Icon}>Delete</TextWithIcon>,
+          onClick: () => favorites.removeFavorite(favorite.fullPath),
+        },
+        favorite.type === "dir" && {
           view: (
-            <div className="flex items-center gap-2">
-              <Trash2Icon className="size-4" />
-              <span>Delete</span>
-            </div>
+            <TextWithIcon icon={FolderCogIcon}>
+              Set as default path
+            </TextWithIcon>
           ),
-          onClick: () => {
-            favorites.removeFavorite(favorite.fullPath);
-          },
+          onClick: () => defaultPath.setPath(favorite.fullPath),
         },
       ]}
       className={className}

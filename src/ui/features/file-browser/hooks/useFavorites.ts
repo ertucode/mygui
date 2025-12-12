@@ -27,6 +27,10 @@ export function useFavorites() {
         fullPath: "~/Desktop",
         type: "dir",
       },
+      {
+        fullPath: "~/dev",
+        type: "dir",
+      },
     ],
   );
 
