@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CopyIcon, FilmIcon, AlertCircleIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
-import { isImageExtension, isVideoExtension } from "../../common/file-category";
 import { getWindowElectron } from "@/getWindowElectron";
+import { fileSizeTooLarge } from "@common/file-size-too-large";
 
 type ContentType =
   | "image"
@@ -48,12 +48,12 @@ export function PreviewApp() {
     }
   };
 
-  const fetchPreview = (path: string) => {
+  const fetchPreview = (path: string, allowBigSize?: boolean) => {
     setLoading(true);
     setError(null);
 
     getWindowElectron()
-      .readFilePreview(path)
+      .readFilePreview(path, allowBigSize)
       .then((result) => {
         if ("error" in result) {
           setError(result.error);
@@ -75,30 +75,13 @@ export function PreviewApp() {
       });
   };
 
-  const PDF_EXTENSIONS = new Set([".pdf"]);
-  const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
   const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
-  const MAX_TEXT_SIZE = 1 * 1024 * 1024; // 1MB
-  const MAX_XLSX_SIZE = 10 * 1024 * 1024; // 10MB
 
   const ext = previewData?.fileExt || "";
-  const isImage = isImageExtension(ext);
-  const isPdf = PDF_EXTENSIONS.has(ext);
-  const isDocx = DOCX_EXTENSIONS.has(ext);
   const isXlsx = XLSX_EXTENSIONS.has(ext);
-  const isVideo = isVideoExtension(ext);
-  const isTextTooLarge =
-    !isImage &&
-    !isPdf &&
-    !isDocx &&
-    !isXlsx &&
-    !isVideo &&
-    previewData?.fileSize != null &&
-    previewData.fileSize > MAX_TEXT_SIZE;
-  const isXlsxTooLarge =
-    isXlsx &&
-    previewData?.fileSize != null &&
-    previewData.fileSize > MAX_XLSX_SIZE;
+  const { isTooLarge, limit: fileSizeLimit } = previewData?.fileSize
+    ? fileSizeTooLarge(ext, previewData.fileSize)
+    : { isTooLarge: false, limit: Infinity };
 
   useEffect(() => {
     if (!previewData?.filePath || !previewData.isFile) {
@@ -109,7 +92,7 @@ export function PreviewApp() {
       return;
     }
 
-    if (isTextTooLarge || isXlsxTooLarge) {
+    if (isTooLarge) {
       setContent(null);
       setContentType("text");
       setError(null);
@@ -117,8 +100,10 @@ export function PreviewApp() {
       return;
     }
 
-    fetchPreview(previewData.filePath);
-  }, [previewData, isTextTooLarge, isXlsxTooLarge]);
+    // Allow big size if file size is known (already checked in UI)
+    const allowBigSize = previewData.fileSize != null;
+    fetchPreview(previewData.filePath, allowBigSize);
+  }, [previewData, isTooLarge]);
 
   if (!previewData?.filePath) {
     return (
@@ -136,8 +121,7 @@ export function PreviewApp() {
     );
   }
 
-  if ((isTextTooLarge || isXlsxTooLarge) && !content && !loading) {
-    const maxSize = isXlsxTooLarge ? 10 : 1;
+  if (isTooLarge && !content && !loading) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
         <div>
@@ -145,13 +129,13 @@ export function PreviewApp() {
           <br />
           <span className="text-xs">
             ({((previewData.fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max
-            {maxSize}MB)
+            {fileSizeLimit}MB)
           </span>
         </div>
         <button
           className="btn btn-xs btn-ghost"
           onClick={() =>
-            previewData.filePath && fetchPreview(previewData.filePath)
+            previewData.filePath && fetchPreview(previewData.filePath, true)
           }
         >
           Preview anyway
@@ -169,6 +153,27 @@ export function PreviewApp() {
   }
 
   if (error) {
+    // Handle FILE_TOO_LARGE error specifically
+    if (error === "FILE_TOO_LARGE") {
+      return (
+        <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
+          <div>
+            File too large for preview
+            <br />
+            <span className="text-xs">(max {isXlsx ? "10" : "1"}MB)</span>
+          </div>
+          <button
+            className="btn btn-xs btn-ghost"
+            onClick={() =>
+              previewData?.filePath && fetchPreview(previewData.filePath, true)
+            }
+          >
+            Preview anyway
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="flex items-center justify-center h-full text-red-500 p-4">
         {error}

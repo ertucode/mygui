@@ -48,9 +48,9 @@ export function Dialog({
         )}
         style={style}
       >
-        {title && <h3 className="font-bold text-lg">{title}</h3>}
-        <div>{children}</div>
-        <div className="self-end">{footer && footer}</div>
+        {title && <h3 className="font-bold text-lg flex-shrink-0">{title}</h3>}
+        <div className="flex-1 min-h-0">{children}</div>
+        <div className="self-end flex-shrink-0">{footer && footer}</div>
       </div>
     </dialog>
   );

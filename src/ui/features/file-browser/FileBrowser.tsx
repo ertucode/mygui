@@ -61,6 +61,7 @@ export function FileBrowser() {
   const [error, setError] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
 
   useEffect(() => {
     s.reset();
@@ -228,6 +229,9 @@ export function FileBrowser() {
     }
   };
 
+  // Track if any dialog is open
+  const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
+
   const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
     const paths = items.map((item) => d.getFullName(item.name));
     const deletedNames = new Set(items.map((item) => item.name));
@@ -318,6 +322,13 @@ export function FileBrowser() {
         enabledIn: (e) =>
           (e.target as HTMLInputElement).id === "fuzzy-finder-input" &&
           e.key === "Enter",
+      },
+      {
+        key: { key: "p", ctrlKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          setIsFuzzyFinderOpen(true);
+        },
       },
       {
         key: { key: "o", ctrlKey: true },
@@ -420,10 +431,17 @@ export function FileBrowser() {
         },
         enabledIn: () => true,
       },
+      {
+        key: { key: "0", ctrlKey: true },
+        handler: (_) => {
+          // @ts-ignore
+          document.querySelector("webview")?.openDevTools();
+        },
+      },
       ...s.getShortcuts(table.data.length),
     ],
     {
-      isDisabled: confirmation.isOpen,
+      isDisabled: someDialogIsOpened,
     },
   );
 
@@ -487,7 +505,11 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
-      <FuzzyFileFinderDialog directory={d} />
+      <FuzzyFileFinderDialog
+        directory={d}
+        isOpen={isFuzzyFinderOpen}
+        setIsOpen={setIsFuzzyFinderOpen}
+      />
       {dialogs.RenderOutside}
       <FileBrowserOptionsSection d={d} />
       <FileBrowserNavigationAndInputSection

@@ -54,6 +54,7 @@ export type EventResponseMapping = {
           | "video-unsupported";
       }
     | { error: string }
+    | { error: "FILE_TOO_LARGE" }
   >;
   deleteFiles: Promise<GenericResult<void>>;
   createFileOrFolder: Promise<GenericResult<{ path: string }>>;
@@ -74,7 +75,7 @@ export type EventRequestMapping = {
     image: string;
   };
   captureRect: Rect;
-  readFilePreview: string;
+  readFilePreview: { filePath: string; allowBigSize?: boolean };
   deleteFiles: string[];
   createFileOrFolder: {
     parentDir: string;
@@ -115,13 +116,14 @@ export type WindowElectron = {
   ) => Promise<unknown>;
   captureRect: (rect: Rect) => Promise<string>;
   getHomeDirectory: () => Promise<string>;
-  readFilePreview: (filePath: string) => Promise<
+  readFilePreview: (filePath: string, allowBigSize?: boolean) => Promise<
     | {
         content: string;
         isTruncated: boolean;
-        contentType: "image" | "pdf" | "text" | "docx" | "xlsx";
+        contentType: "image" | "pdf" | "text" | "docx" | "xlsx" | "video" | "video-unsupported";
       }
     | { error: string }
+    | { error: "FILE_TOO_LARGE" }
   >;
   deleteFiles: (filePaths: string[]) => Promise<GenericResult<void>>;
   createFileOrFolder: (

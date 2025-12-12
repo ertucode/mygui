@@ -4,11 +4,8 @@
   "extraResources": [
     "dist-electron/electron/preload.cjs",
     "dist-electron/electron/preload-preview.cjs",
-    {
-      "from": "vendor-bin",
-      "to": "vendor-bin",
-      "filter": ["*"]
-    }
+    "vendor-bin/rg",
+    "vendor-bin/fzy/fzy"
   ],
   "mac": {
     "target": ["dmg"]

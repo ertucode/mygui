@@ -5,13 +5,20 @@ import { Dialog } from "@/lib/components/dialog";
 import { FileIcon, XIcon } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { useDirectory } from "../hooks/useDirectory";
+import { FilePreview } from "./FilePreview";
 
 type FuzzyFileFinderDialogProps = {
   directory: ReturnType<typeof useDirectory>;
+  isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 };
+
+const MIN_WIDTH_FOR_PREVIEW = 900; // Minimum window width to show preview
 
 export function FuzzyFileFinderDialog({
   directory,
+  isOpen,
+  setIsOpen,
 }: FuzzyFileFinderDialogProps) {
   const [query, setQuery] = useState("");
   const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
@@ -20,11 +27,24 @@ export function FuzzyFileFinderDialog({
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showPreview, setShowPreview] = useState(
+    window.innerWidth >= MIN_WIDTH_FOR_PREVIEW,
+  );
+
+  // Track window width for showing/hiding preview
+  useEffect(() => {
+    const handleResize = () => {
+      setShowPreview(window.innerWidth >= MIN_WIDTH_FOR_PREVIEW);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Load files when dialog opens or query changes
   useEffect(() => {
-    if (!isFuzzyFinderOpen) return;
+    if (!isOpen) return;
 
     const searchFiles = async () => {
       setIsLoading(true);
@@ -50,27 +70,17 @@ export function FuzzyFileFinderDialog({
     };
 
     searchFiles();
-  }, [isFuzzyFinderOpen, directory.directory.fullName, query]);
-
-  useShortcuts([
-    {
-      key: { key: "p", ctrlKey: true },
-      handler: (e) => {
-        e.preventDefault();
-        setIsFuzzyFinderOpen(true);
-      },
-    },
-  ]);
+  }, [isOpen, directory.directory.fullName, query]);
 
   // Focus input and reset when dialog opens
   useEffect(() => {
-    if (isFuzzyFinderOpen) {
+    if (isOpen) {
       setQuery("");
       setSelectedIndex(0);
       setError(null);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isFuzzyFinderOpen]);
+  }, [isOpen]);
 
   // Scroll selected item into view
   useEffect(() => {
@@ -84,13 +94,13 @@ export function FuzzyFileFinderDialog({
   }, [selectedIndex]);
 
   const onClose = () => {
-    setIsFuzzyFinderOpen(false);
+    setIsOpen(false);
   };
 
   const handleSelect = (filePath: string) => {
     // Open the file using directory's openFile method
     directory.openFile(filePath);
-    setIsFuzzyFinderOpen(false);
+    setIsOpen(false);
   };
 
   const handleOpenContainingFolder = (filePath: string) => {
@@ -101,7 +111,7 @@ export function FuzzyFileFinderDialog({
     const dirPath = filePath.slice(0, lastSlashIndex);
     // Navigate to the containing folder
     directory.cdFull(directory.getFullName(dirPath));
-    setIsFuzzyFinderOpen(false);
+    setIsOpen(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -148,7 +158,7 @@ export function FuzzyFileFinderDialog({
         enabledIn: () => true,
       },
     ],
-    { isDisabled: !isFuzzyFinderOpen },
+    { isDisabled: !isOpen },
   );
 
   const getFileIcon = () => {
@@ -186,108 +196,139 @@ export function FuzzyFileFinderDialog({
     );
   };
 
-  if (!isFuzzyFinderOpen) return null;
+  if (!isOpen) return null;
+
+  const selectedFile = filteredFiles[selectedIndex];
+  const selectedFilePath = selectedFile
+    ? directory.getFullName(selectedFile)
+    : null;
+  const selectedFileExt = selectedFile
+    ? selectedFile.slice(selectedFile.lastIndexOf(".") + 1)
+    : null;
 
   return (
     <Dialog
       onClose={onClose}
       title="Find File"
-      className="max-w-[90vw] max-h-[90vh] w-full h-full"
+      className="max-w-[90vw] w-full"
+      style={{ height: "80vh" }}
     >
-      <div className="flex flex-col gap-3">
-        <div className="relative">
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type to search files..."
-            className="input w-full text-sm"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      <div ref={containerRef} className="flex gap-3 h-full overflow-hidden">
+        <div className="flex flex-col gap-3 flex-1 min-w-0 h-full">
+          {/* Input section - fixed height */}
+          <div className="relative flex-shrink-0">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type to search files..."
+              className="input w-full text-sm"
+            />
+            {query && (
+              <button
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
-        {isLoading && (
-          <div className="text-center text-gray-500 py-4">Loading files...</div>
-        )}
-
-        {error && (
-          <div className="text-center text-red-500 py-4">Error: {error}</div>
-        )}
-
-        {!isLoading && !error && (
-          <div
-            ref={listRef}
-            className="overflow-y-auto border border-gray-200 rounded"
-          >
-            {filteredFiles.length === 0 ? (
-              <div className="text-center text-gray-500 py-8">
-                {query ? "No files found" : "No files in directory"}
+          {/* File list section - scrollable */}
+          <div className="flex-1 min-h-0 border border-gray-200 rounded overflow-hidden flex flex-col">
+            {isLoading && (
+              <div className="text-center text-gray-500 py-4">
+                Loading files...
               </div>
-            ) : (
-              <div>
-                {filteredFiles.map((file, index) => {
-                  const { fileName, folder } = getFileNameAndFolder(file);
-                  return (
-                    <div
-                      key={file}
-                      data-index={index}
-                      onClick={() => handleSelect(file)}
-                      className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-content/10 ${
-                        index === selectedIndex ? "bg-base-content/10" : ""
-                      }`}
-                    >
-                      {getFileIcon()}
-                      <div className="flex gap-3 items-center min-w-0 flex-1">
-                        <span className="text-xs truncate">
-                          {highlightMatch(fileName, query)}
-                        </span>
-                        {folder && (
-                          <span className="text-xs text-gray-500 truncate">
-                            {folder}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+            )}
+
+            {error && (
+              <div className="text-center text-red-500 py-4">
+                Error: {error}
+              </div>
+            )}
+
+            {!isLoading && !error && (
+              <div ref={listRef} className="overflow-y-auto flex-1">
+                {filteredFiles.length === 0 ? (
+                  <div className="text-center text-gray-500 py-8">
+                    {query ? "No files found" : "No files in directory"}
+                  </div>
+                ) : (
+                  <div>
+                    {filteredFiles.map((file, index) => {
+                      const { fileName, folder } = getFileNameAndFolder(file);
+                      return (
+                        <div
+                          key={file}
+                          data-index={index}
+                          onClick={() => handleSelect(file)}
+                          className={`flex items-center gap-2 px-3 py-2 cursor-pointer hover:bg-base-content/10 ${
+                            index === selectedIndex ? "bg-base-content/10" : ""
+                          }`}
+                        >
+                          {getFileIcon()}
+                          <div className="flex gap-3 items-center min-w-0 flex-1">
+                            <span className="text-xs truncate">
+                              {highlightMatch(fileName, query)}
+                            </span>
+                            {folder && (
+                              <span className="text-xs text-gray-500 truncate">
+                                {folder}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>
+
+          {/* Footer sections - fixed height */}
+          <div className="text-xs text-gray-500 text-center flex-shrink-0">
+            {filteredFiles.length > 0 && (
+              <span>
+                {selectedIndex + 1} / {filteredFiles.length} files
+                {filteredFiles.length >= 100 && ` (showing top 100)`}
+              </span>
+            )}
+          </div>
+
+          <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 justify-center flex-shrink-0">
+            <div>
+              <kbd className="kbd">↑↓</kbd> or{" "}
+              <kbd className="kbd">Ctrl+J/K</kbd> to navigate
+            </div>
+            <div>
+              <kbd className="kbd">Enter</kbd> to select
+            </div>
+            <div>
+              <kbd className="kbd">Ctrl+O</kbd> to open containing folder
+            </div>
+            <div>
+              <kbd className="kbd">Esc</kbd> to close
+            </div>
+          </div>
+        </div>
+
+        {/* Preview Panel - only show when window is wide enough */}
+        {showPreview && selectedFilePath && (
+          <div className="w-[400px] h-full border-l border-gray-200 pl-3 flex flex-col flex-shrink-0">
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <FilePreview
+                filePath={selectedFilePath}
+                isFile={true}
+                fileSize={null}
+                fileExt={selectedFileExt}
+              />
+            </div>
+          </div>
         )}
-
-        <div className="text-xs text-gray-500 text-center">
-          {filteredFiles.length > 0 && (
-            <span>
-              {selectedIndex + 1} / {filteredFiles.length} files
-              {filteredFiles.length >= 100 && ` (showing top 100)`}
-            </span>
-          )}
-        </div>
-
-        <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 justify-center">
-          <div>
-            <kbd className="kbd">↑↓</kbd> or <kbd className="kbd">Ctrl+J/K</kbd>{" "}
-            to navigate
-          </div>
-          <div>
-            <kbd className="kbd">Enter</kbd> to select
-          </div>
-          <div>
-            <kbd className="kbd">Ctrl+O</kbd> to open containing folder
-          </div>
-          <div>
-            <kbd className="kbd">Esc</kbd> to close
-          </div>
-        </div>
       </div>
     </Dialog>
   );

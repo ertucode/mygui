@@ -138,7 +138,9 @@ app.on("ready", () => {
     return "/" + app.getPath("home");
   });
 
-  ipcHandle("readFilePreview", getFileContent);
+  ipcHandle("readFilePreview", ({ filePath, allowBigSize }) => {
+    return getFileContent(filePath, allowBigSize);
+  });
   ipcHandle("deleteFiles", deleteFiles);
   ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
     createFileOrFolder(parentDir, name),
