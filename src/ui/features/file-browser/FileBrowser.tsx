@@ -27,7 +27,7 @@ import {
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { useConfirmation } from "@/lib/hooks/useConfirmation";
-import { cols, sortNames } from "./config/columns";
+import { createColumns, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FavoritesList } from "./components/FavoritesList";
@@ -138,8 +138,13 @@ export function FileBrowser() {
     setHighlight: s.setSelection,
   });
 
+  const columns = createColumns({
+    fileTags: tags.fileTags,
+    getFullName: d.getFullName,
+  });
+
   const table = useTable({
-    columns: cols,
+    columns,
     data: fuzzy.results,
     selection: s,
     resetSelectionOnDataChange: false,
