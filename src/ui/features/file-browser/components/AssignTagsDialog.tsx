@@ -1,13 +1,22 @@
 import { Dialog } from "@/lib/components/dialog";
-import { useTags, TAG_COLORS, TAG_COLOR_CLASSES, type TagColor } from "../hooks/useTags";
+import {
+  useTags,
+  TAG_COLORS,
+  TAG_COLOR_CLASSES,
+  type TagColor,
+} from "../hooks/useTags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon } from "lucide-react";
 
 interface AssignTagsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  fullPath: string;
+  fullPath: string | string[];
   tags: ReturnType<typeof useTags>;
+}
+
+function getFileNameToDisplay(fullPath: string) {
+  return fullPath.split("/").pop() || fullPath;
 }
 
 export function AssignTagsDialog({
@@ -18,15 +27,34 @@ export function AssignTagsDialog({
 }: AssignTagsDialogProps) {
   if (!isOpen) return null;
 
-  const fileName = fullPath.split("/").pop() || fullPath;
-  const currentTags = tags.getFileTags(fullPath);
+  const fileNames = Array.isArray(fullPath)
+    ? fullPath.map(getFileNameToDisplay)
+    : [getFileNameToDisplay(fullPath)];
+  if (Array.isArray(fullPath)) {
+    if (fullPath.length === 0) {
+      throw new Error("No files selected");
+    }
+    if (!tags.everyFileHasSameTags(fullPath)) {
+      throw new Error("All files must have the same tags");
+    }
+  }
+  const currentTags = tags.getFileTags(
+    Array.isArray(fullPath) ? fullPath[0] : fullPath,
+  );
 
   const handleToggleTag = (color: TagColor) => {
-    tags.toggleTagOnFile(fullPath, color);
+    if (Array.isArray(fullPath)) {
+      tags.toggleTagOnFiles(fullPath, color);
+    } else {
+      tags.toggleTagOnFile(fullPath, color);
+    }
   };
 
   return (
-    <Dialog title={`Assign Tags to "${fileName}"`} onClose={onClose}>
+    <Dialog
+      title={`Assign Tags to "${fileNames.join(" | ")}"`}
+      onClose={onClose}
+    >
       <div className="flex flex-col gap-2 min-w-[300px]">
         <p className="text-sm text-gray-500 mb-2">
           Select tags to assign to this item:
@@ -48,10 +76,7 @@ export function AssignTagsDialog({
                 onClick={() => handleToggleTag(color)}
               >
                 <span
-                  className={clsx(
-                    "size-4 rounded-full",
-                    colorClasses.dot,
-                  )}
+                  className={clsx("size-4 rounded-full", colorClasses.dot)}
                 />
                 <span
                   className={clsx(

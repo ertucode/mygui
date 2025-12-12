@@ -1,4 +1,5 @@
 import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { useState } from "react";
 import { z } from "zod";
 
 // 7 predefined tag colors
@@ -105,6 +106,10 @@ export function useTags() {
     setLastUsedTag(color);
   };
 
+  const addTagToFiles = (fullPaths: string[], color: TagColor) => {
+    fullPaths.forEach((fullPath) => addTagToFile(fullPath, color));
+  };
+
   const removeTagFromFile = (fullPath: string, color: TagColor) => {
     setFileTags((prev) => {
       const currentTags = prev[fullPath] || [];
@@ -121,12 +126,17 @@ export function useTags() {
   };
 
   const toggleTagOnFile = (fullPath: string, color: TagColor) => {
+    console.log("toggling", fullPath, color);
     const currentTags = fileTags[fullPath] || [];
     if (currentTags.includes(color)) {
       removeTagFromFile(fullPath, color);
     } else {
       addTagToFile(fullPath, color);
     }
+  };
+
+  const toggleTagOnFiles = (fullPaths: string[], color: TagColor) => {
+    fullPaths.forEach((fullPath) => toggleTagOnFile(fullPath, color));
   };
 
   const getFileTags = (fullPath: string): TagColor[] => {
@@ -150,6 +160,18 @@ export function useTags() {
     });
   };
 
+  const everyFileHasSameTags = (fullPaths: string[]) => {
+    console.log(fullPaths.map((f) => getFileTags(f)));
+    if (fullPaths.length < 2) return true;
+
+    const firstTags = getFileTags(fullPaths[0]);
+    return fullPaths.every((fullPath) => {
+      const tags = getFileTags(fullPath);
+      if (tags.length !== firstTags.length) return false;
+      return tags.every((tag) => firstTags.includes(tag));
+    });
+  };
+
   return {
     tagConfig,
     fileTags,
@@ -157,11 +179,14 @@ export function useTags() {
     getTagName,
     setTagName,
     addTagToFile,
+    addTagToFiles,
     removeTagFromFile,
     toggleTagOnFile,
+    toggleTagOnFiles,
     getFileTags,
     getFilesWithTag,
     hasTag,
     removeFileFromAllTags,
+    everyFileHasSameTags,
   };
 }

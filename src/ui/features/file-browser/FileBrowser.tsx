@@ -70,7 +70,9 @@ export function FileBrowser() {
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
-  const [assignTagsPath, setAssignTagsPath] = useState<string | null>(null);
+  const [assignTagsPath, setAssignTagsPath] = useState<
+    string | null | string[]
+  >(null);
   const tags = useTags();
 
   useEffect(() => {
@@ -624,8 +626,17 @@ export function FileBrowser() {
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
                 tags,
-                openAssignTagsDialog: (fullPath: string) =>
-                  setAssignTagsPath(fullPath),
+                openAssignTagsDialog: (fullPath: string) => {
+                  const selectedIndexes = [...s.state.indexes.values()];
+                  const selectedItems = selectedIndexes.map((i) =>
+                    d.getFullName(fuzzy.results[i].name),
+                  );
+                  if (tags.everyFileHasSameTags(selectedItems)) {
+                    setAssignTagsPath(selectedItems);
+                  } else {
+                    setAssignTagsPath(fullPath);
+                  }
+                },
               })}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
@@ -820,7 +831,11 @@ function getRowContextMenu({
       tags.lastUsedTag && !tags.hasTag(fullPath, tags.lastUsedTag)
         ? {
             onClick: () => {
-              tags.addTagToFile(fullPath, tags.lastUsedTag!);
+              tags.addTagToFiles(
+                selectedItems.map((i) => d.getFullName(i.name)),
+                tags.lastUsedTag!,
+              );
+
               close();
             },
             view: (

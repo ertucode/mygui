@@ -19,14 +19,17 @@ export function useLocalStorage<T>(
   });
 
   const setValue = (value: T | ((val: T) => T)) => {
-    try {
-      const valueToStore =
-        value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      window.localStorage.setItem(key, JSON.stringify(valueToStore));
-    } catch (error) {
-      console.error(error);
-    }
+    setStoredValue((storedValue) => {
+      try {
+        const valueToStore =
+          value instanceof Function ? value(storedValue) : value;
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        return valueToStore;
+      } catch (error) {
+        console.error(error);
+        return storedValue;
+      }
+    });
   };
 
   return [storedValue, setValue] as const;
