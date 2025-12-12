@@ -19,6 +19,7 @@ import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
 import { copyFiles } from "./utils/copy-files.js";
 import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
+import { searchStringRecursively } from "./utils/search-string-recursively.js";
 
 app.on("ready", () => {
   const menuTemplate: Electron.MenuItemConstructorOptions[] = [
@@ -153,5 +154,8 @@ app.on("ready", () => {
   ipcHandle("pasteFiles", ({ destinationDir }) => pasteFiles(destinationDir));
   ipcHandle("fuzzyFileFinder", ({ directory, query }) =>
     fuzzyFileFinder(directory, query),
+  );
+  ipcHandle("searchStringRecursively", ({ directory, query }) =>
+    searchStringRecursively(directory, query),
   );
 });

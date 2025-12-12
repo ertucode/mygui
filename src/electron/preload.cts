@@ -37,6 +37,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("pasteFiles", { destinationDir }),
   fuzzyFileFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFileFinder", { directory, query }),
+  searchStringRecursively: (directory: string, query: string) =>
+    ipcInvoke("searchStringRecursively", { directory, query }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

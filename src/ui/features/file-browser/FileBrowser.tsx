@@ -36,7 +36,7 @@ import { useRecents } from "./hooks/useRecents";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { RenameDialog } from "./components/RenameDialog";
-import { FuzzyFileFinderDialog } from "./components/FuzzyFileFinderDialog";
+import { FuzzyFileFinderDialog, FinderTab } from "./components/FuzzyFileFinderDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
@@ -62,6 +62,7 @@ export function FileBrowser() {
   const [pendingSelection, setPendingSelection] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
+  const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
 
   useEffect(() => {
     s.reset();
@@ -327,6 +328,15 @@ export function FileBrowser() {
         key: { key: "p", ctrlKey: true },
         handler: (e) => {
           e.preventDefault();
+          setFinderInitialTab("files");
+          setIsFuzzyFinderOpen(true);
+        },
+      },
+      {
+        key: { key: "s", ctrlKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          setFinderInitialTab("strings");
           setIsFuzzyFinderOpen(true);
         },
       },
@@ -509,6 +519,7 @@ export function FileBrowser() {
         directory={d}
         isOpen={isFuzzyFinderOpen}
         setIsOpen={setIsFuzzyFinderOpen}
+        initialTab={finderInitialTab}
       />
       {dialogs.RenderOutside}
       <FileBrowserOptionsSection d={d} />

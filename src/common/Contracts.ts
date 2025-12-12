@@ -1,5 +1,18 @@
 import { type GenericResult } from "./GenericError.js";
 
+export type ContextLine = {
+  lineNumber: number;
+  content: string;
+  isMatch: boolean;
+};
+
+export type StringSearchResult = {
+  filePath: string;
+  matchLineNumber: number;
+  matchContent: string;
+  contextLines: ContextLine[];
+};
+
 export type FileCategory =
   | "image"
   | "video"
@@ -63,6 +76,7 @@ export type EventResponseMapping = {
   copyFiles: Promise<GenericResult<void>>;
   pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
+  searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
 };
 
 export type EventRequestMapping = {
@@ -88,6 +102,7 @@ export type EventRequestMapping = {
   copyFiles: { filePaths: string[]; cut: boolean };
   pasteFiles: { destinationDir: string };
   fuzzyFileFinder: { directory: string; query: string };
+  searchStringRecursively: { directory: string; query: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -147,4 +162,8 @@ export type WindowElectron = {
     directory: string,
     query: string,
   ) => Promise<GenericResult<string[]>>;
+  searchStringRecursively: (
+    directory: string,
+    query: string,
+  ) => Promise<GenericResult<StringSearchResult[]>>;
 };
