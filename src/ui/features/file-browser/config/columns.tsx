@@ -16,6 +16,7 @@ import type { ColumnDef } from "@/lib/libs/table/table-types";
 import z from "zod";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
+import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../hooks/useTags";
 
 /**
  * Icon and color mapping for file categories
@@ -43,68 +44,101 @@ function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
   return <config.icon className={`size-4 ${config.colorClass}`} />;
 }
 
-export const cols: ColumnDef<GetFilesAndFoldersInDirectoryItem>[] = [
-  {
-    accessorKey: "type",
-    header: "",
-    cell: (row) => {
-      return <CategoryIcon category={row.category} />;
+/**
+ * Tag circles component for displaying file tags
+ */
+function TagCircles({ tags }: { tags: TagColor[] }) {
+  if (tags.length === 0) return null;
+  return (
+    <div className="flex gap-0.5 ml-1 flex-shrink-0">
+      {tags.map((color) => (
+        <span
+          key={color}
+          className={`size-2 rounded-full ${TAG_COLOR_CLASSES[color].dot}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+export interface ColumnsContext {
+  fileTags: FileTags;
+  getFullName: (name: string) => string;
+}
+
+export function createColumns(
+  ctx: ColumnsContext,
+): ColumnDef<GetFilesAndFoldersInDirectoryItem>[] {
+  return [
+    {
+      accessorKey: "type",
+      header: "",
+      cell: (row) => {
+        return <CategoryIcon category={row.category} />;
+      },
+      size: 24,
     },
-    size: 24,
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-    cell: (row) => (
-      <span className="block truncate" title={row.name}>
-        {row.name}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "ext",
-    header: "Ext",
-    size: 24,
-    cell: (row) => (
-      <span
-        className="block truncate"
-        style={{ maxWidth: 24 }}
-        title={row.ext ?? undefined}
-      >
-        {row.ext}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "sizeStr",
-    sortKey: "size",
-    header: "Size",
-    size: 84,
-    cell: (row) => (
-      <span
-        className="block truncate"
-        style={{ maxWidth: 84 }}
-        title={row.sizeStr ?? undefined}
-      >
-        {row.sizeStr}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "modifiedAt",
-    sortKey: "modifiedTimestamp",
-    header: "Modified",
-    size: 148,
-    cell: (row) => (
-      <span
-        className="block truncate"
-        style={{ maxWidth: 148 }}
-        title={row.modifiedAt ?? undefined}
-      >
-        {row.modifiedAt}
-      </span>
-    ),
-  },
-];
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: (row) => {
+        const fullPath = ctx.getFullName(row.name);
+        const tags = ctx.fileTags[fullPath];
+        return (
+          <div className="flex items-center min-w-0">
+            <span className="block truncate" title={row.name}>
+              {row.name}
+            </span>
+            {tags && <TagCircles tags={tags} />}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "ext",
+      header: "Ext",
+      size: 24,
+      cell: (row) => (
+        <span
+          className="block truncate"
+          style={{ maxWidth: 24 }}
+          title={row.ext ?? undefined}
+        >
+          {row.ext}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "sizeStr",
+      sortKey: "size",
+      header: "Size",
+      size: 84,
+      cell: (row) => (
+        <span
+          className="block truncate"
+          style={{ maxWidth: 84 }}
+          title={row.sizeStr ?? undefined}
+        >
+          {row.sizeStr}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "modifiedAt",
+      sortKey: "modifiedTimestamp",
+      header: "Modified",
+      size: 148,
+      cell: (row) => (
+        <span
+          className="block truncate"
+          style={{ maxWidth: 148 }}
+          title={row.modifiedAt ?? undefined}
+        >
+          {row.modifiedAt}
+        </span>
+      ),
+    },
+  ];
+}
 
 export const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);
