@@ -10,8 +10,7 @@ import {
   ClipboardPasteIcon,
   TagIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Alert } from "@/lib/components/alert";
+import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import {
@@ -54,106 +53,74 @@ import {
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
-import { errorResponseToMessage, GenericError } from "@common/GenericError";
+import { GenericError } from "@common/GenericError";
 import { useToast } from "@/lib/components/toast";
 import { PathHelpers } from "@common/PathHelpers";
+import { useForceRerender } from "@/lib/hooks/forceRerender";
+
+type D = ReturnType<typeof useDirectory>;
+
+type ActiveDirectoryData = {
+  d: ReturnType<typeof useDirectory>;
+  s: ReturnType<typeof useSelection>;
+  table: ReturnType<typeof useTable<GetFilesAndFoldersInDirectoryItem>>;
+  fuzzy: ReturnType<typeof useFuzzyFinder>;
+  tableRef: React.RefObject<HTMLTableElement | null>;
+};
+type ActiveDirectoryDataRef = Record<number, ActiveDirectoryData>;
+
+type FileBrowserTab = {
+  id: number;
+  initialPath?: string;
+};
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
   const recents = useRecents();
   const tags = useTags();
-  const d = useDirectory(defaultPath.path, recents, tags.getFilesWithTag);
-  const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
-  const [error, setError] = useState<string | null>(null);
-  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
-  const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
   const [assignTagsPath, setAssignTagsPath] = useState<string | null>(null);
   const [multiFileTagsPaths, setMultiFileTagsPaths] = useState<string[] | null>(
     null,
   );
+  const [pendingSelection, setPendingSelection] = useState<string | null>(null);
 
-  useEffect(() => {
-    s.reset();
-  }, [d.directoryData]);
+  const activeDirectoryDataRef = useRef<ActiveDirectoryDataRef>({});
 
-  const handleCreateNewItem = async (
-    name: string,
-  ): Promise<ResultHandlerResult> => {
-    if (d.directory.type !== "path") {
-      return GenericError.Message("Cannot create items in tags view");
-    }
-    try {
-      const result = await getWindowElectron().createFileOrFolder(
-        d.directory.fullPath,
-        name,
+  const trigger = useForceRerender();
+
+  const [tabs, setTabs] = useState<FileBrowserTab[]>(() => {
+    return [{ id: 0 }, { id: 1, initialPath: "~/dev/bombardiman/" }];
+  });
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const { d, s, table, fuzzy, tableRef } =
+    activeDirectoryDataRef.current?.[tabs[activeIndex].id] ??
+    ({} as any as ActiveDirectoryData);
+
+  const onGoUpOrPrev = async (fn: typeof d.goPrev | typeof d.goUp) => {
+    const metadata = await fn();
+    if (!metadata) return;
+    let { directoryData, beforeNavigation } = metadata;
+
+    setTimeout(() => {
+      if (!directoryData) return;
+      if (beforeNavigation.type !== "path") return;
+      const beforeNavigationName = PathHelpers.getLastPathPart(
+        beforeNavigation.fullPath,
       );
-      if (result.success) {
-        await d.reload();
-        setError(null);
-
-        // Set pending selection for the newly created item
-        const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
-        setPendingSelection(itemName);
-      } else if (result.error) {
-        setError(errorResponseToMessage(result.error));
-      }
-      return result;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
-      return GenericError.Message(errorMessage);
-    }
+      const idx = directoryData.findIndex(
+        (i) => i.name === beforeNavigationName,
+      );
+      if (idx === -1) return;
+      s?.selectManually(idx);
+    }, 5);
   };
 
-  const handleRename = async (
-    newName: string,
-  ): Promise<ResultHandlerResult> => {
-    const item = dialogs.currentRef.current?.item;
-    if (!item) return GenericError.Message("No item selected");
-
-    try {
-      const fullPath = item.fullPath ?? d.getFullPath(item.name);
-      const result = await getWindowElectron().renameFileOrFolder(
-        fullPath,
-        newName,
-      );
-      if (result.success) {
-        await d.reload();
-        setError(null);
-
-        // Set pending selection for the renamed item
-        setPendingSelection(newName);
-      }
-      return result;
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "An unexpected error occurred";
-      setError(errorMessage);
-      return GenericError.Message(errorMessage);
-    }
-  };
-
-  const fuzzy = useFuzzyFinder({
-    items: d.directoryData,
-    keys: ["name"],
-    setHighlight: s.setSelection,
-  });
-
-  const columns = createColumns({
-    fileTags: tags.fileTags,
-    getFullPath: d.getFullPath,
-  });
-
-  const table = useTable({
-    columns,
-    data: fuzzy.results,
-    selection: s,
-    resetSelectionOnDataChange: false,
-  });
+  // Track if any dialog is open
+  const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
 
   const scrollRowIntoViewIfNeeded = (
     rowIndex: number,
@@ -178,56 +145,6 @@ export function FileBrowser() {
       }
     }
   };
-
-  // Handle pending selection after data reload
-  useEffect(() => {
-    if (pendingSelection && table.data.length > 0) {
-      const newItemIndex = table.data.findIndex(
-        (item) => item.name === pendingSelection,
-      );
-      if (newItemIndex !== -1) {
-        s.selectManually(newItemIndex);
-        scrollRowIntoViewIfNeeded(newItemIndex, "center");
-      }
-      setPendingSelection(null);
-    }
-  }, [pendingSelection, table.data]);
-
-  // Scroll to selected row when selection changes (keyboard navigation)
-  useEffect(() => {
-    if (s.state.lastSelected != null) {
-      scrollRowIntoViewIfNeeded(s.state.lastSelected);
-    }
-  }, [s.state.lastSelected]);
-
-  const sort = useTableSort(
-    {
-      state: d.settings.sort,
-      changeState: d.setSort,
-      schema: sortNames,
-    },
-    [d.settings],
-  );
-
-  const onGoUpOrPrev = async (fn: typeof d.goPrev | typeof d.goUp) => {
-    const metadata = await fn();
-    if (!metadata) return;
-    let { directoryData, beforeNavigation } = metadata;
-
-    setTimeout(() => {
-      if (!directoryData) return;
-      if (beforeNavigation.type !== "path") return;
-      const beforeNavigationName = PathHelpers.getLastPathPart(
-        beforeNavigation.fullPath,
-      );
-      const idx = directoryData.findIndex(
-        (i) => i.name === beforeNavigationName,
-      );
-      if (idx === -1) return;
-      s?.selectManually(idx);
-    }, 5);
-  };
-
   const toast = useToast();
   const handleCopy = async (
     items: GetFilesAndFoldersInDirectoryItem[],
@@ -259,75 +176,19 @@ export function FileBrowser() {
     }
   };
 
-  // Track if any dialog is open
-  const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
-
-  const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
-    const paths = items.map(
-      (item) => item.fullPath ?? d.getFullPath(item.name),
-    );
-    const deletedNames = new Set(items.map((item) => item.name));
-
-    // Find the smallest index among items being deleted
-    const deletedIndexes = items
-      .map((item) => table.data.findIndex((d) => d.name === item.name))
-      .filter((idx) => idx !== -1)
-      .sort((a, b) => a - b);
-    const smallestDeletedIndex = deletedIndexes[0] ?? 0;
-
-    confirmation.confirm({
-      title: "Confirm Delete",
-      message: (
-        <p>
-          Are you sure you want to delete{" "}
-          {items.length === 1 ? `"${items[0].name}"` : `${items.length} items`}?
-        </p>
-      ),
-      confirmText: "Delete",
-      onConfirm: async () => {
-        try {
-          // Delete all selected files/folders
-          const result = await getWindowElectron().deleteFiles(paths);
-
-          if (!result.success) {
-            setError(errorResponseToMessage(result.error));
-            return;
-          }
-
-          // Remove from favorites if they were favorited
-          paths.forEach((path) => {
-            if (favorites.isFavorite(path)) {
-              favorites.removeFavorite(path);
-            }
-          });
-
-          // Reload the directory without affecting history
-          await d.reload();
-
-          // Select the nearest item (prefer top, fallback to bottom)
-          const remainingItems = table.data.filter(
-            (item) => !deletedNames.has(item.name),
-          );
-          if (remainingItems.length > 0) {
-            // Find the item that should now be at or near the smallest deleted index
-            const newIndex = Math.min(
-              smallestDeletedIndex,
-              remainingItems.length - 1,
-            );
-            const itemToSelect = remainingItems[newIndex];
-            setPendingSelection(itemToSelect.name);
-          } else {
-            s.reset();
-          }
-        } catch (error) {
-          console.error("Error deleting files:", error);
-          setError(
-            error instanceof Error ? error.message : "Error deleting files",
-          );
-        }
-      },
-    });
-  };
+  // Handle pending selection after data reload
+  useEffect(() => {
+    if (pendingSelection && table?.data.length > 0) {
+      const newItemIndex = table.data.findIndex(
+        (item) => item.name === pendingSelection,
+      );
+      if (newItemIndex !== -1) {
+        s.selectManually(newItemIndex);
+        scrollRowIntoViewIfNeeded(newItemIndex, "center");
+      }
+      setPendingSelection(null);
+    }
+  }, [pendingSelection, table?.data]);
 
   useShortcuts(
     [
@@ -498,18 +359,135 @@ export function FileBrowser() {
           }
         },
       })),
-      ...s.getShortcuts(table.data.length),
+      ...(s?.getShortcuts(table.data.length) ?? []),
     ],
     {
       isDisabled: someDialogIsOpened,
     },
   );
 
-  const openFavorite = (favorite: FavoriteItem) => {
-    if (favorite.type === "dir") {
-      d.cdFull(favorite.fullPath);
-    } else {
-      d.openFileFull(favorite.fullPath);
+  const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
+    const paths = items.map(
+      (item) => item.fullPath ?? d.getFullPath(item.name),
+    );
+    const deletedNames = new Set(items.map((item) => item.name));
+
+    // Find the smallest index among items being deleted
+    const deletedIndexes = items
+      .map((item) => table.data.findIndex((d) => d.name === item.name))
+      .filter((idx) => idx !== -1)
+      .sort((a, b) => a - b);
+    const smallestDeletedIndex = deletedIndexes[0] ?? 0;
+
+    confirmation.confirm({
+      title: "Confirm Delete",
+      message: (
+        <p>
+          Are you sure you want to delete{" "}
+          {items.length === 1 ? `"${items[0].name}"` : `${items.length} items`}?
+        </p>
+      ),
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          // Delete all selected files/folders
+          const result = await getWindowElectron().deleteFiles(paths);
+
+          if (!result.success) {
+            toast.show(result);
+            return;
+          }
+
+          // Remove from favorites if they were favorited
+          paths.forEach((path) => {
+            if (favorites.isFavorite(path)) {
+              favorites.removeFavorite(path);
+            }
+          });
+
+          // Reload the directory without affecting history
+          await d.reload();
+
+          // Select the nearest item (prefer top, fallback to bottom)
+          const remainingItems = table.data.filter(
+            (item) => !deletedNames.has(item.name),
+          );
+          if (remainingItems.length > 0) {
+            // Find the item that should now be at or near the smallest deleted index
+            const newIndex = Math.min(
+              smallestDeletedIndex,
+              remainingItems.length - 1,
+            );
+            const itemToSelect = remainingItems[newIndex];
+            setPendingSelection(itemToSelect.name);
+          } else {
+            s.reset();
+          }
+        } catch (error) {
+          console.error("Error deleting files:", error);
+          toast.show(
+            GenericError.Message(
+              error instanceof Error ? error.message : "Error deleting files",
+            ),
+          );
+        }
+      },
+    });
+  };
+
+  const handleCreateNewItem = async (
+    name: string,
+  ): Promise<ResultHandlerResult> => {
+    if (d.directory.type !== "path") {
+      return GenericError.Message("Cannot create items in tags view");
+    }
+    try {
+      const result = await getWindowElectron().createFileOrFolder(
+        d.directory.fullPath,
+        name,
+      );
+      if (result.success) {
+        await d.reload();
+
+        // Set pending selection for the newly created item
+        const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
+        setPendingSelection(itemName);
+      } else if (result.error) {
+        toast.show(result);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      toast.show(GenericError.Message(errorMessage));
+      return GenericError.Message(errorMessage);
+    }
+  };
+
+  const handleRename = async (
+    newName: string,
+  ): Promise<ResultHandlerResult> => {
+    const item = dialogs.currentRef.current?.item;
+    if (!item) return GenericError.Message("No item selected");
+
+    try {
+      const fullPath = item.fullPath ?? d.getFullPath(item.name);
+      const result = await getWindowElectron().renameFileOrFolder(
+        fullPath,
+        newName,
+      );
+      if (result.success) {
+        await d.reload();
+
+        // Set pending selection for the renamed item
+        setPendingSelection(newName);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      toast.show(GenericError.Message(errorMessage));
+      return GenericError.Message(errorMessage);
     }
   };
 
@@ -543,6 +521,14 @@ export function FileBrowser() {
     },
   );
 
+  const openFavorite = (favorite: FavoriteItem) => {
+    if (favorite.type === "dir") {
+      d.cdFull(favorite.fullPath);
+    } else {
+      d.openFileFull(favorite.fullPath);
+    }
+  };
+
   const favorites = useFavorites();
 
   const sidebarPanel = useResizablePanel({
@@ -563,8 +549,8 @@ export function FileBrowser() {
 
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
-    s.state.indexes.size === 1 && s.state.lastSelected != null
-      ? table.data[s.state.lastSelected]
+    s?.state.indexes.size === 1 && s.state.lastSelected != null
+      ? table?.data[s.state.lastSelected]
       : null;
   const previewFilePath =
     selectedItem && selectedItem.type === "file"
@@ -573,13 +559,13 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
+      {dialogs.RenderOutside}
       <FinderDialog
         directory={d}
         isOpen={isFuzzyFinderOpen}
         setIsOpen={setIsFuzzyFinderOpen}
         initialTab={finderInitialTab}
       />
-      {dialogs.RenderOutside}
       <AssignTagsDialog
         isOpen={assignTagsPath !== null}
         onClose={() => setAssignTagsPath(null)}
@@ -592,113 +578,55 @@ export function FileBrowser() {
         fullPaths={multiFileTagsPaths || []}
         tags={tags}
       />
-      <FileBrowserOptionsSection d={d} />
+      {d && <FileBrowserOptionsSection d={d} />}
+
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
-        <div
-          className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0"
-          style={{ width: sidebarPanel.width }}
-        >
-          <FavoritesList
-            favorites={favorites}
-            d={d}
-            className="flex-1 min-h-0 basis-0"
-            defaultPath={defaultPath}
-            openFavorite={openFavorite}
-          />
-          <RecentsList
-            recents={recents}
-            d={d}
-            className="flex-1 min-h-0 basis-0"
-          />
-          <TagsList tags={tags} d={d} className="flex-1 min-h-0 basis-0" />
-        </div>
+        {d && (
+          <div
+            className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0"
+            style={{ width: sidebarPanel.width }}
+          >
+            <FavoritesList
+              favorites={favorites}
+              d={d}
+              className="flex-1 min-h-0 basis-0"
+              defaultPath={defaultPath}
+              openFavorite={openFavorite}
+            />
+            <RecentsList
+              recents={recents}
+              d={d}
+              className="flex-1 min-h-0 basis-0"
+            />
+            <TagsList tags={tags} d={d} className="flex-1 min-h-0 basis-0" />
+          </div>
+        )}
         <ResizeHandle
           onMouseDown={sidebarPanel.handleMouseDown}
           direction="left"
         />
-        <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <FileBrowserNavigationAndInputSection
-            d={d}
-            defaultPath={defaultPath}
-            fuzzy={fuzzy}
-            onGoUpOrPrev={onGoUpOrPrev}
+        {tabs.map((tab, idx) => (
+          <FileBrowserTab
+            key={tab.id}
+            id={tab.id}
+            initialPath={tab.initialPath ?? defaultPath.path}
+            recents={recents}
             tags={tags}
+            defaultPath={defaultPath}
+            scrollRowIntoViewIfNeeded={scrollRowIntoViewIfNeeded}
+            onGoUpOrPrev={onGoUpOrPrev}
+            favorites={favorites}
+            handleDelete={handleDelete}
+            dialogs={dialogs}
+            setMultiFileTagsPaths={setMultiFileTagsPaths}
+            setAssignTagsPath={setAssignTagsPath}
+            handleCopy={handleCopy}
+            handlePaste={handlePaste}
+            active={idx === activeIndex}
+            activeDirectoryDataRef={activeDirectoryDataRef}
+            trigger={trigger}
           />
-          {d.loading ? (
-            <div>Loading...</div>
-          ) : d.error || error ? (
-            <Alert children={(d.error || error)!} />
-          ) : (
-            <Table
-              tableRef={tableRef}
-              table={table}
-              sort={sort}
-              onRowDoubleClick={d.openItem}
-              selection={s}
-              ContextMenu={getRowContextMenu({
-                setAsDefaultPath: (fullPath) => {
-                  defaultPath.setPath(fullPath);
-                },
-                favorites,
-                d,
-                handleDelete,
-                handleCopy,
-                handlePaste,
-                selection: s,
-                tableData: table.data,
-                dialogs: dialogs as any, // TODO: fix this
-                tags,
-                openAssignTagsDialog: (fullPath: string) => {
-                  const selectedIndexes = [...s.state.indexes.values()];
-                  const selectedItems = selectedIndexes.map((i) => {
-                    const item = fuzzy.results[i];
-                    return item.fullPath ?? d.getFullPath(item.name);
-                  });
-                  if (selectedItems.length > 1) {
-                    // Multiple files selected - use grid dialog
-                    setMultiFileTagsPaths(selectedItems);
-                  } else {
-                    // Single file - use standard dialog
-                    setAssignTagsPath(fullPath);
-                  }
-                },
-              })}
-              onRowDragStart={async (item, index, e) => {
-                const alreadySelected = s.state.indexes.has(index);
-                const files = alreadySelected
-                  ? [...s.state.indexes].map((i) => {
-                      const tableItem = table.data[i];
-                      return (
-                        tableItem.fullPath ?? d.getFullPath(tableItem.name)
-                      );
-                    })
-                  : [item.fullPath ?? d.getFullPath(item.name)];
-
-                const tableBody = e.currentTarget.closest("tbody");
-                getWindowElectron().onDragStart({
-                  files,
-                  image: await captureDivAsBase64(tableBody!, (node) => {
-                    if (typeof node === "string") {
-                      return true;
-                    }
-                    if (!node.classList) {
-                      return true;
-                    }
-                    if (node.classList.contains("row-selected")) return true;
-                    const row = node.closest("tr");
-                    if (!row) return false;
-                    return row.classList.contains("row-selected");
-                  }),
-                });
-              }}
-              onRowMouseDown={(item) => {
-                if (item.type === "dir") {
-                  d.preloadDirectory(item.fullPath ?? d.getFullPath(item.name));
-                }
-              }}
-            ></Table>
-          )}
-        </div>
+        ))}
         <ResizeHandle
           onMouseDown={previewPanel.handleMouseDown}
           direction="right"
@@ -717,6 +645,180 @@ export function FileBrowser() {
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function FileBrowserTab({
+  initialPath,
+  recents,
+  tags,
+  defaultPath,
+  scrollRowIntoViewIfNeeded,
+  onGoUpOrPrev,
+  favorites,
+  handleDelete,
+  dialogs,
+  setMultiFileTagsPaths,
+  setAssignTagsPath,
+  handleCopy,
+  handlePaste,
+  active,
+  activeDirectoryDataRef,
+  id,
+  trigger,
+}: {
+  initialPath: string;
+  recents: ReturnType<typeof useRecents>;
+  tags: ReturnType<typeof useTags>;
+  defaultPath: ReturnType<typeof useDefaultPath>;
+  scrollRowIntoViewIfNeeded: (
+    rowIndex: number,
+    block?: ScrollLogicalPosition,
+  ) => void;
+  onGoUpOrPrev: (fn: D["goPrev"] | D["goUp"]) => void;
+  favorites: ReturnType<typeof useFavorites>;
+  handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
+  dialogs: any;
+  setMultiFileTagsPaths: Dispatch<SetStateAction<string[] | null>>;
+  setAssignTagsPath: Dispatch<SetStateAction<string | null>>;
+  handleCopy: (
+    items: GetFilesAndFoldersInDirectoryItem[],
+    cut: boolean,
+  ) => void;
+  handlePaste: () => void;
+  active: boolean;
+  activeDirectoryDataRef: React.RefObject<ActiveDirectoryDataRef>;
+  id: number;
+  trigger: () => void;
+}) {
+  const d = useDirectory(initialPath, recents, tags.getFilesWithTag);
+  const s = useSelection(useDefaultSelection());
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  useEffect(() => {
+    s.reset();
+  }, [d.directoryData]);
+
+  const fuzzy = useFuzzyFinder({
+    items: d.directoryData,
+    keys: ["name"],
+    setHighlight: s.setSelection,
+  });
+
+  const columns = createColumns({
+    fileTags: tags.fileTags,
+    getFullPath: d.getFullPath,
+  });
+
+  const table = useTable({
+    columns,
+    data: fuzzy.results,
+    selection: s,
+    resetSelectionOnDataChange: false,
+  });
+
+  useEffect(() => {
+    if (!active) return;
+
+    activeDirectoryDataRef.current[id] = { d, s, table, fuzzy, tableRef };
+  }, [active, d, s, table, fuzzy, tableRef]);
+
+  // Scroll to selected row when selection changes (keyboard navigation)
+  useEffect(() => {
+    if (s.state.lastSelected != null) {
+      scrollRowIntoViewIfNeeded(s.state.lastSelected);
+    }
+  }, [s.state.lastSelected]);
+
+  const sort = useTableSort(
+    {
+      state: d.settings.sort,
+      changeState: d.setSort,
+      schema: sortNames,
+    },
+    [d.settings],
+  );
+
+  return (
+    <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
+      <FileBrowserNavigationAndInputSection
+        d={d}
+        defaultPath={defaultPath}
+        fuzzy={fuzzy}
+        onGoUpOrPrev={onGoUpOrPrev}
+        tags={tags}
+      />
+      {d.loading ? (
+        <div>Loading...</div>
+      ) : (
+        <Table
+          tableRef={tableRef}
+          table={table}
+          sort={sort}
+          onRowDoubleClick={d.openItem}
+          selection={s}
+          ContextMenu={getRowContextMenu({
+            setAsDefaultPath: (fullPath) => {
+              defaultPath.setPath(fullPath);
+            },
+            favorites,
+            d,
+            handleDelete,
+            handleCopy,
+            handlePaste,
+            selection: s,
+            tableData: table.data,
+            dialogs: dialogs as any, // TODO: fix this
+            tags,
+            openAssignTagsDialog: (fullPath: string) => {
+              const selectedIndexes = [...s.state.indexes.values()];
+              const selectedItems = selectedIndexes.map((i) => {
+                const item = fuzzy.results[i];
+                return item.fullPath ?? d.getFullPath(item.name);
+              });
+              if (selectedItems.length > 1) {
+                // Multiple files selected - use grid dialog
+                setMultiFileTagsPaths(selectedItems);
+              } else {
+                // Single file - use standard dialog
+                setAssignTagsPath(fullPath);
+              }
+            },
+          })}
+          onRowDragStart={async (item, index, e) => {
+            const alreadySelected = s.state.indexes.has(index);
+            const files = alreadySelected
+              ? [...s.state.indexes].map((i) => {
+                  const tableItem = table.data[i];
+                  return tableItem.fullPath ?? d.getFullPath(tableItem.name);
+                })
+              : [item.fullPath ?? d.getFullPath(item.name)];
+
+            const tableBody = e.currentTarget.closest("tbody");
+            getWindowElectron().onDragStart({
+              files,
+              image: await captureDivAsBase64(tableBody!, (node) => {
+                if (typeof node === "string") {
+                  return true;
+                }
+                if (!node.classList) {
+                  return true;
+                }
+                if (node.classList.contains("row-selected")) return true;
+                const row = node.closest("tr");
+                if (!row) return false;
+                return row.classList.contains("row-selected");
+              }),
+            });
+          }}
+          onRowMouseDown={(item) => {
+            if (item.type === "dir") {
+              d.preloadDirectory(item.fullPath ?? d.getFullPath(item.name));
+            }
+          }}
+        ></Table>
+      )}
     </div>
   );
 }
