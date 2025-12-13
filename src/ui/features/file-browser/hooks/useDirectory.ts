@@ -26,8 +26,6 @@ type DirectoryInfo = {
 function getDirectoryInfo(dir: string): DirectoryInfo {
   const idx = dir.indexOf("/");
   if (idx === -1) throw new Error("Invalid directory name");
-  if (idx === dir.length - 1) return { fullName: dir };
-
   return { fullName: dir };
 }
 

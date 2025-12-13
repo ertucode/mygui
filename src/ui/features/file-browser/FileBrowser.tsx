@@ -37,13 +37,11 @@ import { useRecents } from "./hooks/useRecents";
 import { TagsList } from "./components/TagsList";
 import { useTags, TAG_COLOR_CLASSES } from "./hooks/useTags";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
+import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FilePreview } from "./components/FilePreview";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { RenameDialog } from "./components/RenameDialog";
-import {
-  FuzzyFileFinderDialog,
-  FinderTab,
-} from "./components/FuzzyFileFinderDialog";
+import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
@@ -71,10 +69,13 @@ export function FileBrowser() {
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
-  const [assignTagsPath, setAssignTagsPath] = useState<
-    string | null | string[]
-  >(null);
+  const [assignTagsPath, setAssignTagsPath] = useState<string | null>(null);
+  const [multiFileTagsPaths, setMultiFileTagsPaths] = useState<string[] | null>(
+    null,
+  );
   const tags = useTags();
+
+  console.log("render");
 
   useEffect(() => {
     s.reset();
@@ -562,7 +563,7 @@ export function FileBrowser() {
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
-      <FuzzyFileFinderDialog
+      <FinderDialog
         directory={d}
         isOpen={isFuzzyFinderOpen}
         setIsOpen={setIsFuzzyFinderOpen}
@@ -573,6 +574,12 @@ export function FileBrowser() {
         isOpen={assignTagsPath !== null}
         onClose={() => setAssignTagsPath(null)}
         fullPath={assignTagsPath || ""}
+        tags={tags}
+      />
+      <MultiFileTagsDialog
+        isOpen={multiFileTagsPaths !== null}
+        onClose={() => setMultiFileTagsPaths(null)}
+        fullPaths={multiFileTagsPaths || []}
         tags={tags}
       />
       <FileBrowserOptionsSection d={d} />
@@ -635,9 +642,11 @@ export function FileBrowser() {
                   const selectedItems = selectedIndexes.map((i) =>
                     d.getFullName(fuzzy.results[i].name),
                   );
-                  if (tags.everyFileHasSameTags(selectedItems)) {
-                    setAssignTagsPath(selectedItems);
+                  if (selectedItems.length > 1) {
+                    // Multiple files selected - use grid dialog
+                    setMultiFileTagsPaths(selectedItems);
                   } else {
+                    // Single file - use standard dialog
                     setAssignTagsPath(fullPath);
                   }
                 },

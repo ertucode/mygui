@@ -18,7 +18,7 @@ type FuzzyFileFinderDialogProps = {
 
 const MIN_WIDTH_FOR_PREVIEW = 900;
 
-export function FuzzyFileFinderDialog({
+export function FinderDialog({
   directory,
   isOpen,
   setIsOpen,
