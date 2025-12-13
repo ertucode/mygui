@@ -36,7 +36,9 @@ export function Table<T>({
   ...props
 }: TableProps<T>) {
   const contextMenu = useContextMenu<T>();
-  const lastClickRef = useRef<{ index: number; timestamp: number } | null>(null);
+  const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
+    null,
+  );
 
   return (
     <>
@@ -83,12 +85,7 @@ export function Table<T>({
               })}
             </tr>
           </thead>
-          <tbody
-            onKeyDown={(_) => {
-              // selection?.onKeydown(e, table.rows.length);
-            }}
-            tabIndex={0}
-          >
+          <tbody tabIndex={0}>
             {table.rows.map((row, idx) => {
               return (
                 <tr
@@ -101,7 +98,7 @@ export function Table<T>({
                   onClick={(e) => {
                     const now = Date.now();
                     const lastClick = lastClickRef.current;
-                    
+
                     // Check if this is a double-click (same row, within 500ms)
                     if (
                       lastClick &&
