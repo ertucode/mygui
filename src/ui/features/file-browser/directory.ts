@@ -16,7 +16,7 @@ import { TagColor, tagsStore } from "./tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { GenericError } from "@common/GenericError";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
-import { toast } from "@/lib/components/toast";
+import { defaultPath } from "./defaultPath";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -74,26 +74,18 @@ function getFolderNameParts(dir: string) {
 
 export type TaggedFilesGetter = (color: TagColor) => string[];
 
+const initialDirectoryInfo = getDirectoryInfo(defaultPath);
+
 export const directoryStore = createStore({
   context: {
-    directory: { type: "path", fullPath: "~/" } as DirectoryInfo,
+    directory: initialDirectoryInfo,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
     error: undefined as string | undefined,
-    historyStack: new HistoryStack<DirectoryInfo>([
-      { type: "path", fullPath: "~/" },
-    ]),
+    historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
     pendingSelection: null as string | null,
   },
   on: {
-    initialize: (context, event: { initialDirectory: string }) => {
-      const initialDirectoryInfo = getDirectoryInfo(event.initialDirectory);
-      return {
-        ...context,
-        directory: initialDirectoryInfo,
-        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
-      };
-    },
 
     setLoading: (context, event: { loading: boolean }) => ({
       ...context,
@@ -222,6 +214,9 @@ const loadDirectoryInfo = async (info: DirectoryInfo) => {
   }
 };
 
+// Load the initial directory
+loadDirectoryPath(defaultPath);
+
 const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
   const state = directoryStore.get();
   if (state.context.loading) return;
@@ -283,11 +278,6 @@ const openFile = (filePath: string) => openFileFull(getFullPath(filePath));
 
 // Helper functions
 export const directoryHelpers = {
-  initialize: (initialDirectory: string) => {
-    directoryStore.send({ type: "initialize", initialDirectory } as any);
-    loadDirectoryPath(initialDirectory);
-  },
-
   createNewItem: async (name: string): Promise<ResultHandlerResult> => {
     const state = directoryStore.get();
     if (state.context.directory.type !== "path") {

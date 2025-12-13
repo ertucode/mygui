@@ -7,20 +7,15 @@ import {
 } from "../favorites";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
-import { useDefaultPath } from "../hooks/useDefaultPath";
 import { directoryStore, selectDirectory } from "../directory";
+import { setDefaultPath } from "../defaultPath";
 
 interface FavoritesListProps {
-  defaultPath: ReturnType<typeof useDefaultPath>;
   className?: string;
   openFavorite: (favorite: FavoriteItem) => void;
 }
 
-export function FavoritesList({
-  className,
-  defaultPath,
-  openFavorite,
-}: FavoritesListProps) {
+export function FavoritesList({ className, openFavorite }: FavoritesListProps) {
   const f = useSelector(favoritesStore, selectFavorites);
   const directory = useSelector(directoryStore, selectDirectory);
 
@@ -31,8 +26,7 @@ export function FavoritesList({
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
       isSelected={(favorite) =>
-        directory.type === "path" &&
-        directory.fullPath === favorite.fullPath
+        directory.type === "path" && directory.fullPath === favorite.fullPath
       }
       onClick={openFavorite}
       getContextMenuItems={(favorite) => [
@@ -50,7 +44,7 @@ export function FavoritesList({
               Set as default path
             </TextWithIcon>
           ),
-          onClick: () => defaultPath.setPath(favorite.fullPath),
+          onClick: () => setDefaultPath(favorite.fullPath),
         },
       ]}
       className={className}
