@@ -23,7 +23,7 @@ export function FolderBreadcrumb({
   if (d.directory.type === "tags") {
     const tagName = tags?.getTagName(d.directory.color) ?? d.directory.color;
     return (
-      <div className="breadcrumbs text-sm">
+      <div className="breadcrumbs text-sm py-0">
         <ul>
           <li className="flex items-center gap-1">
             <a className="flex items-center gap-3">
@@ -42,7 +42,7 @@ export function FolderBreadcrumb({
   const parts = PathHelpers.getFolderNameParts(d.directory.fullPath);
 
   return (
-    <div className="breadcrumbs text-sm">
+    <div className="breadcrumbs text-sm py-0">
       {menu.isOpen && (
         <ContextMenu menu={menu}>
           <ContextMenuList

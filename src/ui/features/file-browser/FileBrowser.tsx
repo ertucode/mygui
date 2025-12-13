@@ -593,13 +593,6 @@ export function FileBrowser() {
         tags={tags}
       />
       <FileBrowserOptionsSection d={d} />
-      <FileBrowserNavigationAndInputSection
-        d={d}
-        defaultPath={defaultPath}
-        fuzzy={fuzzy}
-        onGoUpOrPrev={onGoUpOrPrev}
-        tags={tags}
-      />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div
           className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0"
@@ -624,6 +617,13 @@ export function FileBrowser() {
           direction="left"
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
+          <FileBrowserNavigationAndInputSection
+            d={d}
+            defaultPath={defaultPath}
+            fuzzy={fuzzy}
+            onGoUpOrPrev={onGoUpOrPrev}
+            tags={tags}
+          />
           {d.loading ? (
             <div>Loading...</div>
           ) : d.error || error ? (

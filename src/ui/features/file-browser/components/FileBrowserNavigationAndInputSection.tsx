@@ -24,11 +24,11 @@ export function FileBrowserNavigationAndInputSection({
   onGoUpOrPrev,
   tags,
 }: FileBrowserNavigationAndInputSectionProps) {
-  const navigationButtonClassName = "btn btn-xs btn-soft btn-info";
+  const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
   const navigationButtonIconClassName = "size-4";
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="join items-center mb-2">
       <button
         className={navigationButtonClassName}
         onClick={d.goPrev}
@@ -49,10 +49,13 @@ export function FileBrowserNavigationAndInputSection({
       >
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
-      <div className="flex-1">
+      <div className="flex-1 join-item px-2 overflow-x-auto">
         <FolderBreadcrumb d={d} defaultPath={defaultPath} tags={tags} />
       </div>
-      <FuzzyFinderInput fuzzy={fuzzy} className="w-48 min-[1000px]:w-80" />
+      <FuzzyFinderInput
+        fuzzy={fuzzy}
+        className="w-48 min-[1000px]:w-80 join-item"
+      />
     </div>
   );
 }
