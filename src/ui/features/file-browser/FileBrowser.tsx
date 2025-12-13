@@ -46,7 +46,6 @@ import {
   selectLastUsedTag,
   selectHasTag,
   selectTagName,
-  TagColor,
 } from "./tags";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
@@ -73,11 +72,7 @@ import { PathHelpers } from "@common/PathHelpers";
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
   const fileTags = useSelector(tagsStore, selectFileTags);
-  const getFilesWithTag = (color: TagColor) =>
-    Object.entries(fileTags)
-      .filter(([_, tags]) => tags.includes(color))
-      .map(([path]) => path);
-  const d = useDirectory(defaultPath.path, getFilesWithTag);
+  const d = useDirectory(defaultPath.path);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
   const [error, setError] = useState<string | null>(null);
