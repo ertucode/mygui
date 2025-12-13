@@ -27,10 +27,8 @@ import { createColumns, sortNames } from "./config/columns";
 import {
   directoryStore,
   directoryHelpers,
-  selectDirectory,
   selectLoading,
   selectDirectoryData,
-  selectError,
   selectSettings as selectDirectorySettings,
   selectPendingSelection,
   selectSelectionIndexes,
@@ -70,8 +68,6 @@ import {
 } from "@/lib/hooks/useDialogs";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
-import { errorResponseToMessage, GenericError } from "@common/GenericError";
-import { useToast } from "@/lib/components/toast";
 import { PathHelpers } from "@common/PathHelpers";
 import { setDefaultPath } from "./defaultPath";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -94,12 +90,10 @@ export function FileBrowser() {
   const fileTags = useSelector(tagsStore, selectFileTags);
 
   // Subscribe to directory store
-  const directory = useSelector(directoryStore, selectDirectory);
   const _loading = useSelector(directoryStore, selectLoading);
 
   const loading = useDebounce(_loading, 100);
   const directoryData = useSelector(directoryStore, selectDirectoryData);
-  const directoryError = useSelector(directoryStore, selectError);
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
   const selectionIndexes = useSelector(directoryStore, selectSelectionIndexes);
   const selectionLastSelected = useSelector(
@@ -136,7 +130,7 @@ export function FileBrowser() {
     getShortcuts: directoryHelpers.getSelectionShortcuts,
   };
   const confirmation = useConfirmation();
-  const [localError, setError] = useState<string | null>(null);
+  const [localError] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
@@ -242,106 +236,8 @@ export function FileBrowser() {
     }, 5);
   };
 
-  const toast = useToast();
-  const handleCopy = async (
-    items: GetFilesAndFoldersInDirectoryItem[],
-    cut: boolean = false,
-  ) => {
-    const paths = items.map(
-      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
-    );
-    const result = await getWindowElectron().copyFiles(paths, cut);
-    if (!result.success) {
-      toast.show(result);
-    }
-  };
-
-  const handlePaste = async () => {
-    if (directory.type !== "path") {
-      toast.show(GenericError.Message("Cannot paste in tags view"));
-      return;
-    }
-    const result = await getWindowElectron().pasteFiles(directory.fullPath);
-    if (result.success) {
-      await directoryHelpers.reload();
-      // Select the first pasted item
-      if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
-        directoryHelpers.setPendingSelection(result.data.pastedItems[0]);
-      }
-    } else {
-      toast.show(result);
-    }
-  };
-
   // Track if any dialog is open
   const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
-
-  const handleDelete = (items: GetFilesAndFoldersInDirectoryItem[]) => {
-    const paths = items.map(
-      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
-    );
-    const deletedNames = new Set(items.map((item) => item.name));
-
-    // Find the smallest index among items being deleted
-    const deletedIndexes = items
-      .map((item) => table.data.findIndex((d) => d.name === item.name))
-      .filter((idx) => idx !== -1)
-      .sort((a, b) => a - b);
-    const smallestDeletedIndex = deletedIndexes[0] ?? 0;
-
-    confirmation.confirm({
-      title: "Confirm Delete",
-      message: (
-        <p>
-          Are you sure you want to delete{" "}
-          {items.length === 1 ? `"${items[0].name}"` : `${items.length} items`}?
-        </p>
-      ),
-      confirmText: "Delete",
-      onConfirm: async () => {
-        try {
-          // Delete all selected files/folders
-          const result = await getWindowElectron().deleteFiles(paths);
-
-          if (!result.success) {
-            setError(errorResponseToMessage(result.error));
-            return;
-          }
-
-          // Remove from favorites if they were favorited
-          paths.forEach((path) => {
-            if (selectIsFavorite(path)(favoritesStore.get())) {
-              favoritesStore.send({ type: "removeFavorite", fullPath: path });
-            }
-          });
-
-          // Reload the directory without affecting history
-          await directoryHelpers.reload();
-
-          // Select the nearest item (prefer top, fallback to bottom)
-          const remainingItems = table.data.filter(
-            (item) => !deletedNames.has(item.name),
-          );
-          if (remainingItems.length > 0) {
-            // Find the item that should now be at or near the smallest deleted index
-            const newIndex = Math.min(
-              smallestDeletedIndex,
-              remainingItems.length - 1,
-            );
-            const itemToSelect = remainingItems[newIndex];
-            directoryHelpers.setPendingSelection(itemToSelect.name);
-          } else {
-            s.reset();
-          }
-        } catch (error) {
-          console.error("Error deleting files:", error);
-          setError(
-            error instanceof Error ? error.message : "Error deleting files",
-          );
-        }
-      },
-    });
-  };
 
   useShortcuts(
     [
@@ -423,7 +319,7 @@ export function FileBrowser() {
           // Command+Delete on macOS
           if (s.state.indexes.size === 0) return;
           const itemsToDelete = [...s.state.indexes].map((i) => table.data[i]);
-          handleDelete(itemsToDelete);
+          directoryHelpers.handleDelete(itemsToDelete, table.data);
         },
         enabledIn: () => true,
       },
@@ -456,7 +352,7 @@ export function FileBrowser() {
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCopy = [...s.state.indexes].map((i) => table.data[i]);
-          handleCopy(itemsToCopy, false);
+          directoryHelpers.handleCopy(itemsToCopy, false);
         },
         enabledIn: () => true,
       },
@@ -472,7 +368,7 @@ export function FileBrowser() {
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCut = [...s.state.indexes].map((i) => table.data[i]);
-          handleCopy(itemsToCut, true);
+          directoryHelpers.handleCopy(itemsToCut, true);
         },
         enabledIn: () => true,
       },
@@ -490,7 +386,7 @@ export function FileBrowser() {
           }
 
           e.preventDefault();
-          handlePaste();
+          directoryHelpers.handlePaste();
         },
         enabledIn: () => true,
       },
@@ -612,8 +508,8 @@ export function FileBrowser() {
           />
           {loading ? (
             <div>Loading...</div>
-          ) : directoryError || localError ? (
-            <Alert children={(directoryError || localError)!} />
+          ) : localError ? (
+            <Alert children={localError!} />
           ) : (
             <Table
               tableRef={tableRef}
@@ -622,9 +518,6 @@ export function FileBrowser() {
               onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
-                handleDelete,
-                handleCopy,
-                handlePaste,
                 selection: s,
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
@@ -707,20 +600,11 @@ export function FileBrowser() {
 }
 
 function getRowContextMenu({
-  handleDelete,
-  handleCopy,
-  handlePaste,
   selection,
   tableData,
   dialogs,
   openAssignTagsDialog,
 }: {
-  handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
-  handleCopy: (
-    items: GetFilesAndFoldersInDirectoryItem[],
-    cut: boolean,
-  ) => void;
-  handlePaste: () => void;
   selection: SelectionHelpers;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
@@ -772,7 +656,7 @@ function getRowContextMenu({
 
     const copyItem: ContextMenuItem = {
       onClick: () => {
-        handleCopy(selectedItems, false);
+        directoryHelpers.handleCopy(selectedItems, false);
         close();
       },
       view: (
@@ -787,7 +671,7 @@ function getRowContextMenu({
 
     const cutItem: ContextMenuItem = {
       onClick: () => {
-        handleCopy(selectedItems, true);
+        directoryHelpers.handleCopy(selectedItems, true);
         close();
       },
       view: (
@@ -802,7 +686,7 @@ function getRowContextMenu({
 
     const pasteItem: ContextMenuItem = {
       onClick: () => {
-        handlePaste();
+        directoryHelpers.handlePaste();
         close();
       },
       view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
@@ -810,7 +694,7 @@ function getRowContextMenu({
 
     const deleteItem: ContextMenuItem = {
       onClick: () => {
-        handleDelete(selectedItems);
+        directoryHelpers.handleDelete(selectedItems, tableData);
         close();
       },
       view: (

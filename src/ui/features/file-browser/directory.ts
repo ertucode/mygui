@@ -17,6 +17,9 @@ import { PathHelpers } from "@common/PathHelpers";
 import { GenericError } from "@common/GenericError";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { defaultPath } from "./defaultPath";
+import { toast } from "@/lib/components/toast";
+import { confirmation } from "@/lib/hooks/useConfirmation";
+import { favoritesStore, selectIsFavorite } from "./favorites";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -679,6 +682,110 @@ export const directoryHelpers = {
       indexes: new Set([newSelection]),
       lastSelected: newSelection,
     } as any);
+  },
+
+  handleCopy: async (
+    items: GetFilesAndFoldersInDirectoryItem[],
+    cut: boolean = false,
+  ) => {
+    const paths = items.map(
+      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
+    );
+    const result = await getWindowElectron().copyFiles(paths, cut);
+    if (!result.success) {
+      toast.show(result);
+    }
+  },
+
+  handlePaste: async () => {
+    const state = directoryStore.get();
+    if (state.context.directory.type !== "path") {
+      toast.show(GenericError.Message("Cannot paste in tags view"));
+      return;
+    }
+    const result = await getWindowElectron().pasteFiles(
+      state.context.directory.fullPath,
+    );
+    if (result.success) {
+      await directoryHelpers.reload();
+      // Select the first pasted item
+      if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
+        directoryHelpers.setPendingSelection(result.data.pastedItems[0]);
+      }
+    } else {
+      toast.show(result);
+    }
+  },
+
+  handleDelete: async (
+    items: GetFilesAndFoldersInDirectoryItem[],
+    tableData: GetFilesAndFoldersInDirectoryItem[],
+  ) => {
+    const paths = items.map(
+      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
+    );
+    const deletedNames = new Set(items.map((item) => item.name));
+
+    // Find the smallest index among items being deleted
+    const deletedIndexes = items
+      .map((item) => tableData.findIndex((d) => d.name === item.name))
+      .filter((idx) => idx !== -1)
+      .sort((a, b) => a - b);
+    const smallestDeletedIndex = deletedIndexes[0] ?? 0;
+
+    const message =
+      items.length === 1
+        ? `Are you sure you want to delete "${items[0].name}"?`
+        : `Are you sure you want to delete ${items.length} items?`;
+
+    confirmation.confirm({
+      title: "Confirm Delete",
+      message,
+      confirmText: "Delete",
+      onConfirm: async () => {
+        try {
+          // Delete all selected files/folders
+          const result = await getWindowElectron().deleteFiles(paths);
+
+          if (!result.success) {
+            toast.show(result);
+            return;
+          }
+
+          // Remove from favorites if they were favorited
+          paths.forEach((path) => {
+            if (selectIsFavorite(path)(favoritesStore.get())) {
+              favoritesStore.send({ type: "removeFavorite", fullPath: path });
+            }
+          });
+
+          // Reload the directory without affecting history
+          await directoryHelpers.reload();
+
+          // Select the nearest item (prefer top, fallback to bottom)
+          const remainingItems = tableData.filter(
+            (item) => !deletedNames.has(item.name),
+          );
+          if (remainingItems.length > 0) {
+            // Find the item that should now be at or near the smallest deleted index
+            const newIndex = Math.min(
+              smallestDeletedIndex,
+              remainingItems.length - 1,
+            );
+            const itemToSelect = remainingItems[newIndex];
+            directoryHelpers.setPendingSelection(itemToSelect.name);
+          } else {
+            directoryStore.send({ type: "resetSelection" } as any);
+          }
+        } catch (error) {
+          console.error("Error deleting files:", error);
+          toast.show({
+            severity: "error",
+            message: error instanceof Error ? error.message : "Error deleting files",
+          });
+        }
+      },
+    });
   },
 };
 

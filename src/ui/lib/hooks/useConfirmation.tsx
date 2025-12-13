@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useState,
+  ReactNode,
+  useEffect,
+} from "react";
 import { Dialog } from "@/lib/components/dialog";
 
 type ConfirmationOptions = {
@@ -17,6 +23,26 @@ type ConfirmationContextType = {
 
 const ConfirmationContext = createContext<ConfirmationContextType | null>(null);
 
+// Global confirmation manager - available anywhere, even outside React
+class ConfirmationManager {
+  private confirmFn: ((options: ConfirmationOptions) => void) | null = null;
+
+  setConfirmFunction(fn: (options: ConfirmationOptions) => void) {
+    this.confirmFn = fn;
+  }
+
+  confirm(options: ConfirmationOptions) {
+    if (!this.confirmFn) {
+      console.warn("Confirmation system not initialized yet");
+      return;
+    }
+    this.confirmFn(options);
+  }
+}
+
+// Export a singleton instance
+export const confirmation = new ConfirmationManager();
+
 export function ConfirmationProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<ConfirmationOptions | null>(null);
 
@@ -29,6 +55,10 @@ export function ConfirmationProvider({ children }: { children: ReactNode }) {
     await state.onConfirm();
     setState(null);
   };
+  // Register the show function with the global toast manager
+  useEffect(() => {
+    confirmation.setConfirmFunction(confirm);
+  }, [confirm]);
 
   const handleReject = () => {
     if (!state) return;
