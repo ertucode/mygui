@@ -2,7 +2,7 @@ import { useDirectory } from "../hooks/useDirectory";
 import {
   FileCategoryFilter,
   FILE_TYPE_FILTER_OPTIONS,
-} from "../hooks/useFileBrowserSettings";
+} from "../settings";
 
 export type FileBrowserOptionsSectionProps = {
   d: ReturnType<typeof useDirectory>;

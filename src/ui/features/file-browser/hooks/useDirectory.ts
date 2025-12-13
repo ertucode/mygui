@@ -1,20 +1,21 @@
 import {
-  SetStateAction,
   useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import { useSelector } from "@xstate/store/react";
 import { HistoryStack } from "@common/history-stack";
 import { useForceRerender } from "@/lib/hooks/forceRerender";
 import { errorToString } from "@common/errorToString";
 import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import {
-  DirectoryDataFromSettings,
-  FileBrowserSort,
-  useFileBrowserSettings,
-} from "./useFileBrowserSettings";
+  fileBrowserSettingsStore,
+  selectSettings,
+  fileBrowserSettingsHelpers,
+} from "../settings";
+import { DirectoryDataFromSettings } from "../utils/DirectoryDataFromSettings";
 import { recentsStore } from "../recents";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
@@ -82,7 +83,7 @@ export function useDirectory(
   getFilesWithTag?: TaggedFilesGetter,
 ) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
-  const [settings, setSettings] = useFileBrowserSettings();
+  const settings = useSelector(fileBrowserSettingsStore, selectSettings);
   const [directory, setDirectory] =
     useState<DirectoryInfo>(initialDirectoryInfo);
   const [_loading, setLoading] = useState(false);
@@ -185,9 +186,9 @@ export function useDirectory(
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
     if (newDirectory.type === "path") {
-      recentsStore.send({ 
-        type: "addRecent", 
-        item: { fullPath: newDirectory.fullPath, type: "dir" } 
+      recentsStore.send({
+        type: "addRecent",
+        item: { fullPath: newDirectory.fullPath, type: "dir" },
       });
     }
     return loadDirectoryInfo(newDirectory);
@@ -282,25 +283,14 @@ export function useDirectory(
     hasNext,
     error,
     settings,
-    toggleShowDotFiles: () =>
-      setSettings((s) => ({ ...s, showDotFiles: !s.showDotFiles })),
-    toggleFoldersOnTop: () =>
-      setSettings((s) => ({ ...s, foldersOnTop: !s.foldersOnTop })),
-    setFileTypeFilter: (filter: typeof settings.fileTypeFilter) =>
-      setSettings((s) => ({ ...s, fileTypeFilter: filter })),
+    toggleShowDotFiles: fileBrowserSettingsHelpers.toggleShowDotFiles,
+    toggleFoldersOnTop: fileBrowserSettingsHelpers.toggleFoldersOnTop,
+    setFileTypeFilter: fileBrowserSettingsHelpers.setFileTypeFilter,
     openFile,
     getFullPath,
     preloadDirectory,
-    setSettings,
-    setSort: (stateOrCb: SetStateAction<FileBrowserSort>) =>
-      setSettings((s) => {
-        if (typeof stateOrCb === "function") {
-          const newSort = stateOrCb(s.sort);
-          return { ...s, sort: newSort };
-        }
-
-        return { ...s, sort: stateOrCb };
-      }),
+    setSettings: fileBrowserSettingsHelpers.setSettings,
+    setSort: fileBrowserSettingsHelpers.setSort,
     reload: () => loadDirectoryInfo(directory),
     openItem: (item: GetFilesAndFoldersInDirectoryItem) => {
       if (item.type === "dir") {
@@ -312,9 +302,9 @@ export function useDirectory(
         }
       } else {
         const fullPath = item.fullPath || getFullPath(item.name);
-        recentsStore.send({ 
-          type: "addRecent", 
-          item: { fullPath, type: "file" } 
+        recentsStore.send({
+          type: "addRecent",
+          item: { fullPath, type: "file" },
         });
         openFileFull(fullPath);
       }
