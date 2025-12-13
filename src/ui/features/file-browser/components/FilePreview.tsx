@@ -74,6 +74,7 @@ export function FilePreview({
       isFile,
       fileSize: fileSize ?? null,
       fileExt: fileExt ?? null,
+      homePath: getWindowElectron().homeDirectory,
     });
   }, [filePath, isFile, fileSize, fileExt, isWebviewReady]);
 

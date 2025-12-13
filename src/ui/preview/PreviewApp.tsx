@@ -3,6 +3,15 @@ import { CopyIcon, FilmIcon, AlertCircleIcon } from "lucide-react";
 import { renderAsync } from "docx-preview";
 import { getWindowElectron } from "@/getWindowElectron";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
+import { isImageExtension, isVideoExtension } from "@common/file-category";
+
+function expandHome(filePath: string): string {
+  if (filePath.startsWith("~/")) {
+    return homeDirectory + filePath.slice(1);
+  }
+  return filePath;
+}
+let homeDirectory = "";
 
 type ContentType =
   | "image"
@@ -33,6 +42,7 @@ export function PreviewApp() {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "preview-file") {
         setPreviewData(event.data.payload);
+        homeDirectory = event.data.payload.homePath;
       }
     };
 
@@ -75,10 +85,24 @@ export function PreviewApp() {
       });
   };
 
+  const PDF_EXTENSIONS = new Set([".pdf"]);
   const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
+  // Video formats that Chromium can play natively
+  const PLAYABLE_VIDEO_EXTENSIONS = new Set([
+    ".mp4",
+    ".m4v",
+    ".webm",
+    ".ogv",
+    ".ogg",
+    ".mov",
+  ]);
 
   const ext = previewData?.fileExt || "";
   const isXlsx = XLSX_EXTENSIONS.has(ext);
+  const isImage = isImageExtension(ext);
+  const isPdf = PDF_EXTENSIONS.has(ext);
+  const isVideo = isVideoExtension(ext);
+  const isPlayableVideo = PLAYABLE_VIDEO_EXTENSIONS.has(ext);
   const { isTooLarge, limit: fileSizeLimit } = previewData?.fileSize
     ? fileSizeTooLarge(ext, previewData.fileSize)
     : { isTooLarge: false, limit: Infinity };
@@ -92,6 +116,50 @@ export function PreviewApp() {
       return;
     }
 
+    const fullPath = expandHome(previewData.filePath);
+
+    // For images, PDFs, and playable videos - use file:// URL directly without IPC
+    if (isImage) {
+      setContent(`file://${fullPath}`);
+      setContentType("image");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (isPdf) {
+      setContent(`file://${fullPath}`);
+      setContentType("pdf");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (isVideo) {
+      if (isPlayableVideo) {
+        setContent(`file://${fullPath}`);
+        setContentType("video");
+      } else {
+        // Unsupported video format - show metadata
+        const fileSizeMB = previewData.fileSize
+          ? (previewData.fileSize / 1024 / 1024).toFixed(2)
+          : "Unknown";
+        setContent(
+          JSON.stringify({
+            path: fullPath,
+            size: `${fileSizeMB} MB`,
+            format: ext.replace(".", "").toUpperCase(),
+            message:
+              "This video format cannot be played in the browser. Use an external player.",
+          }),
+        );
+        setContentType("video-unsupported");
+      }
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     if (isTooLarge) {
       setContent(null);
       setContentType("text");
@@ -100,10 +168,10 @@ export function PreviewApp() {
       return;
     }
 
-    // Allow big size if file size is known (already checked in UI)
+    // For other file types (text, docx, xlsx), fetch via IPC
     const allowBigSize = previewData.fileSize != null;
     fetchPreview(previewData.filePath, allowBigSize);
-  }, [previewData, isTooLarge]);
+  }, [previewData, isTooLarge, isImage, isPdf, isVideo, isPlayableVideo]);
 
   if (!previewData?.filePath) {
     return (

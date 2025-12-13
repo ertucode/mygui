@@ -1,4 +1,5 @@
 import { app, BrowserWindow, Menu, screen } from "electron";
+import os from "os";
 import { ipcHandle, isDev } from "./util.js";
 import {
   getPreloadPath,
@@ -6,7 +7,10 @@ import {
   getUIPath,
 } from "./pathResolver.js";
 import { convertDocxToPdf } from "./utils/docx-to-pdf.js";
-import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from "./utils/get-files-and-folders-in-directory.js";
+import {
+  getFilesAndFoldersInDirectory,
+  getFileInfoByPaths,
+} from "./utils/get-files-and-folders-in-directory.js";
 import { openFile } from "./utils/open-file.js";
 import { expandHome } from "./utils/expand-home.js";
 import { base64ImageToTempPath } from "./utils/base64-image-to-temp-path.js";
@@ -83,6 +87,7 @@ app.on("ready", () => {
   function createWindow(initialPath?: string) {
     const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
+    const basePaths = [`--home-dir=${os.homedir()}`];
     const mainWindow = new BrowserWindow({
       width: (5 * width) / 8,
       height: height / 3,
@@ -92,8 +97,8 @@ app.on("ready", () => {
         preload: getPreloadPath(),
         webviewTag: true,
         additionalArguments: initialPath
-          ? [`--initial-path=${initialPath}`]
-          : [],
+          ? [`--initial-path=${initialPath}`, ...basePaths]
+          : basePaths,
       },
     });
 

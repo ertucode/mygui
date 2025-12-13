@@ -18,6 +18,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   onDragStart: (req) => ipcInvoke("onDragStart", req),
   captureRect: (rect) => ipcInvoke("captureRect", rect),
   getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
+  homeDirectory: getArgv("--home-dir=")!,
   readFilePreview: (filePath: string, allowBigSize?: boolean) =>
     ipcInvoke("readFilePreview", { filePath, allowBigSize }),
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
@@ -27,9 +28,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("renameFileOrFolder", { fullPath, newName }),
   getPreviewPreloadPath: () => ipcInvoke("getPreviewPreloadPath", undefined),
   getStartingDirectory: () => {
-    const arg = process.argv.find((x) => x.startsWith("--initial-path="));
-    const staticData = arg ? arg.replace("--initial-path=", "") : null;
-    return staticData;
+    return getArgv("--initial-path=");
   },
   copyFiles: (filePaths: string[], cut: boolean) =>
     ipcInvoke("copyFiles", { filePaths, cut }),
@@ -52,6 +51,12 @@ function ipcInvoke<Key extends keyof EventResponseMapping>(
     : void,
 ) {
   return electron.ipcRenderer.invoke(key, request);
+}
+
+function getArgv(key: string) {
+  const arg = process.argv.find((x) => x.startsWith(key));
+  const staticData = arg ? arg.replace(key, "") : null;
+  return staticData;
 }
 
 function ipcOn<Key extends keyof EventResponseMapping>(

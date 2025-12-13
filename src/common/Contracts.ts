@@ -58,14 +58,9 @@ export type EventResponseMapping = {
     | {
         content: string;
         isTruncated: boolean;
-        contentType:
-          | "image"
-          | "pdf"
-          | "text"
-          | "docx"
-          | "xlsx"
-          | "video"
-          | "video-unsupported";
+        // Note: images, PDFs, and videos are handled directly in the frontend
+        // using file:// URLs without making IPC calls
+        contentType: "text" | "docx" | "xlsx";
       }
     | { error: string }
     | { error: "FILE_TOO_LARGE" }
@@ -150,6 +145,7 @@ export type WindowElectron = {
   ) => Promise<unknown>;
   captureRect: (rect: Rect) => Promise<string>;
   getHomeDirectory: () => Promise<string>;
+  homeDirectory: string;
   readFilePreview: (
     filePath: string,
     allowBigSize?: boolean,
@@ -157,14 +153,9 @@ export type WindowElectron = {
     | {
         content: string;
         isTruncated: boolean;
-        contentType:
-          | "image"
-          | "pdf"
-          | "text"
-          | "docx"
-          | "xlsx"
-          | "video"
-          | "video-unsupported";
+        // Note: images, PDFs, and videos are handled directly in the frontend
+        // using file:// URLs without making IPC calls
+        contentType: "text" | "docx" | "xlsx";
       }
     | { error: string }
     | { error: "FILE_TOO_LARGE" }

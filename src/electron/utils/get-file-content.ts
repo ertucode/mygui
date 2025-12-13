@@ -2,46 +2,15 @@ import fs from "fs/promises";
 import path from "path";
 import * as XLSX from "xlsx";
 import { expandHome } from "./expand-home.js";
-import {
-  isImageExtension,
-  isVideoExtension,
-} from "../../common/file-category.js";
 import { fileSizeTooLarge } from "../../common/file-size-too-large.js";
 
-const PDF_EXTENSIONS = new Set([".pdf"]);
 const DOCX_EXTENSIONS = new Set([".docx", ".doc"]);
 const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
 
-// Video formats that Chromium can play natively
-const PLAYABLE_VIDEO_EXTENSIONS = new Set([
-  ".mp4",
-  ".m4v",
-  ".webm",
-  ".ogv",
-  ".ogg",
-  ".mov", // QuickTime - works on macOS
-]);
+// Note: images, PDFs, and videos are now handled directly in the frontend
+// using file:// URLs without making IPC calls
 
-const MIME_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".bmp": "image/bmp",
-  ".ico": "image/x-icon",
-  ".svg": "image/svg+xml",
-  ".pdf": "application/pdf",
-};
-
-export type FileContentType =
-  | "image"
-  | "pdf"
-  | "text"
-  | "docx"
-  | "xlsx"
-  | "video"
-  | "video-unsupported";
+export type FileContentType = "text" | "docx" | "xlsx";
 
 export async function getFileContent(filePath: string, allowBigSize?: boolean) {
   try {
@@ -49,71 +18,11 @@ export async function getFileContent(filePath: string, allowBigSize?: boolean) {
     const fullPath = expandHome(filePath);
     const ext = path.extname(fullPath).toLowerCase();
 
-    const isImage = isImageExtension(ext);
-    const isPdf = PDF_EXTENSIONS.has(ext);
     const isXlsx = XLSX_EXTENSIONS.has(ext);
-    const isVideo = isVideoExtension(ext);
-    const isPlayableVideo = PLAYABLE_VIDEO_EXTENSIONS.has(ext);
 
     const stat = await fs.stat(fullPath);
     if (!allowBigSize && fileSizeTooLarge(filePath, stat.size).isTooLarge) {
       return { error: "FILE_TOO_LARGE" };
-    }
-
-    // Handle video files - just return file:// URL, browser streams it
-    if (isVideo) {
-      const stat = await fs.stat(fullPath);
-      const fileSizeMB = (stat.size / 1024 / 1024).toFixed(2);
-
-      if (isPlayableVideo) {
-        // Return file URL for native playback - no data loading needed
-        return {
-          content: `file://${fullPath}`,
-          isTruncated: false,
-          contentType: "video" as const,
-        };
-      } else {
-        // Unsupported format - return metadata
-        return {
-          content: JSON.stringify({
-            path: fullPath,
-            size: `${fileSizeMB} MB`,
-            format: ext.replace(".", "").toUpperCase(),
-            message:
-              "This video format cannot be played in the browser. Use an external player.",
-          }),
-          isTruncated: false,
-          contentType: "video-unsupported" as const,
-        };
-      }
-    }
-
-    // Handle image files
-    if (isImage) {
-      const buffer = await fs.readFile(fullPath);
-      const base64 = buffer.toString("base64");
-      const mimeType = MIME_TYPES[ext] || "application/octet-stream";
-      const dataUrl = `data:${mimeType};base64,${base64}`;
-
-      return {
-        content: dataUrl,
-        isTruncated: false,
-        contentType: "image" as const,
-      };
-    }
-
-    // Handle PDF files
-    if (isPdf) {
-      const buffer = await fs.readFile(fullPath);
-      const base64 = buffer.toString("base64");
-      const mimeType = MIME_TYPES[ext] || "application/pdf";
-      const dataUrl = `data:${mimeType};base64,${base64}`;
-
-      return {
-        content: dataUrl,
-        isTruncated: false,
-        contentType: "pdf" as const,
-      };
     }
 
     // Handle DOCX files
