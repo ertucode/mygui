@@ -54,18 +54,12 @@ import {
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FilePreview } from "./components/FilePreview";
-import { NewItemDialog } from "./components/NewItemDialog";
-import { RenameDialog } from "./components/RenameDialog";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
+import { dialogActions, useDialogStoreRenderer } from "./dialogStore";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
-import {
-  DialogsReturn,
-  renderAsContextMenu,
-  useDialogs,
-} from "@/lib/hooks/useDialogs";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
 import { PathHelpers } from "@common/PathHelpers";
@@ -87,6 +81,7 @@ type SelectionHelpers = {
 };
 
 export function FileBrowser() {
+  const dialogs = useDialogStoreRenderer();
   const fileTags = useSelector(tagsStore, selectFileTags);
 
   // Subscribe to directory store
@@ -327,10 +322,7 @@ export function FileBrowser() {
         key: { key: "n", ctrlKey: true },
         handler: (e) => {
           e.preventDefault();
-          dialogs.show(
-            dialogs.dialogs[1],
-            {} as GetFilesAndFoldersInDirectoryItem,
-          );
+          dialogActions.open("newItem", {});
         },
       },
       {
@@ -423,21 +415,7 @@ export function FileBrowser() {
     }
   };
 
-  // TODO: fix inference
-  const dialogs = useDialogs<[{}, {}], GetFilesAndFoldersInDirectoryItem>(
-    {
-      title: "Rename",
-      component: RenameDialog,
-      props: {},
-      icon: PencilIcon,
-    },
-    {
-      title: "New File or Folder",
-      component: NewItemDialog,
-      props: {},
-      icon: FilePlusIcon,
-    },
-  );
+
 
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
@@ -520,7 +498,6 @@ export function FileBrowser() {
               ContextMenu={getRowContextMenu({
                 selection: s,
                 tableData: table.data,
-                dialogs: dialogs as any, // TODO: fix this
                 openAssignTagsDialog: (fullPath: string) => {
                   const selectedIndexes = [...s.state.indexes.values()];
                   const selectedItems = selectedIndexes.map((i) => {
@@ -602,12 +579,10 @@ export function FileBrowser() {
 function getRowContextMenu({
   selection,
   tableData,
-  dialogs,
   openAssignTagsDialog,
 }: {
   selection: SelectionHelpers;
   tableData: GetFilesAndFoldersInDirectoryItem[];
-  dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
   openAssignTagsDialog: (fullPath: string) => void;
 }) {
   return ({
@@ -707,7 +682,21 @@ function getRowContextMenu({
       ),
     };
 
-    const commonItems = renderAsContextMenu(item, dialogs);
+    const renameItem: ContextMenuItem = {
+      onClick: () => {
+        dialogActions.open("rename", item);
+        close();
+      },
+      view: <TextWithIcon icon={PencilIcon}>Rename</TextWithIcon>,
+    };
+
+    const newFileItem: ContextMenuItem = {
+      onClick: () => {
+        dialogActions.open("newItem", {});
+        close();
+      },
+      view: <TextWithIcon icon={FilePlusIcon}>New File or Folder</TextWithIcon>,
+    };
 
     // Tag-related menu items
     const assignTagsItem: ContextMenuItem = {
@@ -774,7 +763,8 @@ function getRowContextMenu({
             cutItem,
             pasteItem,
             deleteItem,
-            ...commonItems,
+            renameItem,
+            newFileItem,
           ]}
         />
       );
@@ -789,7 +779,8 @@ function getRowContextMenu({
           cutItem,
           pasteItem,
           deleteItem,
-          ...commonItems,
+          renameItem,
+          newFileItem,
         ]}
       />
     );
