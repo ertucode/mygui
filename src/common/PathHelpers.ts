@@ -35,4 +35,11 @@ export namespace PathHelpers {
   export function getFolderNameParts(dir: string) {
     return dir.split("/").filter(Boolean);
   }
+
+  export function expandHome(home: string, filePath: string): string {
+    if (filePath.startsWith("~/")) {
+      return home + filePath.slice(1);
+    }
+    return filePath;
+  }
 }

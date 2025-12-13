@@ -35,7 +35,16 @@ import { FavoriteItem, useFavorites } from "./hooks/useFavorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
 import { TagsList } from "./components/TagsList";
-import { useTags, TAG_COLOR_CLASSES } from "./hooks/useTags";
+import { useSelector } from "@xstate/store/react";
+import {
+  tagsStore,
+  TAG_COLOR_CLASSES,
+  selectFileTags,
+  selectLastUsedTag,
+  selectHasTag,
+  selectTagName,
+  TagColor,
+} from "./hooks/useTags";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FilePreview } from "./components/FilePreview";
@@ -61,8 +70,12 @@ import { PathHelpers } from "@common/PathHelpers";
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
   const recents = useRecents();
-  const tags = useTags();
-  const d = useDirectory(defaultPath.path, recents, tags.getFilesWithTag);
+  const fileTags = useSelector(tagsStore, selectFileTags);
+  const getFilesWithTag = (color: TagColor) =>
+    Object.entries(fileTags)
+      .filter(([_, tags]) => tags.includes(color))
+      .map(([path]) => path);
+  const d = useDirectory(defaultPath.path, recents, getFilesWithTag);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
   const [error, setError] = useState<string | null>(null);
@@ -144,7 +157,7 @@ export function FileBrowser() {
   });
 
   const columns = createColumns({
-    fileTags: tags.fileTags,
+    fileTags,
     getFullPath: d.getFullPath,
   });
 
@@ -212,7 +225,7 @@ export function FileBrowser() {
   const onGoUpOrPrev = async (fn: typeof d.goPrev | typeof d.goUp) => {
     const metadata = await fn();
     if (!metadata) return;
-    let { directoryData, beforeNavigation } = metadata;
+    const { directoryData, beforeNavigation } = metadata;
 
     setTimeout(() => {
       if (!directoryData) return;
@@ -584,13 +597,11 @@ export function FileBrowser() {
         isOpen={assignTagsPath !== null}
         onClose={() => setAssignTagsPath(null)}
         fullPath={assignTagsPath || ""}
-        tags={tags}
       />
       <MultiFileTagsDialog
         isOpen={multiFileTagsPaths !== null}
         onClose={() => setMultiFileTagsPaths(null)}
         fullPaths={multiFileTagsPaths || []}
-        tags={tags}
       />
       <FileBrowserOptionsSection d={d} />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
@@ -610,7 +621,7 @@ export function FileBrowser() {
             d={d}
             className="flex-1 min-h-0 basis-0"
           />
-          <TagsList tags={tags} d={d} className="flex-1 min-h-0 basis-0" />
+          <TagsList d={d} className="flex-1 min-h-0 basis-0" />
         </div>
         <ResizeHandle
           onMouseDown={sidebarPanel.handleMouseDown}
@@ -622,7 +633,6 @@ export function FileBrowser() {
             defaultPath={defaultPath}
             fuzzy={fuzzy}
             onGoUpOrPrev={onGoUpOrPrev}
-            tags={tags}
           />
           {d.loading ? (
             <div>Loading...</div>
@@ -647,7 +657,6 @@ export function FileBrowser() {
                 selection: s,
                 tableData: table.data,
                 dialogs: dialogs as any, // TODO: fix this
-                tags,
                 openAssignTagsDialog: (fullPath: string) => {
                   const selectedIndexes = [...s.state.indexes.values()];
                   const selectedItems = selectedIndexes.map((i) => {
@@ -731,7 +740,6 @@ function getRowContextMenu({
   selection,
   tableData,
   dialogs,
-  tags,
   openAssignTagsDialog,
 }: {
   setAsDefaultPath: (path: string) => void;
@@ -746,7 +754,6 @@ function getRowContextMenu({
   selection: ReturnType<typeof useSelection>;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   dialogs: DialogsReturn<GetFilesAndFoldersInDirectoryItem>;
-  tags: ReturnType<typeof useTags>;
   openAssignTagsDialog: (fullPath: string) => void;
 }) {
   return ({
@@ -855,23 +862,34 @@ function getRowContextMenu({
     };
 
     // Last used tag quick-add item
+    const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
+    const hasLastUsedTag = lastUsedTag
+      ? useSelector(tagsStore, selectHasTag(fullPath, lastUsedTag))
+      : false;
+    const lastUsedTagName = lastUsedTag
+      ? useSelector(tagsStore, selectTagName(lastUsedTag))
+      : "";
+
     const lastUsedTagItem: ContextMenuItem | null =
-      tags.lastUsedTag && !tags.hasTag(fullPath, tags.lastUsedTag)
+      lastUsedTag && !hasLastUsedTag
         ? {
             onClick: () => {
-              tags.addTagToFiles(
-                selectedItems.map((i) => i.fullPath ?? d.getFullPath(i.name)),
-                tags.lastUsedTag!,
-              );
+              tagsStore.send({
+                type: "addTagToFiles",
+                fullPaths: selectedItems.map(
+                  (i) => i.fullPath ?? d.getFullPath(i.name),
+                ),
+                color: lastUsedTag!,
+              });
 
               close();
             },
             view: (
               <div className="flex items-center gap-2">
                 <span
-                  className={`size-3 rounded-full ${TAG_COLOR_CLASSES[tags.lastUsedTag].dot}`}
+                  className={`size-3 rounded-full ${TAG_COLOR_CLASSES[lastUsedTag!].dot}`}
                 />
-                <span>Add to "{tags.getTagName(tags.lastUsedTag)}"</span>
+                <span>Add to "{lastUsedTagName}"</span>
               </div>
             ),
           }

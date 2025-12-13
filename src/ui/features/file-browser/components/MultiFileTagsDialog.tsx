@@ -1,8 +1,11 @@
 import { Dialog } from "@/lib/components/dialog";
+import { useSelector } from "@xstate/store/react";
 import {
-  useTags,
+  tagsStore,
   TAG_COLORS,
   TAG_COLOR_CLASSES,
+  selectTagConfig,
+  selectFileTags,
   type TagColor,
 } from "../hooks/useTags";
 import { clsx } from "@/lib/functions/clsx";
@@ -12,7 +15,6 @@ interface MultiFileTagsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fullPaths: string[];
-  tags: ReturnType<typeof useTags>;
 }
 
 function getFileNameToDisplay(fullPath: string) {
@@ -24,9 +26,9 @@ type TagState = "all" | "some" | "none";
 function getTagStateForFiles(
   fullPaths: string[],
   color: TagColor,
-  tags: ReturnType<typeof useTags>,
+  fileTags: FileTags,
 ): TagState {
-  const filesWithTag = fullPaths.filter((path) => tags.hasTag(path, color));
+  const filesWithTag = fullPaths.filter((path) => (fileTags[path] || []).includes(color));
   if (filesWithTag.length === 0) return "none";
   if (filesWithTag.length === fullPaths.length) return "all";
   return "some";
@@ -36,24 +38,28 @@ export function MultiFileTagsDialog({
   isOpen,
   onClose,
   fullPaths,
-  tags,
 }: MultiFileTagsDialogProps) {
-  if (!isOpen || fullPaths.length === 0) return null;
+  const fileTags = useSelector(tagsStore, selectFileTags);
+  const tagConfig = useSelector(tagsStore, selectTagConfig);
+
+  if (!isOpen) return null;
 
   const handleCellClick = (fullPath: string, color: TagColor) => {
-    tags.toggleTagOnFile(fullPath, color);
+    tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
   };
 
   const handleHeaderClick = (color: TagColor) => {
-    const state = getTagStateForFiles(fullPaths, color, tags);
+    const state = getTagStateForFiles(fullPaths, color, fileTags);
     if (state === "all") {
       // Remove from all
-      fullPaths.forEach((path) => tags.removeTagFromFile(path, color));
+      fullPaths.forEach((path) => 
+        tagsStore.send({ type: "removeTagFromFile", fullPath: path, color })
+      );
     } else {
       // Add to all
       fullPaths.forEach((path) => {
-        if (!tags.hasTag(path, color)) {
-          tags.addTagToFile(path, color);
+        if (!(fileTags[path] || []).includes(color)) {
+          tagsStore.send({ type: "addTagToFile", fullPath: path, color });
         }
       });
     }
@@ -79,8 +85,8 @@ export function MultiFileTagsDialog({
                 </th>
                 {TAG_COLORS.map((color) => {
                   const colorClasses = TAG_COLOR_CLASSES[color];
-                  const tagName = tags.getTagName(color);
-                  const state = getTagStateForFiles(fullPaths, color, tags);
+                  const tagName = tagConfig[color] || color;
+                  const state = getTagStateForFiles(fullPaths, color, fileTags);
 
                   return (
                     <th
@@ -124,7 +130,7 @@ export function MultiFileTagsDialog({
             <tbody>
               {fullPaths.map((fullPath) => {
                 const fileName = getFileNameToDisplay(fullPath);
-                const fileTags = tags.getFileTags(fullPath);
+                const currentFileTags = fileTags[fullPath] || [];
 
                 return (
                   <tr
@@ -138,7 +144,7 @@ export function MultiFileTagsDialog({
                       {fileName}
                     </td>
                     {TAG_COLORS.map((color) => {
-                      const isTagged = fileTags.includes(color);
+                      const isTagged = currentFileTags.includes(color);
                       const colorClasses = TAG_COLOR_CLASSES[color];
 
                       return (

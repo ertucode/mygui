@@ -18,7 +18,8 @@ import {
 import { useRecents } from "./useRecents";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
-import { TagColor } from "./useTags";
+import { TagColor, tagsStore } from "./useTags";
+import { PathHelpers } from "@common/PathHelpers";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -121,34 +122,53 @@ export function useDirectory(
     }
   }, []);
 
-  const loadTaggedFiles = useCallback(async (color: TagColor) => {
-    if (!getFilesWithTag) return;
-    setLoading(true);
-    try {
-      const filePaths = getFilesWithTag(color);
-      if (filePaths.length === 0) {
-        setDirectoryData([]);
-        setError(undefined);
-        return [];
-      }
-      const result = await getWindowElectron().getFileInfoByPaths(filePaths);
-      setDirectoryData(result);
-      setError(undefined);
-      return result;
-    } catch (e) {
-      setError(errorToString(e));
-    } finally {
-      setLoading(false);
-    }
-  }, [getFilesWithTag]);
+  const loadTaggedFiles = useCallback(
+    async (color: TagColor) => {
+      if (!getFilesWithTag) return;
+      setLoading(true);
+      try {
+        const filePaths = getFilesWithTag(color);
+        if (filePaths.length === 0) {
+          setDirectoryData([]);
+          setError(undefined);
+          return [];
+        }
+        const result = await getWindowElectron().getFileInfoByPaths(filePaths);
 
-  const loadDirectoryInfo = useCallback(async (info: DirectoryInfo) => {
-    if (info.type === "path") {
-      return loadDirectoryPath(info.fullPath);
-    } else {
-      return loadTaggedFiles(info.color);
-    }
-  }, [loadDirectoryPath, loadTaggedFiles]);
+        const staleItems = filePaths.filter((item) => {
+          const normalized = PathHelpers.expandHome(
+            getWindowElectron().homeDirectory,
+            item,
+          );
+          return !result.find((i) => i.fullPath === normalized);
+        });
+        if (staleItems.length > 0) {
+          tagsStore.trigger.removeFilesFromAllTags({
+            fullPaths: staleItems,
+          });
+        }
+        setDirectoryData(result);
+        setError(undefined);
+        return result;
+      } catch (e) {
+        setError(errorToString(e));
+      } finally {
+        setLoading(false);
+      }
+    },
+    [getFilesWithTag],
+  );
+
+  const loadDirectoryInfo = useCallback(
+    async (info: DirectoryInfo) => {
+      if (info.type === "path") {
+        return loadDirectoryPath(info.fullPath);
+      } else {
+        return loadTaggedFiles(info.color);
+      }
+    },
+    [loadDirectoryPath, loadTaggedFiles],
+  );
 
   const directoryData = useMemo(
     () => DirectoryDataFromSettings.getDirectoryData(_directoryData, settings),

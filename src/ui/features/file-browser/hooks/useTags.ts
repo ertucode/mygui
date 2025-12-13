@@ -1,4 +1,4 @@
-import { useLocalStorage } from "@/lib/hooks/useLocalStorage";
+import { createStore } from "@xstate/store";
 import { z } from "zod";
 
 // 7 predefined tag colors
@@ -61,131 +61,264 @@ const defaultTagConfig: TagConfig = TAG_COLORS.reduce(
   {} as Record<TagColor, string>,
 );
 
-export function useTags() {
-  const [tagConfig, setTagConfig] = useLocalStorage(
+// Load data from localStorage
+const loadFromLocalStorage = <T>(
+  key: string,
+  schema: z.ZodType<T>,
+  defaultValue: T,
+): T => {
+  try {
+    const item = localStorage.getItem(key);
+    if (item === null) return defaultValue;
+    const parsed = JSON.parse(item);
+    return schema.parse(parsed);
+  } catch {
+    return defaultValue;
+  }
+};
+
+// Save data to localStorage
+const saveToLocalStorage = <T>(
+  key: string,
+  schema: z.ZodType<T>,
+  value: T,
+): void => {
+  try {
+    const validated = schema.parse(value);
+    localStorage.setItem(key, JSON.stringify(validated));
+  } catch {
+    // Ignore validation errors
+  }
+};
+
+// Create the store
+export const tagsStore = createStore({
+  context: {
+    tagConfig: loadFromLocalStorage(
+      "file-browser-tag-config",
+      tagConfigSchema,
+      defaultTagConfig,
+    ),
+    fileTags: loadFromLocalStorage(
+      "file-browser-file-tags",
+      fileTagsSchema,
+      {},
+    ),
+    lastUsedTag: loadFromLocalStorage(
+      "file-browser-last-used-tag",
+      lastUsedTagSchema,
+      null,
+    ),
+  },
+  on: {
+    setTagName: (context, event: { color: TagColor; name: string }) => ({
+      ...context,
+      tagConfig: {
+        ...context.tagConfig,
+        [event.color]: event.name,
+      },
+    }),
+
+    addTagToFile: (context, event: { fullPath: string; color: TagColor }) => {
+      const currentTags = context.fileTags[event.fullPath] || [];
+      if (currentTags.includes(event.color)) {
+        return context;
+      }
+      return {
+        ...context,
+        fileTags: {
+          ...context.fileTags,
+          [event.fullPath]: [...currentTags, event.color],
+        },
+        lastUsedTag: event.color,
+      };
+    },
+
+    addTagToFiles: (
+      context,
+      event: { fullPaths: string[]; color: TagColor },
+    ) => {
+      const newFileTags = { ...context.fileTags };
+
+      event.fullPaths.forEach((fullPath) => {
+        const currentTags = newFileTags[fullPath] || [];
+        if (!currentTags.includes(event.color)) {
+          newFileTags[fullPath] = [...currentTags, event.color];
+        }
+      });
+
+      return {
+        ...context,
+        fileTags: newFileTags,
+        lastUsedTag: event.color,
+      };
+    },
+
+    removeTagFromFile: (
+      context,
+      event: { fullPath: string; color: TagColor },
+    ) => {
+      const currentTags = context.fileTags[event.fullPath] || [];
+      const newTags = currentTags.filter((c: TagColor) => c !== event.color);
+      const { [event.fullPath]: _, ...rest } = context.fileTags;
+
+      return {
+        ...context,
+        fileTags:
+          newTags.length === 0
+            ? rest
+            : {
+                ...context.fileTags,
+                [event.fullPath]: newTags,
+              },
+      };
+    },
+
+    toggleTagOnFile: (
+      context,
+      event: { fullPath: string; color: TagColor },
+    ) => {
+      const currentTags = context.fileTags[event.fullPath] || [];
+      if (currentTags.includes(event.color)) {
+        const newTags = currentTags.filter((c: TagColor) => c !== event.color);
+        const { [event.fullPath]: _, ...rest } = context.fileTags;
+
+        return {
+          ...context,
+          fileTags:
+            newTags.length === 0
+              ? rest
+              : {
+                  ...context.fileTags,
+                  [event.fullPath]: newTags,
+                },
+        };
+      } else {
+        return {
+          ...context,
+          fileTags: {
+            ...context.fileTags,
+            [event.fullPath]: [...currentTags, event.color],
+          },
+          lastUsedTag: event.color,
+        };
+      }
+    },
+
+    toggleTagOnFiles: (
+      context,
+      event: { fullPaths: string[]; color: TagColor },
+    ) => {
+      const newFileTags = { ...context.fileTags };
+
+      event.fullPaths.forEach((fullPath) => {
+        const currentTags = newFileTags[fullPath] || [];
+        if (currentTags.includes(event.color)) {
+          const newTags = currentTags.filter(
+            (c: TagColor) => c !== event.color,
+          );
+          if (newTags.length === 0) {
+            delete newFileTags[fullPath];
+          } else {
+            newFileTags[fullPath] = newTags;
+          }
+        } else {
+          newFileTags[fullPath] = [...currentTags, event.color];
+        }
+      });
+
+      return {
+        ...context,
+        fileTags: newFileTags,
+        lastUsedTag: event.color,
+      };
+    },
+
+    removeFileFromAllTags: (context, event: { fullPath: string }) => {
+      const { [event.fullPath]: _, ...rest } = context.fileTags;
+      return {
+        ...context,
+        fileTags: rest,
+      };
+    },
+
+    removeFilesFromAllTags: (context, event: { fullPaths: string[] }) => {
+      const fileTags = { ...context.fileTags };
+      event.fullPaths.forEach((fullPath) => {
+        delete fileTags[fullPath];
+      });
+      console.log({ fileTags });
+      return {
+        ...context,
+        fileTags,
+      };
+    },
+  },
+});
+
+// Subscribe to store changes for persistence
+tagsStore.subscribe((state) => {
+  // Persist state changes to localStorage
+  saveToLocalStorage(
     "file-browser-tag-config",
     tagConfigSchema,
-    defaultTagConfig,
+    state.context.tagConfig,
   );
-
-  const [fileTags, setFileTags] = useLocalStorage(
+  saveToLocalStorage(
     "file-browser-file-tags",
     fileTagsSchema,
-    {},
+    state.context.fileTags,
   );
-
-  const [lastUsedTag, setLastUsedTag] = useLocalStorage(
+  saveToLocalStorage(
     "file-browser-last-used-tag",
     lastUsedTagSchema,
-    null,
+    state.context.lastUsedTag,
   );
+});
 
-  const getTagName = (color: TagColor): string => {
-    return tagConfig[color] || color;
-  };
+// Selector functions for common use cases
+export const selectTagConfig = (state: ReturnType<typeof tagsStore.get>) =>
+  state.context.tagConfig;
+export const selectFileTags = (state: ReturnType<typeof tagsStore.get>) =>
+  state.context.fileTags;
+export const selectLastUsedTag = (state: ReturnType<typeof tagsStore.get>) =>
+  state.context.lastUsedTag;
 
-  const setTagName = (color: TagColor, name: string) => {
-    setTagConfig((prev) => ({
-      ...prev,
-      [color]: name,
-    }));
-  };
+// Computed selectors
+export const selectTagName =
+  (color: TagColor) => (state: ReturnType<typeof tagsStore.get>) =>
+    state.context.tagConfig[color] || color;
 
-  const addTagToFile = (fullPath: string, color: TagColor) => {
-    setFileTags((prev) => {
-      const currentTags = prev[fullPath] || [];
-      if (currentTags.includes(color)) {
-        return prev;
-      }
-      return {
-        ...prev,
-        [fullPath]: [...currentTags, color],
-      };
-    });
-    setLastUsedTag(color);
-  };
+export const selectFileTagsForPath =
+  (fullPath: string) => (state: ReturnType<typeof tagsStore.get>) =>
+    state.context.fileTags[fullPath] || [];
 
-  const addTagToFiles = (fullPaths: string[], color: TagColor) => {
-    fullPaths.forEach((fullPath) => addTagToFile(fullPath, color));
-  };
-
-  const removeTagFromFile = (fullPath: string, color: TagColor) => {
-    setFileTags((prev) => {
-      const currentTags = prev[fullPath] || [];
-      const newTags = currentTags.filter((c) => c !== color);
-      if (newTags.length === 0) {
-        const { [fullPath]: _, ...rest } = prev;
-        return rest;
-      }
-      return {
-        ...prev,
-        [fullPath]: newTags,
-      };
-    });
-  };
-
-  const toggleTagOnFile = (fullPath: string, color: TagColor) => {
-    console.log("toggling", fullPath, color);
-    const currentTags = fileTags[fullPath] || [];
-    if (currentTags.includes(color)) {
-      removeTagFromFile(fullPath, color);
-    } else {
-      addTagToFile(fullPath, color);
-    }
-  };
-
-  const toggleTagOnFiles = (fullPaths: string[], color: TagColor) => {
-    fullPaths.forEach((fullPath) => toggleTagOnFile(fullPath, color));
-  };
-
-  const getFileTags = (fullPath: string): TagColor[] => {
-    return fileTags[fullPath] || [];
-  };
-
-  const getFilesWithTag = (color: TagColor): string[] => {
-    return Object.entries(fileTags)
+export const selectFilesWithTag =
+  (color: TagColor) => (state: ReturnType<typeof tagsStore.get>) =>
+    Object.entries(state.context.fileTags)
       .filter(([, tags]) => tags.includes(color))
       .map(([path]) => path);
-  };
 
-  const hasTag = (fullPath: string, color: TagColor): boolean => {
-    return (fileTags[fullPath] || []).includes(color);
-  };
+export const selectFileCountWithTag =
+  (color: TagColor) => (state: ReturnType<typeof tagsStore.get>) =>
+    Object.entries(state.context.fileTags).filter(([, tags]) =>
+      tags.includes(color),
+    ).length;
 
-  const removeFileFromAllTags = (fullPath: string) => {
-    setFileTags((prev) => {
-      const { [fullPath]: _, ...rest } = prev;
-      return rest;
-    });
-  };
+export const selectHasTag =
+  (fullPath: string, color: TagColor) =>
+  (state: ReturnType<typeof tagsStore.get>) =>
+    (state.context.fileTags[fullPath] || []).includes(color);
 
-  const everyFileHasSameTags = (fullPaths: string[]) => {
-    console.log(fullPaths.map((f) => getFileTags(f)));
+export const selectEveryFileHasSameTags =
+  (fullPaths: string[]) => (state: ReturnType<typeof tagsStore.get>) => {
     if (fullPaths.length < 2) return true;
 
-    const firstTags = getFileTags(fullPaths[0]);
+    const firstTags = state.context.fileTags[fullPaths[0]] || [];
     return fullPaths.every((fullPath) => {
-      const tags = getFileTags(fullPath);
+      const tags = state.context.fileTags[fullPath] || [];
       if (tags.length !== firstTags.length) return false;
       return tags.every((tag) => firstTags.includes(tag));
     });
   };
 
-  return {
-    tagConfig,
-    fileTags,
-    lastUsedTag,
-    getTagName,
-    setTagName,
-    addTagToFile,
-    addTagToFiles,
-    removeTagFromFile,
-    toggleTagOnFile,
-    toggleTagOnFiles,
-    getFileTags,
-    getFilesWithTag,
-    hasTag,
-    removeFileFromAllTags,
-    everyFileHasSameTags,
-  };
-}

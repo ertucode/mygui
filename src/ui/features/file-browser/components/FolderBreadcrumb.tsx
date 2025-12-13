@@ -1,4 +1,5 @@
 import { FolderIcon } from "lucide-react";
+import { useSelector } from "@xstate/store/react";
 import {
   ContextMenu,
   ContextMenuList,
@@ -6,22 +7,21 @@ import {
 } from "@/lib/components/context-menu";
 import type { useDirectory } from "../hooks/useDirectory";
 import type { useDefaultPath } from "../hooks/useDefaultPath";
-import { useTags, TAG_COLOR_CLASSES } from "../hooks/useTags";
+import { tagsStore, TAG_COLOR_CLASSES, selectTagConfig } from "../hooks/useTags";
 import { PathHelpers } from "@common/PathHelpers";
 
 export function FolderBreadcrumb({
   d,
   defaultPath,
-  tags,
 }: {
   d: ReturnType<typeof useDirectory>;
   defaultPath: ReturnType<typeof useDefaultPath>;
-  tags?: ReturnType<typeof useTags>;
 }) {
   const menu = useContextMenu<number>();
+  const tagConfig = useSelector(tagsStore, selectTagConfig);
 
   if (d.directory.type === "tags") {
-    const tagName = tags?.getTagName(d.directory.color) ?? d.directory.color;
+    const tagName = tagConfig[d.directory.color] || d.directory.color;
     return (
       <div className="breadcrumbs text-sm py-0">
         <ul>

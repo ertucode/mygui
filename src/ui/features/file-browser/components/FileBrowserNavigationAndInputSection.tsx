@@ -6,7 +6,6 @@ import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
 import { useDirectory } from "../hooks/useDirectory";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";
 import { useDefaultPath } from "../hooks/useDefaultPath";
-import { useTags } from "../hooks/useTags";
 
 type UseDirectoryReturnType = ReturnType<typeof useDirectory>;
 export type FileBrowserNavigationAndInputSectionProps = {
@@ -14,7 +13,6 @@ export type FileBrowserNavigationAndInputSectionProps = {
   defaultPath: ReturnType<typeof useDefaultPath>;
   fuzzy: ReturnType<typeof useFuzzyFinder>;
   onGoUpOrPrev: (fn: UseDirectoryReturnType["goUp" | "goPrev"]) => void;
-  tags: ReturnType<typeof useTags>;
 };
 
 export function FileBrowserNavigationAndInputSection({
@@ -22,7 +20,6 @@ export function FileBrowserNavigationAndInputSection({
   defaultPath,
   fuzzy,
   onGoUpOrPrev,
-  tags,
 }: FileBrowserNavigationAndInputSectionProps) {
   const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
   const navigationButtonIconClassName = "size-4";
@@ -50,7 +47,7 @@ export function FileBrowserNavigationAndInputSection({
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
       <div className="flex-1 join-item px-2 overflow-x-auto">
-        <FolderBreadcrumb d={d} defaultPath={defaultPath} tags={tags} />
+        <FolderBreadcrumb d={d} defaultPath={defaultPath} />
       </div>
       <FuzzyFinderInput
         fuzzy={fuzzy}

@@ -1,8 +1,11 @@
 import { Dialog } from "@/lib/components/dialog";
+import { useSelector } from "@xstate/store/react";
 import {
-  useTags,
+  tagsStore,
   TAG_COLORS,
   TAG_COLOR_CLASSES,
+  selectTagConfig,
+  selectFileTags,
   type TagColor,
 } from "../hooks/useTags";
 import { clsx } from "@/lib/functions/clsx";
@@ -12,7 +15,6 @@ interface AssignTagsDialogProps {
   isOpen: boolean;
   onClose: () => void;
   fullPath: string | string[];
-  tags: ReturnType<typeof useTags>;
 }
 
 function getFileNameToDisplay(fullPath: string) {
@@ -23,8 +25,11 @@ export function AssignTagsDialog({
   isOpen,
   onClose,
   fullPath,
-  tags,
 }: AssignTagsDialogProps) {
+  // Select all needed data at component level
+  const tagConfig = useSelector(tagsStore, selectTagConfig);
+  const fileTags = useSelector(tagsStore, selectFileTags);
+
   if (!isOpen) return null;
 
   const fileNames = Array.isArray(fullPath)
@@ -34,19 +39,24 @@ export function AssignTagsDialog({
     if (fullPath.length === 0) {
       throw new Error("No files selected");
     }
-    if (!tags.everyFileHasSameTags(fullPath)) {
-      throw new Error("All files must have the same tags");
+    // Check if all files have same tags
+    const firstTags = fileTags[fullPath[0]] || [];
+    const allHaveSameTags = fullPath.every((path) => {
+      const tags = fileTags[path] || [];
+      if (tags.length !== firstTags.length) return false;
+      return tags.every((tag) => firstTags.includes(tag));
+    });
+    if (!allHaveSameTags) {
+      throw new Error("All files must have same tags");
     }
   }
-  const currentTags = tags.getFileTags(
-    Array.isArray(fullPath) ? fullPath[0] : fullPath,
-  );
+  const currentTags = fileTags[Array.isArray(fullPath) ? fullPath[0] : fullPath] || [];
 
   const handleToggleTag = (color: TagColor) => {
     if (Array.isArray(fullPath)) {
-      tags.toggleTagOnFiles(fullPath, color);
+      tagsStore.send({ type: "toggleTagOnFiles", fullPaths: fullPath, color });
     } else {
-      tags.toggleTagOnFile(fullPath, color);
+      tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
     }
   };
 
@@ -63,7 +73,7 @@ export function AssignTagsDialog({
           {TAG_COLORS.map((color) => {
             const isSelected = currentTags.includes(color);
             const colorClasses = TAG_COLOR_CLASSES[color];
-            const tagName = tags.getTagName(color);
+            const tagName = tagConfig[color] || color;
 
             return (
               <button
