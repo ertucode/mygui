@@ -15,7 +15,7 @@ import {
   FileBrowserSort,
   useFileBrowserSettings,
 } from "./useFileBrowserSettings";
-import { useRecents } from "./useRecents";
+import { recentsStore } from "../recents";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
 import { TagColor, tagsStore } from "../tags";
@@ -79,7 +79,6 @@ export type TaggedFilesGetter = (color: TagColor) => string[];
 
 export function useDirectory(
   initialDirectory: string,
-  recents: ReturnType<typeof useRecents>,
   getFilesWithTag?: TaggedFilesGetter,
 ) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
@@ -186,7 +185,10 @@ export function useDirectory(
     if (isNew) historyStack.goNew(newDirectory);
     setDirectory(newDirectory);
     if (newDirectory.type === "path") {
-      recents.addRecent({ fullPath: newDirectory.fullPath, type: "dir" });
+      recentsStore.send({ 
+        type: "addRecent", 
+        item: { fullPath: newDirectory.fullPath, type: "dir" } 
+      });
     }
     return loadDirectoryInfo(newDirectory);
   };
@@ -310,7 +312,10 @@ export function useDirectory(
         }
       } else {
         const fullPath = item.fullPath || getFullPath(item.name);
-        recents.addRecent({ fullPath, type: "file" });
+        recentsStore.send({ 
+          type: "addRecent", 
+          item: { fullPath, type: "file" } 
+        });
         openFileFull(fullPath);
       }
     },

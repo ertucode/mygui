@@ -1,17 +1,17 @@
 import { FileIcon, FolderIcon } from "lucide-react";
-import { useRecents, type RecentItem } from "../hooks/useRecents";
+import { useSelector } from "@xstate/store/react";
+import { type RecentItem, recentsStore, selectRecents } from "../recents";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 import { getWindowElectron } from "@/getWindowElectron";
 
 interface RecentsListProps {
-  recents: ReturnType<typeof useRecents>;
   d: ReturnType<typeof useDirectory>;
   className?: string;
 }
 
-export function RecentsList({ recents, d, className }: RecentsListProps) {
-  const r = recents.recents;
+export function RecentsList({ d, className }: RecentsListProps) {
+  const r = useSelector(recentsStore, selectRecents);
 
   return (
     <FileBrowserSidebarSection

@@ -37,7 +37,6 @@ import {
   type FavoriteItem,
 } from "./favorites";
 import { RecentsList } from "./components/RecentsList";
-import { useRecents } from "./hooks/useRecents";
 import { TagsList } from "./components/TagsList";
 import { useSelector } from "@xstate/store/react";
 import {
@@ -73,13 +72,12 @@ import { PathHelpers } from "@common/PathHelpers";
 
 export function FileBrowser() {
   const defaultPath = useDefaultPath();
-  const recents = useRecents();
   const fileTags = useSelector(tagsStore, selectFileTags);
   const getFilesWithTag = (color: TagColor) =>
     Object.entries(fileTags)
       .filter(([_, tags]) => tags.includes(color))
       .map(([path]) => path);
-  const d = useDirectory(defaultPath.path, recents, getFilesWithTag);
+  const d = useDirectory(defaultPath.path, getFilesWithTag);
   const s = useSelection(useDefaultSelection());
   const confirmation = useConfirmation();
   const [error, setError] = useState<string | null>(null);
@@ -617,11 +615,7 @@ export function FileBrowser() {
             defaultPath={defaultPath}
             openFavorite={openFavorite}
           />
-          <RecentsList
-            recents={recents}
-            d={d}
-            className="flex-1 min-h-0 basis-0"
-          />
+          <RecentsList d={d} className="flex-1 min-h-0 basis-0" />
           <TagsList d={d} className="flex-1 min-h-0 basis-0" />
         </div>
         <ResizeHandle
