@@ -90,7 +90,7 @@ export function FuzzyFinderInput<T>({
       id="fuzzy-finder-input"
       type="text"
       ref={inputRef}
-      className={`input text-sm h-6 ${className ?? ""}`}
+      className={`input text-sm h-6 max-w-50 ${className ?? ""}`}
       placeholder="Search... (/)"
       value={query}
       onChange={(e) => {
