@@ -1,9 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSelector } from "@xstate/store/react";
 import { HistoryStack } from "@common/history-stack";
 import { useForceRerender } from "@/lib/hooks/forceRerender";
@@ -78,10 +73,7 @@ function getFolderNameParts(dir: string) {
 
 export type TaggedFilesGetter = (color: TagColor) => string[];
 
-export function useDirectory(
-  initialDirectory: string,
-  getFilesWithTag?: TaggedFilesGetter,
-) {
+export function useDirectory(initialDirectory: string) {
   const initialDirectoryInfo = getDirectoryInfo(initialDirectory);
   const settings = useSelector(fileBrowserSettingsStore, selectSettings);
   const [directory, setDirectory] =
@@ -122,42 +114,42 @@ export function useDirectory(
     }
   }, []);
 
-  const loadTaggedFiles = useCallback(
-    async (color: TagColor) => {
-      if (!getFilesWithTag) return;
-      setLoading(true);
-      try {
-        const filePaths = getFilesWithTag(color);
-        if (filePaths.length === 0) {
-          setDirectoryData([]);
-          setError(undefined);
-          return [];
-        }
-        const result = await getWindowElectron().getFileInfoByPaths(filePaths);
-
-        const staleItems = filePaths.filter((item) => {
-          const normalized = PathHelpers.expandHome(
-            getWindowElectron().homeDirectory,
-            item,
-          );
-          return !result.find((i) => i.fullPath === normalized);
-        });
-        if (staleItems.length > 0) {
-          tagsStore.trigger.removeFilesFromAllTags({
-            fullPaths: staleItems,
-          });
-        }
-        setDirectoryData(result);
+  const loadTaggedFiles = useCallback(async (color: TagColor) => {
+    const getFilesWithTag = (color: TagColor) =>
+      Object.entries(tagsStore.get().context.fileTags)
+        .filter(([_, tags]) => tags.includes(color))
+        .map(([path]) => path);
+    setLoading(true);
+    try {
+      const filePaths = getFilesWithTag(color);
+      if (filePaths.length === 0) {
+        setDirectoryData([]);
         setError(undefined);
-        return result;
-      } catch (e) {
-        setError(errorToString(e));
-      } finally {
-        setLoading(false);
+        return [];
       }
-    },
-    [getFilesWithTag],
-  );
+      const result = await getWindowElectron().getFileInfoByPaths(filePaths);
+
+      const staleItems = filePaths.filter((item) => {
+        const normalized = PathHelpers.expandHome(
+          getWindowElectron().homeDirectory,
+          item,
+        );
+        return !result.find((i) => i.fullPath === normalized);
+      });
+      if (staleItems.length > 0) {
+        tagsStore.trigger.removeFilesFromAllTags({
+          fullPaths: staleItems,
+        });
+      }
+      setDirectoryData(result);
+      setError(undefined);
+      return result;
+    } catch (e) {
+      setError(errorToString(e));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const loadDirectoryInfo = useCallback(
     async (info: DirectoryInfo) => {
