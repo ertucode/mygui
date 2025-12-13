@@ -1,12 +1,16 @@
 import { FolderIcon, FileIcon, Trash2Icon, FolderCogIcon } from "lucide-react";
-import { useFavorites, type FavoriteItem } from "../hooks/useFavorites";
+import { useSelector } from "@xstate/store/react";
+import {
+  favoritesStore,
+  selectFavorites,
+  type FavoriteItem,
+} from "../favorites";
 import { useDirectory } from "../hooks/useDirectory";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
 import { useDefaultPath } from "../hooks/useDefaultPath";
 
 interface FavoritesListProps {
-  favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
   defaultPath: ReturnType<typeof useDefaultPath>;
   className?: string;
@@ -14,13 +18,12 @@ interface FavoritesListProps {
 }
 
 export function FavoritesList({
-  favorites,
   d,
   className,
   defaultPath,
   openFavorite,
 }: FavoritesListProps) {
-  const f = favorites.favorites;
+  const f = useSelector(favoritesStore, selectFavorites);
 
   return (
     <FileBrowserSidebarSection
@@ -28,12 +31,19 @@ export function FavoritesList({
       header="Favorites"
       emptyMessage="No favorites yet"
       getKey={(favorite) => favorite.fullPath}
-      isSelected={(favorite) => d.directory.type === "path" && d.directory.fullPath === favorite.fullPath}
+      isSelected={(favorite) =>
+        d.directory.type === "path" &&
+        d.directory.fullPath === favorite.fullPath
+      }
       onClick={openFavorite}
       getContextMenuItems={(favorite) => [
         {
           view: <TextWithIcon icon={Trash2Icon}>Delete</TextWithIcon>,
-          onClick: () => favorites.removeFavorite(favorite.fullPath),
+          onClick: () =>
+            favoritesStore.send({
+              type: "removeFavorite",
+              fullPath: favorite.fullPath,
+            }),
         },
         favorite.type === "dir" && {
           view: (

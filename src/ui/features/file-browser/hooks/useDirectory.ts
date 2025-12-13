@@ -18,7 +18,7 @@ import {
 import { useRecents } from "./useRecents";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
-import { TagColor, tagsStore } from "./useTags";
+import { TagColor, tagsStore } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 
 export type DirectoryInfo =

@@ -1,5 +1,6 @@
 import { createStore } from "@xstate/store";
 import { z } from "zod";
+import { createLocalStoragePersistence } from "./utils/localStorage";
 
 // 7 predefined tag colors
 export const TAG_COLORS = [
@@ -49,6 +50,16 @@ const fileTagsSchema = z.record(z.string(), z.array(z.enum(TAG_COLORS)));
 // Schema for last used tag
 const lastUsedTagSchema = z.enum(TAG_COLORS).nullable();
 
+const tagsSchema = z.object({
+  tagConfig: tagConfigSchema,
+  fileTags: fileTagsSchema,
+  lastUsedTag: lastUsedTagSchema,
+});
+const tagPersistence = createLocalStoragePersistence(
+  "file-browser-tags",
+  tagsSchema,
+);
+
 export type TagConfig = z.infer<typeof tagConfigSchema>;
 export type FileTags = z.infer<typeof fileTagsSchema>;
 
@@ -61,55 +72,13 @@ const defaultTagConfig: TagConfig = TAG_COLORS.reduce(
   {} as Record<TagColor, string>,
 );
 
-// Load data from localStorage
-const loadFromLocalStorage = <T>(
-  key: string,
-  schema: z.ZodType<T>,
-  defaultValue: T,
-): T => {
-  try {
-    const item = localStorage.getItem(key);
-    if (item === null) return defaultValue;
-    const parsed = JSON.parse(item);
-    return schema.parse(parsed);
-  } catch {
-    return defaultValue;
-  }
-};
-
-// Save data to localStorage
-const saveToLocalStorage = <T>(
-  key: string,
-  schema: z.ZodType<T>,
-  value: T,
-): void => {
-  try {
-    const validated = schema.parse(value);
-    localStorage.setItem(key, JSON.stringify(validated));
-  } catch {
-    // Ignore validation errors
-  }
-};
-
 // Create the store
 export const tagsStore = createStore({
-  context: {
-    tagConfig: loadFromLocalStorage(
-      "file-browser-tag-config",
-      tagConfigSchema,
-      defaultTagConfig,
-    ),
-    fileTags: loadFromLocalStorage(
-      "file-browser-file-tags",
-      fileTagsSchema,
-      {},
-    ),
-    lastUsedTag: loadFromLocalStorage(
-      "file-browser-last-used-tag",
-      lastUsedTagSchema,
-      null,
-    ),
-  },
+  context: tagPersistence.load({
+    tagConfig: defaultTagConfig,
+    fileTags: {},
+    lastUsedTag: null,
+  }),
   on: {
     setTagName: (context, event: { color: TagColor; name: string }) => ({
       ...context,
@@ -247,7 +216,6 @@ export const tagsStore = createStore({
       event.fullPaths.forEach((fullPath) => {
         delete fileTags[fullPath];
       });
-      console.log({ fileTags });
       return {
         ...context,
         fileTags,
@@ -257,24 +225,7 @@ export const tagsStore = createStore({
 });
 
 // Subscribe to store changes for persistence
-tagsStore.subscribe((state) => {
-  // Persist state changes to localStorage
-  saveToLocalStorage(
-    "file-browser-tag-config",
-    tagConfigSchema,
-    state.context.tagConfig,
-  );
-  saveToLocalStorage(
-    "file-browser-file-tags",
-    fileTagsSchema,
-    state.context.fileTags,
-  );
-  saveToLocalStorage(
-    "file-browser-last-used-tag",
-    lastUsedTagSchema,
-    state.context.lastUsedTag,
-  );
-});
+tagsStore.subscribe((state) => tagPersistence.save(state.context));
 
 // Selector functions for common use cases
 export const selectTagConfig = (state: ReturnType<typeof tagsStore.get>) =>
@@ -321,4 +272,3 @@ export const selectEveryFileHasSameTags =
       return tags.every((tag) => firstTags.includes(tag));
     });
   };
-

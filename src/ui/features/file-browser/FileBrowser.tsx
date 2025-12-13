@@ -31,7 +31,11 @@ import { createColumns, sortNames } from "./config/columns";
 import { useDirectory } from "./hooks/useDirectory";
 import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FavoritesList } from "./components/FavoritesList";
-import { FavoriteItem, useFavorites } from "./hooks/useFavorites";
+import {
+  favoritesStore,
+  selectIsFavorite,
+  type FavoriteItem,
+} from "./favorites";
 import { RecentsList } from "./components/RecentsList";
 import { useRecents } from "./hooks/useRecents";
 import { TagsList } from "./components/TagsList";
@@ -44,7 +48,7 @@ import {
   selectHasTag,
   selectTagName,
   TagColor,
-} from "./hooks/useTags";
+} from "./tags";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FilePreview } from "./components/FilePreview";
@@ -309,8 +313,8 @@ export function FileBrowser() {
 
           // Remove from favorites if they were favorited
           paths.forEach((path) => {
-            if (favorites.isFavorite(path)) {
-              favorites.removeFavorite(path);
+            if (selectIsFavorite(path)(favoritesStore.get())) {
+              favoritesStore.send({ type: "removeFavorite", fullPath: path });
             }
           });
 
@@ -505,7 +509,7 @@ export function FileBrowser() {
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
         handler: (e: KeyboardEvent) => {
           e.preventDefault();
-          const favorite = favorites.favorites[i];
+          const favorite = favoritesStore.get().context.favorites[i];
           if (favorite) {
             openFavorite(favorite);
           }
@@ -555,8 +559,6 @@ export function FileBrowser() {
       icon: FilePlusIcon,
     },
   );
-
-  const favorites = useFavorites();
 
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
@@ -610,7 +612,6 @@ export function FileBrowser() {
           style={{ width: sidebarPanel.width }}
         >
           <FavoritesList
-            favorites={favorites}
             d={d}
             className="flex-1 min-h-0 basis-0"
             defaultPath={defaultPath}
@@ -649,7 +650,7 @@ export function FileBrowser() {
                 setAsDefaultPath: (fullPath) => {
                   defaultPath.setPath(fullPath);
                 },
-                favorites,
+
                 d,
                 handleDelete,
                 handleCopy,
@@ -732,7 +733,6 @@ export function FileBrowser() {
 
 function getRowContextMenu({
   setAsDefaultPath,
-  favorites,
   d,
   handleDelete,
   handleCopy,
@@ -743,7 +743,6 @@ function getRowContextMenu({
   openAssignTagsDialog,
 }: {
   setAsDefaultPath: (path: string) => void;
-  favorites: ReturnType<typeof useFavorites>;
   d: ReturnType<typeof useDirectory>;
   handleDelete: (items: GetFilesAndFoldersInDirectoryItem[]) => void;
   handleCopy: (
@@ -764,13 +763,13 @@ function getRowContextMenu({
     close: () => void;
   }) => {
     const fullPath = item.fullPath ?? d.getFullPath(item.name);
-    const isFavorite = favorites.isFavorite(fullPath);
+    const isFavorite = selectIsFavorite(fullPath)(favoritesStore.get());
     const itemIndex = tableData.findIndex((i) => i.name === item.name);
 
     const favoriteItem: ContextMenuItem = isFavorite
       ? {
           onClick: () => {
-            favorites.removeFavorite(fullPath);
+            favoritesStore.send({ type: "removeFavorite", fullPath });
             close();
           },
           view: (
@@ -781,9 +780,12 @@ function getRowContextMenu({
         }
       : {
           onClick: () => {
-            favorites.addFavorite({
-              fullPath,
-              type: item.type,
+            favoritesStore.send({
+              type: "addFavorite",
+              item: {
+                fullPath,
+                type: item.type,
+              },
             });
             close();
           },

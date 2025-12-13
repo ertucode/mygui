@@ -7,7 +7,7 @@ import {
   selectTagConfig,
   selectFileTags,
   type TagColor,
-} from "../hooks/useTags";
+} from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon } from "lucide-react";
 
@@ -50,7 +50,8 @@ export function AssignTagsDialog({
       throw new Error("All files must have same tags");
     }
   }
-  const currentTags = fileTags[Array.isArray(fullPath) ? fullPath[0] : fullPath] || [];
+  const currentTags =
+    fileTags[Array.isArray(fullPath) ? fullPath[0] : fullPath] || [];
 
   const handleToggleTag = (color: TagColor) => {
     if (Array.isArray(fullPath)) {

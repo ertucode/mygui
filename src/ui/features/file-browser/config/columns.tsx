@@ -16,7 +16,7 @@ import type { ColumnDef } from "@/lib/libs/table/table-types";
 import z from "zod";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
-import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../hooks/useTags";
+import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 
 /**

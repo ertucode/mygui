@@ -6,7 +6,7 @@ import {
   TAG_COLOR_CLASSES,
   type TagColor,
   selectFileCountWithTag,
-} from "../hooks/useTags";
+} from "../tags";
 import { useDirectory } from "../hooks/useDirectory";
 import { useState } from "react";
 import { clsx } from "@/lib/functions/clsx";

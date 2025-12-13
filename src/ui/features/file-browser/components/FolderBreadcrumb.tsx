@@ -7,7 +7,7 @@ import {
 } from "@/lib/components/context-menu";
 import type { useDirectory } from "../hooks/useDirectory";
 import type { useDefaultPath } from "../hooks/useDefaultPath";
-import { tagsStore, TAG_COLOR_CLASSES, selectTagConfig } from "../hooks/useTags";
+import { tagsStore, TAG_COLOR_CLASSES, selectTagConfig } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 
 export function FolderBreadcrumb({

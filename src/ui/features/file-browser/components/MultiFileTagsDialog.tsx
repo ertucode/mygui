@@ -7,7 +7,8 @@ import {
   selectTagConfig,
   selectFileTags,
   type TagColor,
-} from "../hooks/useTags";
+  FileTags,
+} from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon, MinusIcon } from "lucide-react";
 
@@ -28,7 +29,9 @@ function getTagStateForFiles(
   color: TagColor,
   fileTags: FileTags,
 ): TagState {
-  const filesWithTag = fullPaths.filter((path) => (fileTags[path] || []).includes(color));
+  const filesWithTag = fullPaths.filter((path) =>
+    (fileTags[path] || []).includes(color),
+  );
   if (filesWithTag.length === 0) return "none";
   if (filesWithTag.length === fullPaths.length) return "all";
   return "some";
@@ -52,8 +55,8 @@ export function MultiFileTagsDialog({
     const state = getTagStateForFiles(fullPaths, color, fileTags);
     if (state === "all") {
       // Remove from all
-      fullPaths.forEach((path) => 
-        tagsStore.send({ type: "removeTagFromFile", fullPath: path, color })
+      fullPaths.forEach((path) =>
+        tagsStore.send({ type: "removeTagFromFile", fullPath: path, color }),
       );
     } else {
       // Add to all
