@@ -38,7 +38,6 @@ import {
   selectSettings as selectDirectorySettings,
   selectPendingSelection,
 } from "./directory";
-import { useDefaultPath } from "./hooks/useDefaultPath";
 import { FavoritesList } from "./components/FavoritesList";
 import {
   favoritesStore,
@@ -76,15 +75,10 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
 import { useToast } from "@/lib/components/toast";
 import { PathHelpers } from "@common/PathHelpers";
+import { setDefaultPath } from "./defaultPath";
 
 export function FileBrowser() {
-  const defaultPath = useDefaultPath();
   const fileTags = useSelector(tagsStore, selectFileTags);
-
-  // Initialize directory store
-  useEffect(() => {
-    directoryHelpers.initialize(defaultPath.path);
-  }, []);
 
   // Subscribe to directory store
   const directory = useSelector(directoryStore, selectDirectory);
@@ -555,7 +549,6 @@ export function FileBrowser() {
         >
           <FavoritesList
             className="flex-1 min-h-0 basis-0"
-            defaultPath={defaultPath}
             openFavorite={openFavorite}
           />
           <RecentsList className="flex-1 min-h-0 basis-0" />
@@ -567,7 +560,6 @@ export function FileBrowser() {
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           <FileBrowserNavigationAndInputSection
-            defaultPath={defaultPath}
             fuzzy={fuzzy}
             onGoUpOrPrev={onGoUpOrPrev}
           />
@@ -583,9 +575,7 @@ export function FileBrowser() {
               onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
-                setAsDefaultPath: (fullPath) => {
-                  defaultPath.setPath(fullPath);
-                },
+                setAsDefaultPath: setDefaultPath,
 
                 handleDelete,
                 handleCopy,

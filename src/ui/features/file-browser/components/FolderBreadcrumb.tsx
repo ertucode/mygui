@@ -5,16 +5,16 @@ import {
   ContextMenuList,
   useContextMenu,
 } from "@/lib/components/context-menu";
-import type { useDefaultPath } from "../hooks/useDefaultPath";
 import { tagsStore, TAG_COLOR_CLASSES, selectTagConfig } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
+import { setDefaultPath } from "../defaultPath";
 
-export function FolderBreadcrumb({
-  defaultPath,
-}: {
-  defaultPath: ReturnType<typeof useDefaultPath>;
-}) {
+export function FolderBreadcrumb() {
   const menu = useContextMenu<number>();
   const tagConfig = useSelector(tagsStore, selectTagConfig);
   const directory = useSelector(directoryStore, selectDirectory);
@@ -48,7 +48,7 @@ export function FolderBreadcrumb({
             items={[
               {
                 onClick: () => {
-                  defaultPath.setPath(
+                  setDefaultPath(
                     PathHelpers.reconstructDirectoryUntilIndex(
                       parts,
                       menu.item!,

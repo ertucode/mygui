@@ -4,18 +4,22 @@ import {
 } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";
-import { useDefaultPath } from "../hooks/useDefaultPath";
 import { useSelector } from "@xstate/store/react";
-import { directoryStore, directoryHelpers, selectHasNext, selectHasPrev } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectHasNext,
+  selectHasPrev,
+} from "../directory";
 
 export type FileBrowserNavigationAndInputSectionProps = {
-  defaultPath: ReturnType<typeof useDefaultPath>;
   fuzzy: ReturnType<typeof useFuzzyFinder>;
-  onGoUpOrPrev: (fn: typeof directoryHelpers.goPrev | typeof directoryHelpers.goUp) => void;
+  onGoUpOrPrev: (
+    fn: typeof directoryHelpers.goPrev | typeof directoryHelpers.goUp,
+  ) => void;
 };
 
 export function FileBrowserNavigationAndInputSection({
-  defaultPath,
   fuzzy,
   onGoUpOrPrev,
 }: FileBrowserNavigationAndInputSectionProps) {
@@ -47,7 +51,7 @@ export function FileBrowserNavigationAndInputSection({
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
       <div className="flex-1 join-item px-2 overflow-x-auto">
-        <FolderBreadcrumb defaultPath={defaultPath} />
+        <FolderBreadcrumb />
       </div>
       <FuzzyFinderInput
         fuzzy={fuzzy}
