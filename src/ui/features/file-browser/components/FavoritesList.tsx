@@ -27,7 +27,7 @@ export function FavoritesList({ className }: FavoritesListProps) {
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
 
   return (
     <FileBrowserSidebarSection

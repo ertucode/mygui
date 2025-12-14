@@ -19,10 +19,7 @@ export function FolderBreadcrumb() {
   const menu = useContextMenu<number>();
   const tagConfig = useSelector(tagsStore, selectTagConfig);
   const directoryId = useDirectoryContext().directoryId;
-  const directory = useSelector(
-    directoryStore,
-    selectDirectory(directoryId),
-  ).directory;
+  const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
   if (directory.type === "tags") {
     const tagName = tagConfig[directory.color] || directory.color;

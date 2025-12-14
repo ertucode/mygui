@@ -289,6 +289,7 @@ export const directoryStore = createStore({
         fuzzyQuery: "",
       })),
     setActiveDirectoryId: (context, event: { directoryId: DirectoryId }) => {
+      if (context.activeDirectoryId === event.directoryId) return context;
       return {
         ...context,
         activeDirectoryId: event.directoryId,
@@ -1199,7 +1200,7 @@ export const directoryHelpers = {
 export const selectDirectory =
   (directoryId: DirectoryId | undefined) =>
   (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId);
+    getActiveDirectory(state.context, directoryId).directory;
 
 export const selectLoading =
   (directoryId: DirectoryId | undefined) =>

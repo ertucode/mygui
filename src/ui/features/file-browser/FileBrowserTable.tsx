@@ -3,7 +3,7 @@ import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
 import { useTable } from "../../lib/libs/table/useTable";
 import { onSortKey } from "../../lib/libs/table/useTableSort";
-import { useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
@@ -11,8 +11,8 @@ import {
   directoryHelpers,
   directoryStore,
   selectLoading,
-  selectSelection,
   selectDirectory,
+  DirectoryId,
 } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
@@ -22,7 +22,7 @@ import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { useFileDragDrop } from "./useFileDragDrop";
+import { fileDragDropStore, fileDragDropHandlers } from "./fileDragDrop";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -30,17 +30,21 @@ export type TableContextMenuProps<T> = {
   tableData: T[];
 };
 
-export function FileBrowserTable() {
+export const FileBrowserTable = memo(function FileBrowserTable() {
   const context = useDirectoryContext();
   const directoryId = context.directoryId;
   const filteredDirectoryData = directoryDerivedStores
     .get(context.directoryId)!
     .useFilteredDirectoryData();
+
   const fileTags = useSelector(tagsStore, selectFileTags);
-  const columns = createColumns({
-    fileTags,
-    getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
-  });
+
+  const columns = useMemo(() => {
+    return createColumns({
+      fileTags,
+      getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
+    });
+  }, [fileTags]);
 
   const table = useTable({
     columns,
@@ -56,21 +60,12 @@ export function FileBrowserTable() {
     (s) => s.context.settings.sort,
   );
 
-  const selectionIndexes = useSelector(
-    directoryStore,
-    selectSelection(directoryId),
-  ).indexes;
-
   const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
-  const dragDrop = useFileDragDrop({
-    directoryId,
-    directoryType: directory.directory.type,
-    directoryFullPath:
-      directory.directory.type === "path"
-        ? directory.directory.fullPath
-        : undefined,
-  });
+  const isDragOver = useSelector(
+    fileDragDropStore,
+    (s) => s.context.dragOverDirectoryId === directoryId,
+  );
 
   return (
     <>
@@ -89,11 +84,20 @@ export function FileBrowserTable() {
       <div
         className={clsx(
           "relative h-full min-h-0 overflow-auto",
-          dragDrop.isDragOver && "ring-2 ring-primary ring-inset",
+          isDragOver && "ring-2 ring-primary ring-inset",
         )}
-        onDragOver={dragDrop.handleTableDragOver}
-        onDragLeave={dragDrop.handleTableDragLeave}
-        onDrop={dragDrop.handleTableDrop}
+        onDragOver={(e) =>
+          fileDragDropHandlers.handleTableDragOver(e, directoryId)
+        }
+        onDragLeave={fileDragDropHandlers.handleTableDragLeave}
+        onDrop={(e) =>
+          fileDragDropHandlers.handleTableDrop(
+            e,
+            directoryId,
+            directory.type,
+            directory.type === "path" ? directory.fullPath : undefined,
+          )
+        }
       >
         <LoadingOverlay />
         <table
@@ -125,106 +129,15 @@ export function FileBrowserTable() {
           <tbody tabIndex={0}>
             {table.rows.map((row, idx) => {
               return (
-                <tr
+                <TableRow
                   key={row.id}
-                  className={clsx(
-                    selectionIndexes.has(idx) &&
-                      "bg-base-content/10 row-selected",
-                    dragDrop.dragOverRowIdx === idx &&
-                      table.data[idx].type === "dir" &&
-                      "bg-primary/20 ring-1 ring-primary ring-inset",
-                    "select-none",
-                  )}
-                  onClick={(e) => {
-                    const now = Date.now();
-                    const lastClick = lastClickRef.current;
-
-                    // Check if this is a double-click (same row, within 500ms)
-                    if (
-                      lastClick &&
-                      lastClick.index === idx &&
-                      now - lastClick.timestamp < 500
-                    ) {
-                      // This is a double-click
-                      e.preventDefault();
-                      e.stopPropagation();
-                      directoryHelpers.openItem(table.data[idx], directoryId);
-                      lastClickRef.current = null;
-                    } else {
-                      // This is a single click
-                      directoryHelpers.select(idx, e, directoryId);
-                      directoryStore.trigger.setActiveDirectoryId({
-                        directoryId,
-                      });
-                      lastClickRef.current = { index: idx, timestamp: now };
-                    }
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    contextMenu.onRightClick(e, table.data[idx]);
-                  }}
-                  onDragStart={async (_) => {
-                    const items =
-                      directoryHelpers.getSelectedItemsOrCurrentItem(
-                        idx,
-                        directoryId,
-                      );
-                    const filePaths = items.map((i) =>
-                      directoryHelpers.getFullPathForItem(i, directoryId),
-                    );
-
-                    // Handle drag start with hook
-                    await dragDrop.handleRowDragStart(items);
-
-                    const table = document.querySelector(
-                      '[data-table-id="' + directoryId + '"]',
-                    );
-                    if (!table) return;
-
-                    const tableBody = table.querySelector("tbody");
-
-                    // Start the native drag
-                    getWindowElectron().onDragStart({
-                      files: filePaths,
-                      image: await captureDivAsBase64(tableBody!),
-                    });
-                  }}
-                  onPointerDown={(_) => {
-                    const item = table.data[idx];
-                    if (item.type === "dir") {
-                      directoryHelpers.preloadDirectory(
-                        item.fullPath ??
-                          directoryHelpers.getFullPath(item.name, directoryId),
-                      );
-                    }
-                  }}
-                  onDragOver={(e) => {
-                    const item = table.data[idx];
-                    dragDrop.handleRowDragOver(e, idx, item.type === "dir");
-                  }}
-                  onDragLeave={(e) => {
-                    const item = table.data[idx];
-                    dragDrop.handleRowDragLeave(e, item.type === "dir");
-                  }}
-                  onDrop={async (e) => {
-                    const item = table.data[idx];
-                    await dragDrop.handleRowDrop(e, item);
-                  }}
-                  draggable={true}
-                >
-                  {row.cells.map((cell) => {
-                    return (
-                      <td
-                        style={{
-                          width: cell.size,
-                        }}
-                        key={cell.id}
-                      >
-                        {cell.value}
-                      </td>
-                    );
-                  })}
-                </tr>
+                  row={row}
+                  index={idx}
+                  directoryId={directoryId}
+                  item={table.data[idx]}
+                  lastClickRef={lastClickRef}
+                  onContextMenu={contextMenu.onRightClick}
+                />
               );
             })}
           </tbody>
@@ -232,7 +145,149 @@ export function FileBrowserTable() {
       </div>
     </>
   );
-}
+});
+
+type TableRowProps = {
+  row: {
+    cells: Array<{
+      value: React.ReactNode;
+      id: string | number;
+      size?: number;
+    }>;
+    id: number;
+  };
+  index: number;
+  directoryId: DirectoryId;
+  item: GetFilesAndFoldersInDirectoryItem;
+  lastClickRef: React.RefObject<{
+    index: number;
+    timestamp: number;
+  } | null>;
+  onContextMenu: (
+    e: React.MouseEvent,
+    item: GetFilesAndFoldersInDirectoryItem,
+  ) => void;
+};
+
+/**
+ * Memoized table row component that subscribes only to its own selection state.
+ * This prevents unnecessary rerenders when other rows are selected/deselected,
+ * significantly improving performance in directories with 300+ items.
+ */
+const TableRow = memo(function TableRow({
+  row,
+  index,
+  directoryId,
+  item,
+  lastClickRef,
+  onContextMenu,
+}: TableRowProps) {
+  // Subscribe only to this row's selection state - not the entire selection Set
+  const isSelected = useSelector(directoryStore, (state) =>
+    state.context.directoriesById[directoryId].selection.indexes.has(index),
+  );
+
+  // Subscribe only to drag state for this row
+  const isDragOverThisRow = useSelector(
+    fileDragDropStore,
+    (s) => s.context.dragOverRowIdx === index && item.type === "dir",
+  );
+
+  return (
+    <tr
+      key={row.id}
+      className={clsx(
+        isSelected && "bg-base-content/10 row-selected",
+        isDragOverThisRow && "bg-primary/20 ring-1 ring-primary ring-inset",
+        "select-none",
+      )}
+      onClick={(e) => {
+        const now = Date.now();
+        const lastClick = lastClickRef.current;
+
+        // Check if this is a double-click (same row, within 500ms)
+        if (
+          lastClick &&
+          lastClick.index === index &&
+          now - lastClick.timestamp < 500
+        ) {
+          // This is a double-click
+          e.preventDefault();
+          e.stopPropagation();
+          directoryHelpers.openItem(item, directoryId);
+          lastClickRef.current = null;
+        } else {
+          // This is a single click
+          directoryHelpers.select(index, e, directoryId);
+          directoryStore.trigger.setActiveDirectoryId({
+            directoryId,
+          });
+          lastClickRef.current = { index: index, timestamp: now };
+        }
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onContextMenu(e, item);
+      }}
+      onDragStart={async (_) => {
+        const items = directoryHelpers.getSelectedItemsOrCurrentItem(
+          index,
+          directoryId,
+        );
+        const filePaths = items.map((i) =>
+          directoryHelpers.getFullPathForItem(i, directoryId),
+        );
+
+        // Handle drag start
+        await fileDragDropHandlers.handleRowDragStart(items, directoryId);
+
+        const table = document.querySelector(
+          '[data-table-id="' + directoryId + '"]',
+        );
+        if (!table) return;
+
+        const tableBody = table.querySelector("tbody");
+
+        // Start the native drag
+        getWindowElectron().onDragStart({
+          files: filePaths,
+          image: await captureDivAsBase64(tableBody!),
+        });
+      }}
+      onPointerDown={(_) => {
+        if (item.type === "dir") {
+          directoryHelpers.preloadDirectory(
+            item.fullPath ??
+              directoryHelpers.getFullPath(item.name, directoryId),
+          );
+        }
+      }}
+      onDragOver={(e) => {
+        fileDragDropHandlers.handleRowDragOver(e, index, item.type === "dir");
+      }}
+      onDragLeave={(e) => {
+        fileDragDropHandlers.handleRowDragLeave(e, item.type === "dir");
+      }}
+      onDrop={async (e) => {
+        await fileDragDropHandlers.handleRowDrop(e, item, directoryId);
+      }}
+      draggable={true}
+    >
+      {row.cells.map((cell) => {
+        return (
+          <td
+            style={{
+              width: cell.size,
+            }}
+            key={cell.id}
+          >
+            {cell.value}
+          </td>
+        );
+      })}
+    </tr>
+  );
+});
 
 function LoadingOverlay() {
   const directoryId = useDirectoryContext().directoryId;
