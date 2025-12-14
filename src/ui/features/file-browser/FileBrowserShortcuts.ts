@@ -10,7 +10,6 @@ import {
   selectSelection,
 } from "./directory";
 import { favoritesStore } from "./favorites";
-import { useEffect } from "react";
 
 function getData(activeDirectoryId: DirectoryId) {
   return directoryDerivedStores
