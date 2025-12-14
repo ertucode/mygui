@@ -288,6 +288,12 @@ export const directoryStore = createStore({
         ...d,
         fuzzyQuery: "",
       })),
+    setActiveDirectoryId: (context, event: { directoryId: DirectoryId }) => {
+      return {
+        ...context,
+        activeDirectoryId: event.directoryId,
+      };
+    },
   },
 });
 

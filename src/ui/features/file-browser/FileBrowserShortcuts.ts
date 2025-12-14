@@ -31,6 +31,11 @@ export function FileBrowserShortcuts() {
     .get(directoryId)!
     .useFilteredDirectoryData().length;
 
+  const directories = useSelector(
+    directoryStore,
+    (s) => s.context.directoryOrder,
+  );
+
   // Create a selection object compatible with the old API
   const s = {
     state: selection,
@@ -209,6 +214,12 @@ export function FileBrowserShortcuts() {
         },
       })),
       ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
+      ...directories.map((d, i) => ({
+        key: { key: (i + 1).toString(), ctrlKey: true },
+        handler: () => {
+          directoryStore.send({ type: "setActiveDirectoryId", directoryId: d });
+        },
+      })),
     ],
     {
       isDisabled:
