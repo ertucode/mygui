@@ -2,8 +2,8 @@ import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { useSelector } from "@xstate/store/react";
 import { dialogActions, useIsDialogOpen } from "./dialogStore";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
-import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import {
+  directoryDerivedStores,
   directoryHelpers,
   DirectoryId,
   directoryStore,
@@ -11,19 +11,25 @@ import {
 } from "./directory";
 import { favoritesStore } from "./favorites";
 
-export function useFileBrowserShortcuts(
-  data: GetFilesAndFoldersInDirectoryItem[],
-  directoryId: DirectoryId,
-) {
+function getData(activeDirectoryId: DirectoryId) {
+  return directoryDerivedStores
+    .get(activeDirectoryId)
+    ?.getFilteredDirectoryData()!;
+}
+
+export function FileBrowserShortcuts() {
   const isConfirmationOpen = useConfirmation().isOpen;
   const isDialogsOpen = useIsDialogOpen();
-
-  const selection = useSelector(directoryStore, selectSelection(directoryId));
-
-  const activeDirectoryId = useSelector(
+  const directoryId = useSelector(
     directoryStore,
     (s) => s.context.activeDirectoryId,
   );
+
+  const selection = useSelector(directoryStore, selectSelection(directoryId));
+
+  const dataCount = directoryDerivedStores
+    .get(directoryId)!
+    .useFilteredDirectoryData().length;
 
   // Create a selection object compatible with the old API
   const s = {
@@ -46,7 +52,12 @@ export function useFileBrowserShortcuts(
     [
       {
         key: ["Enter", "l"],
-        handler: (e) => directoryHelpers.openSelectedItem(data, e, directoryId),
+        handler: (e) =>
+          directoryHelpers.openSelectedItem(
+            getData(directoryId),
+            e,
+            directoryId,
+          ),
       },
       {
         key: { key: "p", ctrlKey: true },
@@ -99,6 +110,7 @@ export function useFileBrowserShortcuts(
         handler: () => {
           // Command+Delete on macOS
           if (s.state.indexes.size === 0) return;
+          const data = getData(directoryId);
           const itemsToDelete = [...s.state.indexes].map((i) => data[i]);
           directoryHelpers.handleDelete(itemsToDelete, data, directoryId);
         },
@@ -129,7 +141,9 @@ export function useFileBrowserShortcuts(
 
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
-          const itemsToCopy = [...s.state.indexes].map((i) => data[i]);
+          const itemsToCopy = [...s.state.indexes].map(
+            (i) => getData(directoryId)[i],
+          );
           directoryHelpers.handleCopy(itemsToCopy, false, directoryId);
         },
         enabledIn: () => true,
@@ -145,7 +159,9 @@ export function useFileBrowserShortcuts(
 
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
-          const itemsToCut = [...s.state.indexes].map((i) => data[i]);
+          const itemsToCut = [...s.state.indexes].map(
+            (i) => getData(directoryId)[i],
+          );
           directoryHelpers.handleCopy(itemsToCut, true, directoryId);
         },
         enabledIn: () => true,
@@ -192,13 +208,12 @@ export function useFileBrowserShortcuts(
           }
         },
       })),
-      ...directoryHelpers.getSelectionShortcuts(data.length, directoryId),
+      ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
     ],
     {
       isDisabled:
-        isConfirmationOpen ||
-        isDialogsOpen ||
-        activeDirectoryId !== directoryId,
+        isConfirmationOpen || isDialogsOpen || directoryId !== directoryId,
     },
   );
+  return undefined;
 }

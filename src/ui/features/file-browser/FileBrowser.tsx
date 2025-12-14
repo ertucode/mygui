@@ -16,6 +16,7 @@ import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSectio
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { DirectoryContextProvider } from "./DirectoryContext";
+import { FileBrowserShortcuts } from "./FileBrowserShortcuts";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
@@ -45,6 +46,7 @@ export function FileBrowser() {
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserOptionsSection />
+      <FileBrowserShortcuts />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div
           className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0 [&>*]:flex-1 [&>*]:min-h-0 [&>*]:basis-0"

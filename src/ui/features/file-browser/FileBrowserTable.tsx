@@ -20,7 +20,6 @@ import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
-import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
 export type TableContextMenuProps<T> = {
@@ -45,7 +44,6 @@ export function FileBrowserTable() {
     columns,
     data: filteredDirectoryData,
   });
-  useFileBrowserShortcuts(table.data, context.directoryId);
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
