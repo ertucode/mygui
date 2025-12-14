@@ -15,18 +15,25 @@ export function subscribeToStores<const Stores extends readonly AnyStore[]>(
     const contexts = getContexts();
     const currentChecks = selector(contexts);
 
-    if (lastChecks && lastChecks.length === currentChecks.length) {
-      return;
-    }
-
     const changedIndexes: number[] = [];
-    for (let i = 0; i < currentChecks.length; i++) {
-      if (lastChecks && lastChecks[i] !== currentChecks[i]) {
+    if (lastChecks === undefined) {
+      lastChecks = currentChecks;
+      for (let i = 0; i < currentChecks.length; i++) {
         changedIndexes.push(i);
+      }
+    } else {
+      for (let i = 0; i < currentChecks.length; i++) {
+        if (lastChecks && lastChecks[i] !== currentChecks[i]) {
+          changedIndexes.push(i);
+        }
       }
     }
 
-    if (changedIndexes.length === 0) return;
+    if (
+      lastChecks?.length === currentChecks.length &&
+      changedIndexes.length === 0
+    )
+      return;
 
     lastChecks = currentChecks;
     fn(contexts, changedIndexes);
