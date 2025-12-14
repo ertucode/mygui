@@ -148,15 +148,12 @@ export function FileBrowser() {
       <FileBrowserOptionsSection />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div
-          className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0"
+          className="flex flex-col h-full min-h-0 overflow-hidden flex-shrink-0 [&>*]:flex-1 [&>*]:min-h-0 [&>*]:basis-0"
           style={{ width: sidebarPanel.width }}
         >
-          <FavoritesList
-            className="flex-1 min-h-0 basis-0"
-            openFavorite={openFavorite}
-          />
-          <RecentsList className="flex-1 min-h-0 basis-0" />
-          <TagsList className="flex-1 min-h-0 basis-0" />
+          <FavoritesList />
+          <RecentsList />
+          <TagsList />
         </div>
         <ResizeHandle
           onMouseDown={sidebarPanel.handleMouseDown}
