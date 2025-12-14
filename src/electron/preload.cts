@@ -24,6 +24,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
+  setClipboardCutMode: (cut: boolean) =>
+    ipcInvoke("setClipboardCutMode", { cut }),
   renameFileOrFolder: (fullPath: string, newName: string) =>
     ipcInvoke("renameFileOrFolder", { fullPath, newName }),
   getPreviewPreloadPath: () => ipcInvoke("getPreviewPreloadPath", undefined),

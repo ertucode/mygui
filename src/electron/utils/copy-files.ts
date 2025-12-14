@@ -38,3 +38,9 @@ export function getClipboardState() {
 export function clearClipboardState() {
   clipboardState = null;
 }
+
+export function setClipboardCutMode(cut: boolean) {
+  if (clipboardState) {
+    clipboardState.cut = cut;
+  }
+}

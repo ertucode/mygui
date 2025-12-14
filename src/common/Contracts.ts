@@ -70,6 +70,7 @@ export type EventResponseMapping = {
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>;
   getPreviewPreloadPath: string;
   copyFiles: Promise<GenericResult<void>>;
+  setClipboardCutMode: Promise<void>;
   pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
@@ -114,6 +115,7 @@ export type EventRequestMapping = {
     newName: string;
   };
   copyFiles: { filePaths: string[]; cut: boolean };
+  setClipboardCutMode: { cut: boolean };
   pasteFiles: { destinationDir: string };
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: StringSearchOptions;
@@ -175,6 +177,7 @@ export type WindowElectron = {
     filePaths: string[],
     cut: boolean,
   ) => Promise<GenericResult<void>>;
+  setClipboardCutMode: (cut: boolean) => Promise<void>;
   pasteFiles: (
     destinationDir: string,
   ) => Promise<GenericResult<{ pastedItems: string[] }>>;
