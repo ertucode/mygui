@@ -1,0 +1,1 @@
+- Do not use forwardRef. Our react version allows refs as props.

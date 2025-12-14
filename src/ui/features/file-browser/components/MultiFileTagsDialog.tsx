@@ -11,12 +11,11 @@ import {
 } from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon, MinusIcon } from "lucide-react";
-
-interface MultiFileTagsDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  fullPaths: string[];
-}
+import {
+  useDialogForItem,
+  type DialogForItem,
+} from "@/lib/hooks/useDialogForItem";
+import { Ref } from "react";
 
 function getFileNameToDisplay(fullPath: string) {
   return fullPath.split("/").pop() || fullPath;
@@ -38,14 +37,16 @@ function getTagStateForFiles(
 }
 
 export function MultiFileTagsDialog({
-  isOpen,
-  onClose,
-  fullPaths,
-}: MultiFileTagsDialogProps) {
-  const fileTags = useSelector(tagsStore, selectFileTags);
-  const tagConfig = useSelector(tagsStore, selectTagConfig);
+  ref,
+}: {
+  ref?: Ref<DialogForItem<string[]>>;
+}) {
+  const { item: fullPaths, dialogOpen, setDialogOpen } = useDialogForItem<string[]>(ref);
+    
+    const fileTags = useSelector(tagsStore, selectFileTags);
+    const tagConfig = useSelector(tagsStore, selectTagConfig);
 
-  if (!isOpen) return null;
+    if (!dialogOpen || !fullPaths || fullPaths.length === 0) return null;
 
   const handleCellClick = (fullPath: string, color: TagColor) => {
     tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
@@ -68,10 +69,14 @@ export function MultiFileTagsDialog({
     }
   };
 
+  const handleClose = () => {
+    setDialogOpen(false);
+  };
+
   return (
     <Dialog
       title={`Assign Tags to ${fullPaths.length} Items`}
-      onClose={onClose}
+      onClose={handleClose}
     >
       <div className="flex flex-col gap-3 min-w-[500px] max-w-[800px] max-h-[60vh]">
         <p className="text-sm text-gray-500">
@@ -178,7 +183,7 @@ export function MultiFileTagsDialog({
         </div>
 
         <div className="flex justify-end mt-2">
-          <button className="btn btn-sm btn-primary" onClick={onClose}>
+          <button className="btn btn-sm btn-primary" onClick={handleClose}>
             Done
           </button>
         </div>
