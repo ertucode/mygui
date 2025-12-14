@@ -2,6 +2,7 @@ import { createStore } from "@xstate/store";
 import { HistoryStack } from "@common/history-stack";
 import { errorToString } from "@common/errorToString";
 import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
+import Fuse from "fuse.js";
 import {
   fileBrowserSettingsStore,
   selectSettings as selectSettingsFromStore,
@@ -80,11 +81,31 @@ export type TaggedFilesGetter = (color: TagColor) => string[];
 
 const initialDirectoryInfo = getDirectoryInfo(defaultPath);
 
+// Helper function to compute filtered directory data
+function computeFilteredData(
+  directoryData: GetFilesAndFoldersInDirectoryItem[],
+  query: string,
+): GetFilesAndFoldersInDirectoryItem[] {
+  if (!query) return directoryData;
+
+  const fuse = new Fuse(directoryData, {
+    threshold: 0.3,
+    minMatchCharLength: 1,
+    keys: ["name"],
+    shouldSort: true,
+    isCaseSensitive: false,
+  });
+
+  const results = fuse.search(query);
+  return results.map((result) => result.item);
+}
+
 export const directoryStore = createStore({
   context: {
     directory: initialDirectoryInfo,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+    filteredDirectoryData: [] as GetFilesAndFoldersInDirectoryItem[],
     error: undefined as string | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
     pendingSelection: null as string | null,
@@ -93,8 +114,17 @@ export const directoryStore = createStore({
       indexes: new Set<number>(),
       last: undefined as number | undefined,
     },
+    // Fuzzy finder state
+    fuzzyQuery: "",
+  },
+  emits: {
+    focusFuzzyInput: (_: { e: KeyboardEvent }) => {},
   },
   on: {
+    focusFuzzyInput: (context, event: { e: KeyboardEvent }, enqueue) => {
+      enqueue.emit.focusFuzzyInput(event);
+      return context;
+    },
     setLoading: (context, event: { loading: boolean }) => ({
       ...context,
       loading: event.loading,
@@ -103,11 +133,23 @@ export const directoryStore = createStore({
     setDirectoryData: (
       context,
       event: { data: GetFilesAndFoldersInDirectoryItem[] },
-    ) => ({
-      ...context,
-      directoryData: event.data,
-      error: undefined,
-    }),
+    ) => {
+      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+      const directoryData = DirectoryDataFromSettings.getDirectoryData(
+        event.data,
+        settings,
+      );
+      const filteredDirectoryData = computeFilteredData(
+        directoryData,
+        context.fuzzyQuery,
+      );
+      return {
+        ...context,
+        directoryData: event.data,
+        filteredDirectoryData,
+        error: undefined,
+      };
+    },
 
     setError: (context, event: { error: string }) => ({
       ...context,
@@ -182,11 +224,71 @@ export const directoryStore = createStore({
         last: event.index,
       },
     }),
+
+    // Fuzzy finder events
+    setFuzzyQuery: (context, event: { query: string }) => {
+      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+      const directoryData = DirectoryDataFromSettings.getDirectoryData(
+        context.directoryData,
+        settings,
+      );
+      const filteredDirectoryData = computeFilteredData(
+        directoryData,
+        event.query,
+      );
+      return {
+        ...context,
+        fuzzyQuery: event.query,
+        filteredDirectoryData,
+        // Reset selection to first item when query changes (if query is not empty)
+        selection: event.query
+          ? {
+              indexes: new Set([0]),
+              last: 0,
+            }
+          : context.selection,
+      };
+    },
+
+    clearFuzzyQuery: (context) => {
+      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+      const directoryData = DirectoryDataFromSettings.getDirectoryData(
+        context.directoryData,
+        settings,
+      );
+      return {
+        ...context,
+        fuzzyQuery: "",
+        filteredDirectoryData: directoryData,
+      };
+    },
   },
 });
 
+// Subscribe to settings changes to recompute filtered data
+fileBrowserSettingsStore.subscribe(() => {
+  const state = directoryStore.get().context;
+  const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+  const directoryData = DirectoryDataFromSettings.getDirectoryData(
+    state.directoryData,
+    settings,
+  );
+  const filteredDirectoryData = computeFilteredData(
+    directoryData,
+    state.fuzzyQuery,
+  );
+
+  // Only update if filtered data actually changed
+  if (filteredDirectoryData !== state.filteredDirectoryData) {
+    directoryStore.send({
+      type: "setDirectoryData",
+      data: state.directoryData,
+    });
+  }
+});
+
 const loadDirectoryPath = async (dir: string) => {
-  directoryStore.send({ type: "setLoading", loading: true } as any);
+  directoryStore.send({ type: "setLoading", loading: true });
   try {
     const result = await FileBrowserCache.load(dir);
 
@@ -197,12 +299,12 @@ const loadDirectoryPath = async (dir: string) => {
       return a.name.localeCompare(b.name);
     });
 
-    directoryStore.send({ type: "setDirectoryData", data: result } as any);
+    directoryStore.send({ type: "setDirectoryData", data: result });
     return result;
   } catch (e) {
-    directoryStore.send({ type: "setError", error: errorToString(e) } as any);
+    directoryStore.send({ type: "setError", error: errorToString(e) });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false } as any);
+    directoryStore.send({ type: "setLoading", loading: false });
   }
 };
 
@@ -212,11 +314,11 @@ const loadTaggedFiles = async (color: TagColor) => {
       .filter(([_, tags]) => tags.includes(color))
       .map(([path]) => path);
 
-  directoryStore.send({ type: "setLoading", loading: true } as any);
+  directoryStore.send({ type: "setLoading", loading: true });
   try {
     const filePaths = getFilesWithTag(color);
     if (filePaths.length === 0) {
-      directoryStore.send({ type: "setDirectoryData", data: [] } as any);
+      directoryStore.send({ type: "setDirectoryData", data: [] });
       return [];
     }
     const result = await getWindowElectron().getFileInfoByPaths(filePaths);
@@ -233,12 +335,12 @@ const loadTaggedFiles = async (color: TagColor) => {
         fullPaths: staleItems,
       });
     }
-    directoryStore.send({ type: "setDirectoryData", data: result } as any);
+    directoryStore.send({ type: "setDirectoryData", data: result });
     return result;
   } catch (e) {
-    directoryStore.send({ type: "setError", error: errorToString(e) } as any);
+    directoryStore.send({ type: "setError", error: errorToString(e) });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false } as any);
+    directoryStore.send({ type: "setLoading", loading: false });
   }
 };
 
@@ -261,8 +363,8 @@ const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
     directoryStore.send({
       type: "historyGoNew",
       directory: newDirectory,
-    } as any);
-  directoryStore.send({ type: "setDirectory", directory: newDirectory } as any);
+    });
+  directoryStore.send({ type: "setDirectory", directory: newDirectory });
   if (newDirectory.type === "path") {
     recentsStore.send({
       type: "addRecent",
@@ -337,7 +439,7 @@ export const directoryHelpers = {
         await loadDirectoryInfo(state.context.directory);
         // Emit itemCreated event to set pending selection
         const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
-        directoryStore.send({ type: "itemCreated", name: itemName } as any);
+        directoryStore.send({ type: "itemCreated", name: itemName });
       }
       return result;
     } catch (err) {
@@ -362,7 +464,7 @@ export const directoryHelpers = {
         const state = directoryStore.get();
         await loadDirectoryInfo(state.context.directory);
         // Emit itemRenamed event to set pending selection
-        directoryStore.send({ type: "itemRenamed", name: newName } as any);
+        directoryStore.send({ type: "itemRenamed", name: newName });
       }
       return result;
     } catch (err) {
@@ -373,7 +475,7 @@ export const directoryHelpers = {
   },
 
   setPendingSelection: (name: string | null) => {
-    directoryStore.send({ type: "setPendingSelection", name } as any);
+    directoryStore.send({ type: "setPendingSelection", name });
   },
 
   changeDirectory,
@@ -391,7 +493,7 @@ export const directoryHelpers = {
   goNext: async () => {
     const state = directoryStore.get();
     if (!state.context.historyStack.hasNext) return;
-    directoryStore.send({ type: "historyGoNext" } as any);
+    directoryStore.send({ type: "historyGoNext" });
     const newState = directoryStore.get();
     return await cdWithMetadata(newState.context.directory, false);
   },
@@ -399,7 +501,7 @@ export const directoryHelpers = {
   goPrev: async () => {
     const state = directoryStore.get();
     if (!state.context.historyStack.hasPrev) return;
-    directoryStore.send({ type: "historyGoPrev" } as any);
+    directoryStore.send({ type: "historyGoPrev" });
     const newState = directoryStore.get();
     return await cdWithMetadata(newState.context.directory, false);
   },
@@ -533,7 +635,7 @@ export const directoryHelpers = {
         type: "setSelection",
         indexes,
         last: index,
-      } as any);
+      });
       return;
     }
 
@@ -546,14 +648,14 @@ export const directoryHelpers = {
           type: "setSelection",
           indexes: removeFromSet(state.selection.indexes, index),
           last: index,
-        } as any);
+        });
         return;
       }
       directoryStore.send({
         type: "setSelection",
         indexes: new Set([...state.selection.indexes, index]),
         last: index,
-      } as any);
+      });
       return;
     }
 
@@ -561,7 +663,7 @@ export const directoryHelpers = {
       type: "setSelection",
       indexes: new Set([index]),
       last: index,
-    } as any);
+    });
   },
 
   getSelectionShortcuts: (count: number) => [
@@ -572,7 +674,7 @@ export const directoryHelpers = {
           type: "setSelection",
           indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
           last: count - 1,
-        } as any);
+        });
         e.preventDefault();
       },
     },
@@ -588,7 +690,7 @@ export const directoryHelpers = {
             type: "setSelection",
             indexes: newSet,
             last: lastSelected - 1,
-          } as any);
+          });
         } else {
           if (lastSelected - 1 < 0) {
             directoryHelpers.select(count - 1, e);
@@ -611,7 +713,7 @@ export const directoryHelpers = {
             type: "setSelection",
             indexes: newSet,
             last: lastSelected + 1,
-          } as any);
+          });
         } else {
           if (lastSelected + 1 === count) {
             directoryHelpers.select(0, e);
@@ -677,7 +779,7 @@ export const directoryHelpers = {
   ],
 
   resetSelection: () => {
-    directoryStore.send({ type: "resetSelection" } as any);
+    directoryStore.send({ type: "resetSelection" });
   },
 
   isSelected: (index: number) => {
@@ -686,7 +788,7 @@ export const directoryHelpers = {
   },
 
   selectManually: (index: number) => {
-    directoryStore.send({ type: "selectManually", index } as any);
+    directoryStore.send({ type: "selectManually", index });
   },
 
   setSelection: (h: number | ((s: number) => number)) => {
@@ -703,7 +805,7 @@ export const directoryHelpers = {
       type: "setSelection",
       indexes: new Set([newSelection]),
       last: newSelection,
-    } as any);
+    });
   },
 
   handleCopy: async (
@@ -797,7 +899,7 @@ export const directoryHelpers = {
             const itemToSelect = remainingItems[newIndex];
             directoryHelpers.setPendingSelection(itemToSelect.name);
           } else {
-            directoryStore.send({ type: "resetSelection" } as any);
+            directoryStore.send({ type: "resetSelection" });
           }
         } catch (error) {
           console.error("Error deleting files:", error);
@@ -873,6 +975,15 @@ export const directoryHelpers = {
       dialogActions.open("assignTags", fullPath);
     }
   },
+
+  // Fuzzy finder helpers
+  setFuzzyQuery: (query: string) => {
+    directoryStore.send({ type: "setFuzzyQuery", query });
+  },
+
+  clearFuzzyQuery: () => {
+    directoryStore.send({ type: "clearFuzzyQuery" });
+  },
 };
 
 // Selectors
@@ -915,3 +1026,11 @@ export const selectPendingSelection = (
 
 export const selectSelection = (state: ReturnType<typeof directoryStore.get>) =>
   state.context.selection;
+
+export const selectFuzzyQuery = (
+  state: ReturnType<typeof directoryStore.get>,
+) => state.context.fuzzyQuery;
+
+export const selectFilteredDirectoryData = (
+  state: ReturnType<typeof directoryStore.get>,
+) => state.context.filteredDirectoryData;
