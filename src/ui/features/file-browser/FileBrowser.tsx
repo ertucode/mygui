@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { createColumns } from "./config/columns";
@@ -24,6 +24,10 @@ import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNa
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
+import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
+import { DirectoryContextProvider } from "./DirectoryContext";
+
+const FILE_BROWSER_TABLE_ID = "file-browser-table";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
@@ -40,8 +44,6 @@ export function FileBrowser() {
   );
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
 
-  const tableRef = useRef<HTMLTableElement>(null);
-
   useEffect(() => {
     directoryHelpers.resetSelection();
   }, [directoryData]);
@@ -56,30 +58,6 @@ export function FileBrowser() {
     data: filteredDirectoryData,
   });
 
-  const scrollRowIntoViewIfNeeded = (
-    rowIndex: number,
-    block: ScrollLogicalPosition = "nearest",
-  ) => {
-    const row = tableRef.current?.querySelector(
-      `tbody tr:nth-child(${rowIndex + 1})`,
-    );
-    if (row) {
-      const scrollContainer = tableRef.current?.closest(
-        ".overflow-auto",
-      ) as HTMLElement | null;
-      if (scrollContainer) {
-        const containerRect = scrollContainer.getBoundingClientRect();
-        const rowRect = row.getBoundingClientRect();
-        const isInView =
-          rowRect.top >= containerRect.top &&
-          rowRect.bottom <= containerRect.bottom;
-        if (!isInView) {
-          row.scrollIntoView({ block });
-        }
-      }
-    }
-  };
-
   // Handle pending selection after data reload
   useEffect(() => {
     if (pendingSelection && table.data.length > 0) {
@@ -88,7 +66,11 @@ export function FileBrowser() {
       );
       if (newItemIndex !== -1) {
         directoryHelpers.selectManually(newItemIndex);
-        scrollRowIntoViewIfNeeded(newItemIndex, "center");
+        scrollRowIntoViewIfNeeded(
+          FILE_BROWSER_TABLE_ID,
+          newItemIndex,
+          "center",
+        );
       }
       directoryHelpers.setPendingSelection(null);
     }
@@ -97,7 +79,7 @@ export function FileBrowser() {
   // Scroll to selected row when selection changes (keyboard navigation)
   useEffect(() => {
     if (selection.last != null) {
-      scrollRowIntoViewIfNeeded(selection.last);
+      scrollRowIntoViewIfNeeded(FILE_BROWSER_TABLE_ID, selection.last);
     }
   }, [selection.last]);
 
@@ -137,12 +119,10 @@ export function FileBrowser() {
           direction="left"
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <FileBrowserNavigationAndInputSection />
-          {loading ? (
-            <div>Loading...</div>
-          ) : (
-            <Table tableRef={tableRef} table={table}></Table>
-          )}
+          <DirectoryContextProvider directoryId={FILE_BROWSER_TABLE_ID}>
+            <FileBrowserNavigationAndInputSection />
+            {loading ? <div>Loading...</div> : <Table table={table}></Table>}
+          </DirectoryContextProvider>
         </div>
         <ResizeHandle
           onMouseDown={previewPanel.handleMouseDown}

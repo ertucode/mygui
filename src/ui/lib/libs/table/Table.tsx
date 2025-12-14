@@ -14,10 +14,12 @@ import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 import { getWindowElectron } from "@/getWindowElectron";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
+import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 
 export type TableProps = {
   table: TableMetadata<GetFilesAndFoldersInDirectoryItem>;
   tableRef?: RefObject<HTMLTableElement | null>;
+  directoryId?: string;
   children?: React.ReactNode;
 };
 export type TableContextMenuProps<T> = {
@@ -42,6 +44,8 @@ export function Table({ table, tableRef, children }: TableProps) {
     (s) => s.context.selection.indexes,
   );
 
+  const context = useDirectoryContext();
+
   return (
     <>
       {contextMenu.item && (
@@ -61,6 +65,7 @@ export function Table({ table, tableRef, children }: TableProps) {
 
         <table
           ref={tableRef}
+          data-table-id={context.directoryId}
           className="w-full table table-zebra table-xs border border-base-content/5"
         >
           <thead>
