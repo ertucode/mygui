@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
-import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { createColumns } from "./config/columns";
 import {
   directoryStore,
@@ -23,7 +22,6 @@ import { useDialogStoreRenderer } from "./dialogStore";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
-import { getWindowElectron } from "@/getWindowElectron";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
 
@@ -143,20 +141,7 @@ export function FileBrowser() {
           {loading ? (
             <div>Loading...</div>
           ) : (
-            <Table
-              tableRef={tableRef}
-              table={table}
-              onRowDragStart={async (_, index, e) => {
-                getWindowElectron().onDragStart({
-                  files: directoryHelpers
-                    .getSelectedItemsOrCurrentItem(index)
-                    .map(directoryHelpers.getFullPathForItem),
-                  image: await captureDivAsBase64(
-                    e.currentTarget.closest("tbody")!,
-                  ),
-                });
-              }}
-            ></Table>
+            <Table tableRef={tableRef} table={table}></Table>
           )}
         </div>
         <ResizeHandle
