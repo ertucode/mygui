@@ -67,6 +67,11 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     (s) => s.context.dragOverDirectoryId === directoryId,
   );
 
+  const isActiveDirectory = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId === directoryId,
+  );
+
   return (
     <>
       {contextMenu.item && (
@@ -83,8 +88,9 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
       <div
         className={clsx(
-          "relative h-full min-h-0 overflow-auto",
+          "relative h-full min-h-0 overflow-auto rounded-md border-t-2",
           isDragOver && "ring-2 ring-primary ring-inset",
+          isActiveDirectory ? "border-blue-300" : "border-transparent",
         )}
         onDragOver={(e) =>
           fileDragDropHandlers.handleTableDragOver(e, directoryId)
@@ -102,7 +108,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
         <LoadingOverlay />
         <table
           data-table-id={context.directoryId}
-          className="w-full table table-zebra table-xs border border-base-content/5"
+          className="w-full table table-zebra table-xs border border-base-content/5 rounded-md overflow-hidden"
         >
           <thead>
             <tr>
@@ -126,7 +132,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
               })}
             </tr>
           </thead>
-          <tbody tabIndex={0}>
+          <tbody tabIndex={0} className="focus-visible:outline-none">
             {table.rows.map((row, idx) => {
               return (
                 <TableRow

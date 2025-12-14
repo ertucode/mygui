@@ -130,6 +130,7 @@ export function FileBrowserShortcuts() {
       },
       {
         key: "r",
+        notKey: { key: "r", metaKey: true },
         handler: (e) => {
           e.preventDefault();
           directoryHelpers.reload(directoryId);
