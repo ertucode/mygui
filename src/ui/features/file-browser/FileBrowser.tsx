@@ -2,7 +2,6 @@ import { FileBrowserTable } from "@/features/file-browser/FileBrowserTable";
 import {
   directoryStore,
   directoryHelpers,
-  selectLoading,
   selectSelection,
   useFilteredDirectoryData,
 } from "./directory";
@@ -16,15 +15,10 @@ import { useDialogStoreRenderer } from "./dialogStore";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 import { DirectoryContextProvider } from "./DirectoryContext";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
-
-  const _loading = useSelector(directoryStore, selectLoading);
-
-  const loading = useDebounce(_loading, 100);
 
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
@@ -64,11 +58,7 @@ export function FileBrowser() {
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           <DirectoryContextProvider directoryId={directoryId}>
             <FileBrowserNavigationAndInputSection />
-            {loading ? (
-              <div>Loading...</div>
-            ) : (
-              <FileBrowserTable></FileBrowserTable>
-            )}
+            <FileBrowserTable></FileBrowserTable>
           </DirectoryContextProvider>
         </div>
         <ResizeHandle

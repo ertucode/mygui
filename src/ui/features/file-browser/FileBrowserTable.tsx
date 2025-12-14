@@ -1,4 +1,4 @@
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronUpIcon, Loader2Icon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
 import { useTable } from "../../lib/libs/table/useTable";
@@ -9,6 +9,7 @@ import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
   directoryHelpers,
   directoryStore,
+  selectLoading,
   useFilteredDirectoryData,
 } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
@@ -19,6 +20,7 @@ import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -71,6 +73,7 @@ export function FileBrowserTable() {
       )}
 
       <div className="relative h-full min-h-0 overflow-auto">
+        <LoadingOverlay />
         <table
           data-table-id={context.directoryId}
           className="w-full table table-zebra table-xs border border-base-content/5"
@@ -173,5 +176,19 @@ export function FileBrowserTable() {
         </table>
       </div>
     </>
+  );
+}
+
+function LoadingOverlay() {
+  const _loading = useSelector(directoryStore, selectLoading);
+
+  const loading = useDebounce(_loading, 100);
+
+  if (!loading) return null;
+
+  return (
+    <div className="flex flex-col items-center justify-center absolute inset-0">
+      <Loader2Icon className="size-8 stroke-current" />
+    </div>
   );
 }
