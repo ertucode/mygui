@@ -1,4 +1,5 @@
 import { spawn } from "child_process";
+import os from "os";
 import { expandHome } from "./expand-home.js";
 import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
@@ -115,24 +116,30 @@ function listFoldersRecursively(
   signal?: AbortSignal,
 ): Promise<GenericResult<string[]>> {
   return new Promise<GenericResult<string[]>>((resolve, reject) => {
-    const child = spawn(
-      fdPath,
-      [
-        "--type",
-        "d", // directories only
-        "--hidden",
-        "--follow",
-        "--exclude",
-        ".git",
-        "--exclude",
-        "node_modules",
-        ".",
-        ".",
-      ],
-      {
-        cwd: expandHome(target),
-      },
-    );
+    const expandedTarget = expandHome(target);
+    const isHomeDir = expandedTarget === os.homedir();
+
+    const args = [
+      "--type",
+      "d", // directories only
+      "--hidden",
+      "--follow",
+      "--exclude",
+      ".git",
+      "--exclude",
+      "node_modules",
+    ];
+
+    // Only exclude Library and Trash when searching from home directory
+    if (isHomeDir) {
+      args.push("--exclude", "Library", "--exclude", ".Trash");
+    }
+
+    args.push(".", ".");
+
+    const child = spawn(fdPath, args, {
+      cwd: expandedTarget,
+    });
 
     // Handle abort signal
     if (signal) {

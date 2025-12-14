@@ -1,5 +1,6 @@
 import { spawn } from "child_process";
 import path from "path";
+import os from "os";
 import { expandHome } from "./expand-home.js";
 import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
@@ -55,6 +56,11 @@ export function searchStringRecursively(
       "--context-separator=<<<RG_CONTEXT_SEP>>>",
       "--max-count=10", // Limit matches per file since we're getting lots of context
     ];
+
+    // Only exclude Library and Trash when searching from home directory
+    if (searchDir === os.homedir()) {
+      args.splice(3, 0, "--glob=!Library/**", "--glob=!.Trash", "--glob=!.Trash/**");
+    }
 
     // Hidden files toggle
     if (searchHidden) {

@@ -3,6 +3,7 @@ import { expandHome } from "./expand-home.js";
 import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
 import { rgPath } from "./get-vendor-path.js";
+import os from "os";
 
 export function listFilesRecursively(target: string, signal?: AbortSignal) {
   return new Promise<GenericResult<string[]>>((resolve, reject) => {
@@ -10,13 +11,24 @@ export function listFilesRecursively(target: string, signal?: AbortSignal) {
 
     const errors: string[] = [];
 
-    const child = spawn(
-      rgPath,
-      ["--files", "--hidden", "--glob=!**/.git/**", "--smart-case"],
-      {
-        cwd: expandHome(target),
-      },
-    );
+    const expandedTarget = expandHome(target);
+    const isHomeDir = expandedTarget === os.homedir();
+
+    const args = [
+      "--files",
+      "--hidden",
+      "--glob=!**/.git/**",
+      "--smart-case",
+    ];
+
+    // Only exclude Library and Trash when searching from home directory
+    if (isHomeDir) {
+      args.splice(3, 0, "--glob=!Library/**", "--glob=!.Trash", "--glob=!.Trash/**");
+    }
+
+    const child = spawn(rgPath, args, {
+      cwd: expandedTarget,
+    });
 
     // Handle abort signal
     if (signal) {
