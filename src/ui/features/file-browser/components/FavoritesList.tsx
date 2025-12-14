@@ -7,15 +7,18 @@ import {
 } from "../favorites";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
-import { directoryStore, selectDirectory } from "../directory";
+import {
+  directoryHelpers,
+  directoryStore,
+  selectDirectory,
+} from "../directory";
 import { setDefaultPath } from "../defaultPath";
 
 interface FavoritesListProps {
   className?: string;
-  openFavorite: (favorite: FavoriteItem) => void;
 }
 
-export function FavoritesList({ className, openFavorite }: FavoritesListProps) {
+export function FavoritesList({ className }: FavoritesListProps) {
   const f = useSelector(favoritesStore, selectFavorites);
   const directory = useSelector(directoryStore, selectDirectory);
 
@@ -28,7 +31,7 @@ export function FavoritesList({ className, openFavorite }: FavoritesListProps) {
       isSelected={(favorite) =>
         directory.type === "path" && directory.fullPath === favorite.fullPath
       }
-      onClick={openFavorite}
+      onClick={directoryHelpers.openItemFull}
       getContextMenuItems={(favorite) => [
         {
           view: <TextWithIcon icon={Trash2Icon}>Delete</TextWithIcon>,
