@@ -50,8 +50,7 @@ import {
   selectHasTag,
   selectTagName,
 } from "./tags";
-import { AssignTagsDialog } from "./components/AssignTagsDialog";
-import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
+
 import { FilePreview } from "./components/FilePreview";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { dialogActions, useDialogStoreRenderer } from "./dialogStore";
@@ -109,10 +108,6 @@ export function FileBrowser() {
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
-  const [assignTagsPath, setAssignTagsPath] = useState<string | null>(null);
-  const [multiFileTagsPaths, setMultiFileTagsPaths] = useState<string[] | null>(
-    null,
-  );
 
   useEffect(() => {
     s.reset();
@@ -409,16 +404,6 @@ export function FileBrowser() {
         initialTab={finderInitialTab}
       />
       {dialogs.RenderOutside}
-      <AssignTagsDialog
-        isOpen={assignTagsPath !== null}
-        onClose={() => setAssignTagsPath(null)}
-        fullPath={assignTagsPath || ""}
-      />
-      <MultiFileTagsDialog
-        isOpen={multiFileTagsPaths !== null}
-        onClose={() => setMultiFileTagsPaths(null)}
-        fullPaths={multiFileTagsPaths || []}
-      />
       <FileBrowserOptionsSection />
       <div className="flex gap-0 flex-1 min-h-0 overflow-hidden">
         <div
@@ -459,10 +444,10 @@ export function FileBrowser() {
                   });
                   if (selectedItems.length > 1) {
                     // Multiple files selected - use grid dialog
-                    setMultiFileTagsPaths(selectedItems);
+                    dialogActions.open("multiFileTags", selectedItems);
                   } else {
                     // Single file - use standard dialog
-                    setAssignTagsPath(fullPath);
+                    dialogActions.open("assignTags", fullPath);
                   }
                 },
               })}

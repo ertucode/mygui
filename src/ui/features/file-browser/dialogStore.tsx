@@ -2,17 +2,21 @@ import { createStore } from "@xstate/store";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { RenameDialog } from "./components/RenameDialog";
 import { NewItemDialog } from "./components/NewItemDialog";
-import { FilePlusIcon, PencilIcon } from "lucide-react";
+import { AssignTagsDialog } from "./components/AssignTagsDialog";
+import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
+import { FilePlusIcon, PencilIcon, TagIcon } from "lucide-react";
 import { useRef, useEffect } from "react";
 import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 
 // Define the dialog types that can be opened
-export type DialogType = "rename" | "newItem";
+export type DialogType = "rename" | "newItem" | "assignTags" | "multiFileTags";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
   rename: GetFilesAndFoldersInDirectoryItem;
   newItem: GetFilesAndFoldersInDirectoryItem | {};
+  assignTags: string;
+  multiFileTags: string[];
 };
 
 // Store context - only one dialog can be open at a time
@@ -82,15 +86,24 @@ const dialogDefinitions = [
     icon: FilePlusIcon,
     title: "New File or Folder",
   },
+  {
+    type: "assignTags" as const,
+    component: AssignTagsDialog,
+    icon: TagIcon,
+    title: "Assign Tags",
+  },
+  {
+    type: "multiFileTags" as const,
+    component: MultiFileTagsDialog,
+    icon: TagIcon,
+    title: "Assign Tags (Multiple Files)",
+  },
 ] as const;
 
 // Hook to render dialogs
 export function useDialogStoreRenderer() {
   const refs = useRef(
-    new Map<
-      DialogType,
-      DialogForItem<GetFilesAndFoldersInDirectoryItem> | null
-    >(),
+    new Map<DialogType, DialogForItem<any> | null>(),
   );
 
   // Subscribe to store and open the appropriate dialog
@@ -101,7 +114,7 @@ export function useDialogStoreRenderer() {
       if (openDialog && metadata) {
         const ref = refs.current.get(openDialog);
         if (ref) {
-          ref.show({ item: metadata as GetFilesAndFoldersInDirectoryItem });
+          ref.show({ item: metadata });
         }
       }
     });
@@ -116,7 +129,7 @@ export function useDialogStoreRenderer() {
         return (
           <Component
             key={dialog.type}
-            ref={(ref) => {
+            ref={(ref: DialogForItem<any> | null) => {
               refs.current.set(dialog.type, ref);
             }}
           />

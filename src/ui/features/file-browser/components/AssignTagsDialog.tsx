@@ -10,62 +10,42 @@ import {
 } from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon } from "lucide-react";
-
-interface AssignTagsDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  fullPath: string | string[];
-}
+import {
+  useDialogForItem,
+  type DialogForItem,
+} from "@/lib/hooks/useDialogForItem";
+import { Ref } from "react";
 
 function getFileNameToDisplay(fullPath: string) {
   return fullPath.split("/").pop() || fullPath;
 }
 
 export function AssignTagsDialog({
-  isOpen,
-  onClose,
-  fullPath,
-}: AssignTagsDialogProps) {
-  // Select all needed data at component level
-  const tagConfig = useSelector(tagsStore, selectTagConfig);
-  const fileTags = useSelector(tagsStore, selectFileTags);
+  ref,
+}: {
+  ref?: Ref<DialogForItem<string>>;
+}) {
+  const { item: fullPath, dialogOpen, setDialogOpen } = useDialogForItem<string>(ref);
+    
+    // Select all needed data at component level
+    const tagConfig = useSelector(tagsStore, selectTagConfig);
+    const fileTags = useSelector(tagsStore, selectFileTags);
 
-  if (!isOpen) return null;
+    if (!dialogOpen || !fullPath) return null;
 
-  const fileNames = Array.isArray(fullPath)
-    ? fullPath.map(getFileNameToDisplay)
-    : [getFileNameToDisplay(fullPath)];
-  if (Array.isArray(fullPath)) {
-    if (fullPath.length === 0) {
-      throw new Error("No files selected");
-    }
-    // Check if all files have same tags
-    const firstTags = fileTags[fullPath[0]] || [];
-    const allHaveSameTags = fullPath.every((path) => {
-      const tags = fileTags[path] || [];
-      if (tags.length !== firstTags.length) return false;
-      return tags.every((tag) => firstTags.includes(tag));
-    });
-    if (!allHaveSameTags) {
-      throw new Error("All files must have same tags");
-    }
-  }
-  const currentTags =
-    fileTags[Array.isArray(fullPath) ? fullPath[0] : fullPath] || [];
+    const fileName = getFileNameToDisplay(fullPath);
+  const currentTags = fileTags[fullPath] || [];
 
   const handleToggleTag = (color: TagColor) => {
-    if (Array.isArray(fullPath)) {
-      tagsStore.send({ type: "toggleTagOnFiles", fullPaths: fullPath, color });
-    } else {
-      tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
-    }
+    tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
+  };
+
+  const handleClose = () => {
+    setDialogOpen(false);
   };
 
   return (
-    <Dialog
-      title={`Assign Tags to "${fileNames.join(" | ")}"`}
-      onClose={onClose}
-    >
+    <Dialog title={`Assign Tags to "${fileName}"`} onClose={handleClose}>
       <div className="flex flex-col gap-2 min-w-[300px]">
         <p className="text-sm text-gray-500 mb-2">
           Select tags to assign to this item:
@@ -105,7 +85,7 @@ export function AssignTagsDialog({
           })}
         </div>
         <div className="flex justify-end mt-4">
-          <button className="btn btn-sm btn-primary" onClick={onClose}>
+          <button className="btn btn-sm btn-primary" onClick={handleClose}>
             Done
           </button>
         </div>
