@@ -87,14 +87,17 @@ const dialogDefinitions = [
 // Hook to render dialogs
 export function useDialogStoreRenderer() {
   const refs = useRef(
-    new Map<DialogType, DialogForItem<GetFilesAndFoldersInDirectoryItem> | null>(),
+    new Map<
+      DialogType,
+      DialogForItem<GetFilesAndFoldersInDirectoryItem> | null
+    >(),
   );
 
   // Subscribe to store and open the appropriate dialog
   useEffect(() => {
     const subscription = dialogStore.subscribe((state) => {
       const { openDialog, metadata } = state.context;
-      
+
       if (openDialog && metadata) {
         const ref = refs.current.get(openDialog);
         if (ref) {
