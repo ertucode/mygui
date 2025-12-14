@@ -10,8 +10,7 @@ import {
   selectLoading,
   selectDirectoryData,
   selectPendingSelection,
-  selectSelectionIndexes,
-  selectSelectionLastSelected,
+  selectSelection,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
 import { type FavoriteItem } from "./favorites";
@@ -39,11 +38,7 @@ export function FileBrowser() {
   const loading = useDebounce(_loading, 100);
   const directoryData = useSelector(directoryStore, selectDirectoryData);
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
-  const selectionIndexes = useSelector(directoryStore, selectSelectionIndexes);
-  const selectionLastSelected = useSelector(
-    directoryStore,
-    selectSelectionLastSelected,
-  );
+  const selection = useSelector(directoryStore, selectSelection);
 
   const tableRef = useRef<HTMLTableElement>(null);
 
@@ -107,10 +102,10 @@ export function FileBrowser() {
 
   // Scroll to selected row when selection changes (keyboard navigation)
   useEffect(() => {
-    if (selectionLastSelected != null) {
-      scrollRowIntoViewIfNeeded(selectionLastSelected);
+    if (selection.last != null) {
+      scrollRowIntoViewIfNeeded(selection.last);
     }
-  }, [selectionLastSelected]);
+  }, [selection.last]);
 
   useFileBrowserShortcuts(table.data);
 
@@ -140,8 +135,8 @@ export function FileBrowser() {
 
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
-    selectionIndexes.size === 1 && selectionLastSelected != null
-      ? table.data[selectionLastSelected]
+    selection.indexes.size === 1 && selection.last != null
+      ? table.data[selection.last]
       : null;
   const previewFilePath =
     selectedItem && selectedItem.type === "file"
@@ -178,9 +173,9 @@ export function FileBrowser() {
               tableRef={tableRef}
               table={table}
               onRowDragStart={async (item, index, e) => {
-                const alreadySelected = selectionIndexes.has(index);
+                const alreadySelected = selection.indexes.has(index);
                 const files = alreadySelected
-                  ? [...selectionIndexes].map((i) => {
+                  ? [...selection.indexes].map((i) => {
                       const tableItem = table.data[i];
                       return (
                         tableItem.fullPath ??

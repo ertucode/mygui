@@ -3,12 +3,7 @@ import { useSelector } from "@xstate/store/react";
 import { dialogActions, useIsDialogOpen } from "./dialogStore";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import {
-  directoryHelpers,
-  directoryStore,
-  selectSelectionIndexes,
-  selectSelectionLastSelected,
-} from "./directory";
+import { directoryHelpers, directoryStore, selectSelection } from "./directory";
 import { favoritesStore } from "./favorites";
 
 export function useFileBrowserShortcuts(
@@ -17,26 +12,14 @@ export function useFileBrowserShortcuts(
   const isConfirmationOpen = useConfirmation().isOpen;
   const isDialogsOpen = useIsDialogOpen();
 
-  const selectionIndexes = useSelector(directoryStore, selectSelectionIndexes);
-  const selectionLastSelected = useSelector(
-    directoryStore,
-    selectSelectionLastSelected,
-  );
+  const selection = useSelector(directoryStore, selectSelection);
 
   // Create a selection object compatible with the old API
   const s = {
-    state: {
-      indexes: selectionIndexes,
-      lastSelected: selectionLastSelected,
-    },
+    state: selection,
     setState: (update: any) => {
       const newState =
-        typeof update === "function"
-          ? update({
-              indexes: selectionIndexes,
-              lastSelected: selectionLastSelected,
-            })
-          : update;
+        typeof update === "function" ? update(selection) : update;
       directoryStore.send({
         type: "setSelection",
         indexes: newState.indexes,
@@ -90,7 +73,7 @@ export function useFileBrowserShortcuts(
       {
         key: " ",
         handler: (_) => {
-          if (s.state.lastSelected == null) {
+          if (s.state.last == null) {
             directoryHelpers.selectManually(0);
           }
         },

@@ -6,7 +6,10 @@ import { onSortKey } from "./useTableSort";
 import { RefObject, useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
-import { directoryHelpers, directoryStore } from "@/features/file-browser/directory";
+import {
+  directoryHelpers,
+  directoryStore,
+} from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 
@@ -30,12 +33,7 @@ export type TableContextMenuProps<T> = {
   tableData: T[];
 };
 
-export function Table({
-  table,
-  tableRef,
-  children,
-  ...props
-}: TableProps) {
+export function Table({ table, tableRef, children, ...props }: TableProps) {
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
@@ -48,7 +46,7 @@ export function Table({
 
   const selectionIndexes = useSelector(
     directoryStore,
-    (s) => s.context.selectionIndexes,
+    (s) => s.context.selection.indexes,
   );
 
   return (

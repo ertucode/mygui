@@ -67,7 +67,7 @@ export const FileTableRowContextMenu = ({
       };
 
   const directory = directoryStore.getSnapshot();
-  const selectionIndexes = directory.context.selectionIndexes;
+  const selectionIndexes = directory.context.selection.indexes;
   const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex);
   const selectedItems =
     isSelected && selectionIndexes.size > 0

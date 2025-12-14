@@ -8,7 +8,7 @@ import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
-import { useSelector, useStore } from "@xstate/store/react";
+import { useSelector } from "@xstate/store/react";
 
 // Define the dialog types that can be opened
 export type DialogType =
