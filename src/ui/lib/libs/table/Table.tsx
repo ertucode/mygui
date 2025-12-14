@@ -20,10 +20,6 @@ export type TableProps = {
     index: number,
     event: React.DragEvent<HTMLTableRowElement>,
   ) => void;
-  onRowMouseDown?: (
-    item: GetFilesAndFoldersInDirectoryItem,
-    index: number,
-  ) => void;
   tableRef?: RefObject<HTMLTableElement | null>;
   children?: React.ReactNode;
 };
@@ -133,8 +129,13 @@ export function Table({ table, tableRef, children, ...props }: TableProps) {
                     props.onRowDragStart(table.data[idx], idx, e);
                   }}
                   onPointerDown={(_) => {
-                    if (props.onRowMouseDown == null) return;
-                    props.onRowMouseDown(table.data[idx], idx);
+                    const item = table.data[idx];
+                    if (item.type === "dir") {
+                      directoryHelpers.preloadDirectory(
+                        item.fullPath ??
+                          directoryHelpers.getFullPath(item.name),
+                      );
+                    }
                   }}
                   draggable={props.onRowDragStart != null}
                 >
