@@ -2,8 +2,13 @@ import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../components/context-menu";
 import { clsx } from "../../functions/clsx";
 import type { TableMetadata } from "./useTable";
-import { useTableSort } from "./useTableSort";
+import { onSortKey } from "./useTableSort";
 import { RefObject, useRef } from "react";
+import { useSelector } from "@xstate/store/react";
+import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
+import { directoryHelpers } from "@/features/file-browser/directory";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 
 type SelectionHelpers = {
   state: {
@@ -14,18 +19,18 @@ type SelectionHelpers = {
   isSelected: (index: number) => boolean;
 };
 
-export type TableProps<T> = {
-  table: TableMetadata<T>;
-  onRowDoubleClick?: (item: T) => void;
+export type TableProps = {
+  table: TableMetadata<GetFilesAndFoldersInDirectoryItem>;
   selection?: SelectionHelpers;
-  sort?: ReturnType<typeof useTableSort>;
-  ContextMenu?: React.FC<TableContextMenuProps<T>>;
   onRowDragStart?: (
-    item: T,
+    item: GetFilesAndFoldersInDirectoryItem,
     index: number,
     event: React.DragEvent<HTMLTableRowElement>,
   ) => void;
-  onRowMouseDown?: (item: T, index: number) => void;
+  onRowMouseDown?: (
+    item: GetFilesAndFoldersInDirectoryItem,
+    index: number,
+  ) => void;
   tableRef?: RefObject<HTMLTableElement | null>;
   children?: React.ReactNode;
 };
@@ -35,26 +40,29 @@ export type TableContextMenuProps<T> = {
   tableData: T[];
 };
 
-export function Table<T>({
+export function Table({
   table,
-  onRowDoubleClick,
   selection,
-  sort,
   tableRef,
   children,
   ...props
-}: TableProps<T>) {
-  const contextMenu = useContextMenu<T>();
+}: TableProps) {
+  const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
   );
 
+  const sortSettings = useSelector(
+    fileBrowserSettingsStore,
+    (s) => s.context.settings.sort,
+  );
+
   return (
     <>
-      {props.ContextMenu && contextMenu.item && (
+      {contextMenu.item && (
         <ContextMenu menu={contextMenu}>
           {
-            <props.ContextMenu
+            <FileTableRowContextMenu
               item={contextMenu.item}
               close={contextMenu.close}
               tableData={table.data}
@@ -74,17 +82,14 @@ export function Table<T>({
             <tr>
               {table.headers.map((header) => {
                 return (
-                  <th
-                    key={header.id}
-                    onClick={() => sort?.onKey(header.sortKey)}
-                  >
+                  <th key={header.id} onClick={() => onSortKey(header.sortKey)}>
                     <div className="flex items-center gap-1">
                       <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                         {header.value}
                       </span>
 
-                      {sort?.state.by === header.sortKey &&
-                        (sort.state.order === "asc" ? (
+                      {sortSettings.by === header.sortKey &&
+                        (sortSettings.order === "asc" ? (
                           <ChevronDownIcon className="size-4 stroke-[3]" />
                         ) : (
                           <ChevronUpIcon className="size-4 stroke-[3]" />
@@ -116,11 +121,9 @@ export function Table<T>({
                       now - lastClick.timestamp < 500
                     ) {
                       // This is a double-click
-                      if (onRowDoubleClick) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        onRowDoubleClick(table.data[idx]);
-                      }
+                      e.preventDefault();
+                      e.stopPropagation();
+                      directoryHelpers.openItem(table.data[idx]);
                       lastClickRef.current = null;
                     } else {
                       // This is a single click
@@ -129,7 +132,6 @@ export function Table<T>({
                     }
                   }}
                   onContextMenu={(e) => {
-                    if (props.ContextMenu == null) return;
                     e.preventDefault();
                     contextMenu.onRightClick(e, table.data[idx]);
                   }}
