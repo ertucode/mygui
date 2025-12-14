@@ -387,6 +387,10 @@ const getFullPath = (dir: string) => {
   return dir;
 };
 
+const getFullPathForItem = (item: GetFilesAndFoldersInDirectoryItem) => {
+  return item.fullPath ?? getFullPath(item.name);
+};
+
 const cdWithMetadata = async (newDirectory: DirectoryInfo, isNew: boolean) => {
   const state = directoryStore.get();
   const beforeNavigation = state.context.directory;
@@ -999,6 +1003,18 @@ export const directoryHelpers = {
 
   clearFuzzyQuery: () => {
     directoryStore.send({ type: "clearFuzzyQuery" });
+  },
+  getFullPathForItem,
+  getSelectedItemsOrCurrentItem(index: number) {
+    const snapshot = directoryStore.getSnapshot();
+    const selection = snapshot.context.selection;
+    const tableData = snapshot.context.filteredDirectoryData;
+    const item = tableData[index];
+
+    const alreadySelected = selection.indexes.has(index);
+    return alreadySelected
+      ? [...selection.indexes].map((i) => tableData[i])
+      : [item];
   },
 };
 

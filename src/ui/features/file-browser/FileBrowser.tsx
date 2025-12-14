@@ -146,33 +146,14 @@ export function FileBrowser() {
             <Table
               tableRef={tableRef}
               table={table}
-              onRowDragStart={async (item, index, e) => {
-                const alreadySelected = selection.indexes.has(index);
-                const files = alreadySelected
-                  ? [...selection.indexes].map((i) => {
-                      const tableItem = table.data[i];
-                      return (
-                        tableItem.fullPath ??
-                        directoryHelpers.getFullPath(tableItem.name)
-                      );
-                    })
-                  : [item.fullPath ?? directoryHelpers.getFullPath(item.name)];
-
-                const tableBody = e.currentTarget.closest("tbody");
+              onRowDragStart={async (_, index, e) => {
                 getWindowElectron().onDragStart({
-                  files,
-                  image: await captureDivAsBase64(tableBody!, (node) => {
-                    if (typeof node === "string") {
-                      return true;
-                    }
-                    if (!node.classList) {
-                      return true;
-                    }
-                    if (node.classList.contains("row-selected")) return true;
-                    const row = node.closest("tr");
-                    if (!row) return false;
-                    return row.classList.contains("row-selected");
-                  }),
+                  files: directoryHelpers
+                    .getSelectedItemsOrCurrentItem(index)
+                    .map(directoryHelpers.getFullPathForItem),
+                  image: await captureDivAsBase64(
+                    e.currentTarget.closest("tbody")!,
+                  ),
                 });
               }}
             ></Table>

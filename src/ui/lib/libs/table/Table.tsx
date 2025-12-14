@@ -12,14 +12,11 @@ import {
 } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
+import { getWindowElectron } from "@/getWindowElectron";
+import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 
 export type TableProps = {
   table: TableMetadata<GetFilesAndFoldersInDirectoryItem>;
-  onRowDragStart?: (
-    item: GetFilesAndFoldersInDirectoryItem,
-    index: number,
-    event: React.DragEvent<HTMLTableRowElement>,
-  ) => void;
   tableRef?: RefObject<HTMLTableElement | null>;
   children?: React.ReactNode;
 };
@@ -29,7 +26,7 @@ export type TableContextMenuProps<T> = {
   tableData: T[];
 };
 
-export function Table({ table, tableRef, children, ...props }: TableProps) {
+export function Table({ table, tableRef, children }: TableProps) {
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
@@ -123,10 +120,16 @@ export function Table({ table, tableRef, children, ...props }: TableProps) {
                     e.preventDefault();
                     contextMenu.onRightClick(e, table.data[idx]);
                   }}
-                  onDragStart={(e) => {
-                    if (props.onRowDragStart == null) return;
+                  onDragStart={async (e) => {
                     e.preventDefault();
-                    props.onRowDragStart(table.data[idx], idx, e);
+                    getWindowElectron().onDragStart({
+                      files: directoryHelpers
+                        .getSelectedItemsOrCurrentItem(idx)
+                        .map(directoryHelpers.getFullPathForItem),
+                      image: await captureDivAsBase64(
+                        e.currentTarget.closest("tbody")!,
+                      ),
+                    });
                   }}
                   onPointerDown={(_) => {
                     const item = table.data[idx];
@@ -137,7 +140,7 @@ export function Table({ table, tableRef, children, ...props }: TableProps) {
                       );
                     }
                   }}
-                  draggable={props.onRowDragStart != null}
+                  draggable={true}
                 >
                   {row.cells.map((cell) => {
                     return (
