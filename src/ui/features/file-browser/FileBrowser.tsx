@@ -1,6 +1,4 @@
-import { Table } from "@/features/file-browser/FileBrowserTable";
-import { useTable } from "@/lib/libs/table/useTable";
-import { createColumns } from "./config/columns";
+import { FileBrowserTable } from "@/features/file-browser/FileBrowserTable";
 import {
   directoryStore,
   directoryHelpers,
@@ -12,7 +10,6 @@ import { FavoritesList } from "./components/FavoritesList";
 import { RecentsList } from "./components/RecentsList";
 import { TagsList } from "./components/TagsList";
 import { useSelector } from "@xstate/store/react";
-import { tagsStore, selectFileTags } from "./tags";
 
 import { FilePreview } from "./components/FilePreview";
 import { useDialogStoreRenderer } from "./dialogStore";
@@ -20,29 +17,14 @@ import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSectio
 import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
 import { DirectoryContextProvider } from "./DirectoryContext";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
-  const fileTags = useSelector(tagsStore, selectFileTags);
 
   const _loading = useSelector(directoryStore, selectLoading);
 
   const loading = useDebounce(_loading, 100);
-  const filteredDirectoryData = useFilteredDirectoryData();
-
-  const columns = createColumns({
-    fileTags,
-    getFullPath: directoryHelpers.getFullPath,
-  });
-
-  const table = useTable({
-    columns,
-    data: filteredDirectoryData,
-  });
-
-  useFileBrowserShortcuts(table.data);
 
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
@@ -82,7 +64,11 @@ export function FileBrowser() {
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
           <DirectoryContextProvider directoryId={directoryId}>
             <FileBrowserNavigationAndInputSection />
-            {loading ? <div>Loading...</div> : <Table table={table}></Table>}
+            {loading ? (
+              <div>Loading...</div>
+            ) : (
+              <FileBrowserTable></FileBrowserTable>
+            )}
           </DirectoryContextProvider>
         </div>
         <ResizeHandle

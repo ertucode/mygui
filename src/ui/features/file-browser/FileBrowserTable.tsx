@@ -1,34 +1,44 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
-import type { TableMetadata } from "../../lib/libs/table/useTable";
+import { useTable } from "../../lib/libs/table/useTable";
 import { onSortKey } from "../../lib/libs/table/useTableSort";
-import { RefObject, useRef } from "react";
+import { useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
   directoryHelpers,
   directoryStore,
+  useFilteredDirectoryData,
 } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 import { getWindowElectron } from "@/getWindowElectron";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
+import { createColumns } from "./config/columns";
+import { tagsStore, selectFileTags } from "./tags";
+import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
 
-export type TableProps = {
-  table: TableMetadata<GetFilesAndFoldersInDirectoryItem>;
-  tableRef?: RefObject<HTMLTableElement | null>;
-  directoryId?: string;
-  children?: React.ReactNode;
-};
 export type TableContextMenuProps<T> = {
   item: T;
   close: () => void;
   tableData: T[];
 };
 
-export function Table({ table, tableRef, children }: TableProps) {
+export function FileBrowserTable() {
+  const filteredDirectoryData = useFilteredDirectoryData();
+  const fileTags = useSelector(tagsStore, selectFileTags);
+  const columns = createColumns({
+    fileTags,
+    getFullPath: directoryHelpers.getFullPath,
+  });
+
+  const table = useTable({
+    columns,
+    data: filteredDirectoryData,
+  });
+  useFileBrowserShortcuts(table.data);
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
@@ -61,10 +71,7 @@ export function Table({ table, tableRef, children }: TableProps) {
       )}
 
       <div className="relative h-full min-h-0 overflow-auto">
-        {children}
-
         <table
-          ref={tableRef}
           data-table-id={context.directoryId}
           className="w-full table table-zebra table-xs border border-base-content/5"
         >
