@@ -15,6 +15,7 @@ type ShortcutWithHandler = {
   key: ShortcutDefinition | ShortcutDefinition[];
   handler: (e: KeyboardEvent) => void;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
+  notKey?: ShortcutDefinition | ShortcutDefinition[];
 };
 
 type SequenceShortcut = {
@@ -161,6 +162,18 @@ export function handleKeyDownWithShortcuts(
     if (isSequenceShortcut(shortcut)) return; // Already handled above
 
     if (!checkEnabledIn(shortcut.enabledIn, e)) return;
+
+    if (shortcut.notKey) {
+      if (Array.isArray(shortcut.notKey)) {
+        if (shortcut.notKey.some((k) => checkShortcut(k, e))) {
+          return;
+        }
+      } else {
+        if (checkShortcut(shortcut.notKey, e)) {
+          return;
+        }
+      }
+    }
 
     if (Array.isArray(shortcut.key)) {
       if (shortcut.key.some((k) => checkShortcut(k, e))) {

@@ -43,9 +43,17 @@ export const FinderDialog = forwardRef<
 
   const handleTabSwitch = () => {
     setActiveTab((prev) => {
-      if (prev === "files") return "folders";
-      if (prev === "folders") return "strings";
-      return "files";
+      const idx = tabs.findIndex((t) => t.id === prev);
+      const nextIdx = idx === tabs.length - 1 ? 0 : idx + 1;
+      return tabs[nextIdx].id;
+    });
+  };
+
+  const goPrevTab = () => {
+    setActiveTab((prev) => {
+      const idx = tabs.findIndex((t) => t.id === prev);
+      const nextIdx = idx === 0 ? tabs.length - 1 : idx - 1;
+      return tabs[nextIdx].id;
     });
   };
 
@@ -54,9 +62,18 @@ export const FinderDialog = forwardRef<
     [
       {
         key: "Tab",
+        notKey: { key: "Tab", shiftKey: true },
         handler: (e) => {
           e.preventDefault();
           handleTabSwitch();
+        },
+        enabledIn: () => true,
+      },
+      {
+        key: { key: "Tab", shiftKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          goPrevTab();
         },
         enabledIn: () => true,
       },
