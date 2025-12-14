@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { createColumns } from "./config/columns";
@@ -6,8 +5,6 @@ import {
   directoryStore,
   directoryHelpers,
   selectLoading,
-  selectDirectoryData,
-  selectPendingSelection,
   selectSelection,
   selectFilteredDirectoryData,
 } from "./directory";
@@ -24,29 +21,19 @@ import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNa
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
-import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
 import { DirectoryContextProvider } from "./DirectoryContext";
-
-const FILE_BROWSER_TABLE_ID = "file-browser-table";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
   const fileTags = useSelector(tagsStore, selectFileTags);
 
-  const selection = useSelector(directoryStore, selectSelection);
   const _loading = useSelector(directoryStore, selectLoading);
 
   const loading = useDebounce(_loading, 100);
-  const directoryData = useSelector(directoryStore, selectDirectoryData);
   const filteredDirectoryData = useSelector(
     directoryStore,
     selectFilteredDirectoryData,
   );
-  const pendingSelection = useSelector(directoryStore, selectPendingSelection);
-
-  useEffect(() => {
-    directoryHelpers.resetSelection();
-  }, [directoryData]);
 
   const columns = createColumns({
     fileTags,
@@ -57,31 +44,6 @@ export function FileBrowser() {
     columns,
     data: filteredDirectoryData,
   });
-
-  // Handle pending selection after data reload
-  useEffect(() => {
-    if (pendingSelection && table.data.length > 0) {
-      const newItemIndex = table.data.findIndex(
-        (item) => item.name === pendingSelection,
-      );
-      if (newItemIndex !== -1) {
-        directoryHelpers.selectManually(newItemIndex);
-        scrollRowIntoViewIfNeeded(
-          FILE_BROWSER_TABLE_ID,
-          newItemIndex,
-          "center",
-        );
-      }
-      directoryHelpers.setPendingSelection(null);
-    }
-  }, [pendingSelection, table.data]);
-
-  // Scroll to selected row when selection changes (keyboard navigation)
-  useEffect(() => {
-    if (selection.last != null) {
-      scrollRowIntoViewIfNeeded(FILE_BROWSER_TABLE_ID, selection.last);
-    }
-  }, [selection.last]);
 
   useFileBrowserShortcuts(table.data);
 
@@ -101,6 +63,8 @@ export function FileBrowser() {
     direction: "right",
   });
 
+  const directoryId = useSelector(directoryStore, (s) => s.context.directoryId);
+
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
       {dialogs.RenderOutside}
@@ -119,7 +83,7 @@ export function FileBrowser() {
           direction="left"
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <DirectoryContextProvider directoryId={FILE_BROWSER_TABLE_ID}>
+          <DirectoryContextProvider directoryId={directoryId}>
             <FileBrowserNavigationAndInputSection />
             {loading ? <div>Loading...</div> : <Table table={table}></Table>}
           </DirectoryContextProvider>

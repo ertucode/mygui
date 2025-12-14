@@ -22,6 +22,9 @@ import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { favoritesStore, selectIsFavorite } from "./favorites";
 import { dialogActions } from "./dialogStore";
+import { subscribeToStore } from "@/lib/functions/storeHelpers";
+import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
+import { FileBrowserCache } from "./FileBrowserCache";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -38,39 +41,6 @@ function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean {
   if (a.type === "path" && b.type === "path") return a.fullPath === b.fullPath;
   if (a.type === "tags" && b.type === "tags") return a.color === b.color;
   return false;
-}
-
-type FileBrowserCacheOperation =
-  | {
-      loading: true;
-      promise: Promise<GetFilesAndFoldersInDirectoryItem[]>;
-    }
-  | {
-      loading: false;
-      loaded: GetFilesAndFoldersInDirectoryItem[];
-    };
-
-class FileBrowserCache {
-  static cache = new Map<string, FileBrowserCacheOperation>();
-
-  static load = async (dir: string) => {
-    const cached = FileBrowserCache.cache.get(dir);
-    if (cached) {
-      if (!cached.loading) return cached.loaded;
-      return cached.promise;
-    }
-
-    const promise = getWindowElectron()
-      .getFilesAndFoldersInDirectory(dir)
-      .then((items) => {
-        FileBrowserCache.cache.set(dir, { loading: false, loaded: items });
-        setTimeout(() => {
-          FileBrowserCache.cache.delete(dir);
-        }, 500);
-        return items;
-      });
-    return promise;
-  };
 }
 
 function getFolderNameParts(dir: string) {
@@ -102,6 +72,7 @@ function computeFilteredData(
 
 export const directoryStore = createStore({
   context: {
+    directoryId: "file-browser-table",
     directory: initialDirectoryInfo,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
@@ -286,6 +257,41 @@ fileBrowserSettingsStore.subscribe(() => {
     });
   }
 });
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.directoryData],
+  (_) => {
+    directoryHelpers.resetSelection();
+  },
+);
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.pendingSelection, s.filteredDirectoryData],
+  (s) => {
+    if (s.pendingSelection && s.filteredDirectoryData.length > 0) {
+      const newItemIndex = s.filteredDirectoryData.findIndex(
+        (item) => item.name === s.pendingSelection,
+      );
+      if (newItemIndex !== -1) {
+        directoryHelpers.selectManually(newItemIndex);
+        scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
+      }
+      directoryHelpers.setPendingSelection(null);
+    }
+  },
+);
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.selection.last],
+  (s) => {
+    if (s.selection.last != null) {
+      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
+    }
+  },
+);
 
 const loadDirectoryPath = async (dir: string) => {
   directoryStore.send({ type: "setLoading", loading: true });
