@@ -163,6 +163,12 @@ export function useFileBrowserShortcuts(
           document.querySelector("webview")?.openDevTools();
         },
       },
+      {
+        key: { key: "/" },
+        handler: (e) => {
+          directoryStore.trigger.focusFuzzyInput({ e });
+        },
+      },
       // Option+1 through Option+9 to open favorites
       ...Array.from({ length: 9 }, (_, i) => ({
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },

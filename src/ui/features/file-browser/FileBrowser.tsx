@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
-import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
 import { createColumns } from "./config/columns";
 import {
   directoryStore,
@@ -11,6 +10,7 @@ import {
   selectDirectoryData,
   selectPendingSelection,
   selectSelection,
+  selectFilteredDirectoryData,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
 import { type FavoriteItem } from "./favorites";
@@ -37,6 +37,10 @@ export function FileBrowser() {
 
   const loading = useDebounce(_loading, 100);
   const directoryData = useSelector(directoryStore, selectDirectoryData);
+  const filteredDirectoryData = useSelector(
+    directoryStore,
+    selectFilteredDirectoryData,
+  );
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
   const selection = useSelector(directoryStore, selectSelection);
 
@@ -46,12 +50,6 @@ export function FileBrowser() {
     directoryHelpers.resetSelection();
   }, [directoryData]);
 
-  const fuzzy = useFuzzyFinder({
-    items: directoryData,
-    keys: ["name"],
-    setHighlight: directoryHelpers.setSelection,
-  });
-
   const columns = createColumns({
     fileTags,
     getFullPath: directoryHelpers.getFullPath,
@@ -59,7 +57,7 @@ export function FileBrowser() {
 
   const table = useTable({
     columns,
-    data: fuzzy.results,
+    data: filteredDirectoryData,
   });
 
   const scrollRowIntoViewIfNeeded = (
@@ -165,7 +163,7 @@ export function FileBrowser() {
           direction="left"
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <FileBrowserNavigationAndInputSection fuzzy={fuzzy} />
+          <FileBrowserNavigationAndInputSection />
           {loading ? (
             <div>Loading...</div>
           ) : (
