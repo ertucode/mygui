@@ -1,11 +1,12 @@
 import { createContext, useContext } from "react";
+import { DirectoryId } from "./directory";
 
 export function DirectoryContextProvider({
   children,
   directoryId,
 }: {
   children: React.ReactNode;
-  directoryId: string;
+  directoryId: DirectoryId;
 }) {
   return (
     <DirectoryContext.Provider value={{ directoryId }}>
@@ -15,7 +16,7 @@ export function DirectoryContextProvider({
 }
 
 export type DirectoryContextValue = {
-  directoryId: string;
+  directoryId: DirectoryId;
 };
 
 const DirectoryContext = createContext<DirectoryContextValue>(undefined as any);

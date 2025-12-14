@@ -20,7 +20,14 @@ interface FavoritesListProps {
 
 export function FavoritesList({ className }: FavoritesListProps) {
   const f = useSelector(favoritesStore, selectFavorites);
-  const directory = useSelector(directoryStore, selectDirectory);
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
 
   return (
     <FileBrowserSidebarSection
@@ -31,7 +38,7 @@ export function FavoritesList({ className }: FavoritesListProps) {
       isSelected={(favorite) =>
         directory.type === "path" && directory.fullPath === favorite.fullPath
       }
-      onClick={directoryHelpers.openItemFull}
+      onClick={(i) => directoryHelpers.openItemFull(i, activeDirectoryId)}
       getContextMenuItems={(favorite) => [
         {
           view: <TextWithIcon icon={Trash2Icon}>Delete</TextWithIcon>,

@@ -4,7 +4,11 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { FolderIcon, XIcon, FileIcon } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
 
 type FolderFinderTabProps = {
   isOpen: boolean;
@@ -17,7 +21,14 @@ export function FolderFinderTab({
   onClose,
   showPreview,
 }: FolderFinderTabProps) {
-  const directory = useSelector(directoryStore, selectDirectory);
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
   const [query, setQuery] = useState("");
   const [filteredFolders, setFilteredFolders] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -52,9 +63,7 @@ export function FolderFinderTab({
           );
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to load folders",
-        );
+        setError(err instanceof Error ? err.message : "Failed to load folders");
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +85,10 @@ export function FolderFinderTab({
     const loadContents = async () => {
       setIsLoadingContents(true);
       try {
-        const fullPath = directoryHelpers.getFullPath(selectedFolder);
+        const fullPath = directoryHelpers.getFullPath(
+          selectedFolder,
+          activeDirectoryId,
+        );
         const contents =
           await getWindowElectron().getFilesAndFoldersInDirectory(fullPath);
         setFolderContents(contents);
@@ -89,12 +101,7 @@ export function FolderFinderTab({
     };
 
     loadContents();
-  }, [
-    isOpen,
-    showPreview,
-    filteredFolders,
-    selectedIndex,
-  ]);
+  }, [isOpen, showPreview, filteredFolders, selectedIndex]);
 
   // Reset and focus when dialog opens
   useEffect(() => {
@@ -119,7 +126,10 @@ export function FolderFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (folderPath: string) => {
-    directoryHelpers.cdFull(directoryHelpers.getFullPath(folderPath));
+    directoryHelpers.cdFull(
+      directoryHelpers.getFullPath(folderPath, activeDirectoryId),
+      activeDirectoryId,
+    );
     onClose();
   };
 

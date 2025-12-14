@@ -5,3 +5,5 @@ type $AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
 ) => Promise<infer R>
   ? R
   : any;
+
+type $Branded<T, K extends string> = T & { __brand: K };

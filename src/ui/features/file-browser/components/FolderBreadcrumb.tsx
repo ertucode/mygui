@@ -13,11 +13,16 @@ import {
   selectDirectory,
 } from "../directory";
 import { setDefaultPath } from "../defaultPath";
+import { useDirectoryContext } from "../DirectoryContext";
 
 export function FolderBreadcrumb() {
   const menu = useContextMenu<number>();
   const tagConfig = useSelector(tagsStore, selectTagConfig);
-  const directory = useSelector(directoryStore, selectDirectory);
+  const directoryId = useDirectoryContext().directoryId;
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(directoryId),
+  ).directory;
 
   if (directory.type === "tags") {
     const tagName = tagConfig[directory.color] || directory.color;
@@ -69,13 +74,16 @@ export function FolderBreadcrumb() {
               key={idx}
               className="flex items-center gap-1"
               onClick={() =>
-                directoryHelpers.cd({
-                  type: "path",
-                  fullPath: PathHelpers.reconstructDirectoryUntilIndex(
-                    parts,
-                    idx,
-                  ),
-                })
+                directoryHelpers.cd(
+                  {
+                    type: "path",
+                    fullPath: PathHelpers.reconstructDirectoryUntilIndex(
+                      parts,
+                      idx,
+                    ),
+                  },
+                  directoryId,
+                )
               }
               onContextMenu={(e) => {
                 e.preventDefault();

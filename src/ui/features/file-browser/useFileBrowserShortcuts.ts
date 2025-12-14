@@ -3,16 +3,27 @@ import { useSelector } from "@xstate/store/react";
 import { dialogActions, useIsDialogOpen } from "./dialogStore";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import { directoryHelpers, directoryStore, selectSelection } from "./directory";
+import {
+  directoryHelpers,
+  DirectoryId,
+  directoryStore,
+  selectSelection,
+} from "./directory";
 import { favoritesStore } from "./favorites";
 
 export function useFileBrowserShortcuts(
   data: GetFilesAndFoldersInDirectoryItem[],
+  directoryId: DirectoryId,
 ) {
   const isConfirmationOpen = useConfirmation().isOpen;
   const isDialogsOpen = useIsDialogOpen();
 
-  const selection = useSelector(directoryStore, selectSelection);
+  const selection = useSelector(directoryStore, selectSelection(directoryId));
+
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
 
   // Create a selection object compatible with the old API
   const s = {
@@ -35,7 +46,7 @@ export function useFileBrowserShortcuts(
     [
       {
         key: ["Enter", "l"],
-        handler: (e) => directoryHelpers.openSelectedItem(data, e),
+        handler: (e) => directoryHelpers.openSelectedItem(data, e, directoryId),
       },
       {
         key: { key: "p", ctrlKey: true },
@@ -61,26 +72,27 @@ export function useFileBrowserShortcuts(
       {
         key: { key: "o", ctrlKey: true },
         handler: (_) => {
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev);
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, directoryId);
         },
       },
       {
         key: { key: "i", ctrlKey: true },
         handler: (_) => {
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext);
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, directoryId);
         },
       },
       {
         key: " ",
         handler: (_) => {
           if (s.state.last == null) {
-            directoryHelpers.selectManually(0);
+            directoryHelpers.selectManually(0, directoryId);
           }
         },
       },
       {
         key: ["-", "h"],
-        handler: () => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp),
+        handler: () =>
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId),
       },
       {
         key: { key: "Backspace", metaKey: true },
@@ -88,7 +100,7 @@ export function useFileBrowserShortcuts(
           // Command+Delete on macOS
           if (s.state.indexes.size === 0) return;
           const itemsToDelete = [...s.state.indexes].map((i) => data[i]);
-          directoryHelpers.handleDelete(itemsToDelete, data);
+          directoryHelpers.handleDelete(itemsToDelete, data, directoryId);
         },
         enabledIn: () => true,
       },
@@ -103,7 +115,7 @@ export function useFileBrowserShortcuts(
         key: "r",
         handler: (e) => {
           e.preventDefault();
-          directoryHelpers.reload();
+          directoryHelpers.reload(directoryId);
         },
       },
       {
@@ -118,7 +130,7 @@ export function useFileBrowserShortcuts(
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCopy = [...s.state.indexes].map((i) => data[i]);
-          directoryHelpers.handleCopy(itemsToCopy, false);
+          directoryHelpers.handleCopy(itemsToCopy, false, directoryId);
         },
         enabledIn: () => true,
       },
@@ -134,7 +146,7 @@ export function useFileBrowserShortcuts(
           e.preventDefault();
           if (s.state.indexes.size === 0) return;
           const itemsToCut = [...s.state.indexes].map((i) => data[i]);
-          directoryHelpers.handleCopy(itemsToCut, true);
+          directoryHelpers.handleCopy(itemsToCut, true, directoryId);
         },
         enabledIn: () => true,
       },
@@ -152,7 +164,7 @@ export function useFileBrowserShortcuts(
           }
 
           e.preventDefault();
-          directoryHelpers.handlePaste();
+          directoryHelpers.handlePaste(directoryId);
         },
         enabledIn: () => true,
       },
@@ -176,14 +188,17 @@ export function useFileBrowserShortcuts(
           e.preventDefault();
           const favorite = favoritesStore.get().context.favorites[i];
           if (favorite) {
-            directoryHelpers.openItemFull(favorite);
+            directoryHelpers.openItemFull(favorite, directoryId);
           }
         },
       })),
-      ...directoryHelpers.getSelectionShortcuts(data.length),
+      ...directoryHelpers.getSelectionShortcuts(data.length, directoryId),
     ],
     {
-      isDisabled: isConfirmationOpen || isDialogsOpen,
+      isDisabled:
+        isConfirmationOpen ||
+        isDialogsOpen ||
+        activeDirectoryId !== directoryId,
     },
   );
 }

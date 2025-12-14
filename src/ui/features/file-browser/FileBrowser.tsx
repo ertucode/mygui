@@ -3,7 +3,7 @@ import {
   directoryStore,
   directoryHelpers,
   selectSelection,
-  useFilteredDirectoryData,
+  directoryDerivedStores,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
 import { RecentsList } from "./components/RecentsList";
@@ -36,7 +36,10 @@ export function FileBrowser() {
     direction: "right",
   });
 
-  const directoryId = useSelector(directoryStore, (s) => s.context.directoryId);
+  const directories = useSelector(
+    directoryStore,
+    (s) => s.context.directoryOrder,
+  );
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
@@ -55,11 +58,20 @@ export function FileBrowser() {
           onMouseDown={sidebarPanel.handleMouseDown}
           direction="left"
         />
-        <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <DirectoryContextProvider directoryId={directoryId}>
-            <FileBrowserNavigationAndInputSection />
-            <FileBrowserTable></FileBrowserTable>
-          </DirectoryContextProvider>
+        <div className="flex gap-2 flex-1 overflow-hidden min-w-0 min-h-0">
+          {directories.map((d) => {
+            return (
+              <div
+                key={d}
+                className="relative flex flex-col min-h-0 min-w-0 flex-1"
+              >
+                <DirectoryContextProvider directoryId={d}>
+                  <FileBrowserNavigationAndInputSection />
+                  <FileBrowserTable></FileBrowserTable>
+                </DirectoryContextProvider>
+              </div>
+            );
+          })}
         </div>
         <ResizeHandle
           onMouseDown={previewPanel.handleMouseDown}
@@ -78,8 +90,17 @@ export function FileBrowser() {
 }
 
 function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
-  const selection = useSelector(directoryStore, selectSelection);
-  const filteredDirectoryData = useFilteredDirectoryData();
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const selection = useSelector(
+    directoryStore,
+    selectSelection(activeDirectoryId),
+  );
+  const filteredDirectoryData = directoryDerivedStores
+    .get(activeDirectoryId)!
+    .useFilteredDirectoryData();
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
     selection.indexes.size === 1 && selection.last != null
@@ -88,7 +109,7 @@ function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
   const previewFilePath =
     selectedItem && selectedItem.type === "file"
       ? (selectedItem.fullPath ??
-        directoryHelpers.getFullPath(selectedItem.name))
+        directoryHelpers.getFullPath(selectedItem.name, activeDirectoryId))
       : null;
 
   return (

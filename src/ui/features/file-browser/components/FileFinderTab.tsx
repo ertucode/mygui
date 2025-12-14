@@ -5,7 +5,11 @@ import { FileIcon, XIcon } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { FilePreview } from "./FilePreview";
 import { Alert } from "@/lib/components/alert";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
 
 type FileFinderTabProps = {
   isOpen: boolean;
@@ -18,7 +22,14 @@ export function FileFinderTab({
   onClose,
   showPreview,
 }: FileFinderTabProps) {
-  const directory = useSelector(directoryStore, selectDirectory);
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
   const [query, setQuery] = useState("");
   const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -80,7 +91,7 @@ export function FileFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (filePath: string) => {
-    directoryHelpers.openFile(filePath);
+    directoryHelpers.openFile(filePath, activeDirectoryId);
     onClose();
   };
 
@@ -89,7 +100,10 @@ export function FileFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = filePath.slice(0, lastSlashIndex);
-    directoryHelpers.cdFull(directoryHelpers.getFullPath(dirPath));
+    directoryHelpers.cdFull(
+      directoryHelpers.getFullPath(dirPath, activeDirectoryId),
+      activeDirectoryId,
+    );
     onClose();
   };
 
@@ -146,7 +160,7 @@ export function FileFinderTab({
 
   const selectedFile = filteredFiles[selectedIndex];
   const selectedFilePath = selectedFile
-    ? directoryHelpers.getFullPath(selectedFile)
+    ? directoryHelpers.getFullPath(selectedFile, activeDirectoryId)
     : null;
   const selectedFileExt = selectedFile
     ? selectedFile.slice(selectedFile.lastIndexOf(".") + 1)

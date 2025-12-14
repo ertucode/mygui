@@ -1,4 +1,4 @@
-import { createStore } from "@xstate/store";
+import { createStore, StoreSnapshot } from "@xstate/store";
 import { HistoryStack } from "@common/history-stack";
 import { errorToString } from "@common/errorToString";
 import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
@@ -28,6 +28,7 @@ import {
 } from "@/lib/functions/storeHelpers";
 import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
 import { FileBrowserCache } from "./FileBrowserCache";
+import { ShortcutInput } from "@/lib/hooks/useShortcuts";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -46,13 +47,17 @@ function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean {
   return false;
 }
 
-function getFolderNameParts(dir: string) {
-  return dir.split("/").filter(Boolean);
+const initialDirectoryInfo = getDirectoryInfo(defaultPath);
+
+function getActiveDirectory(
+  context: DirectoryContext,
+  directoryId: DirectoryId | undefined,
+) {
+  const dirId = directoryId ?? context.activeDirectoryId;
+  return context.directoriesById[dirId];
 }
 
-export type TaggedFilesGetter = (color: TagColor) => string[];
-
-const initialDirectoryInfo = getDirectoryInfo(defaultPath);
+export type DirectoryId = $Branded<string, "DirectoryId">;
 
 // Helper function to compute filtered directory data
 function computeFilteredData(
@@ -73,173 +78,221 @@ function computeFilteredData(
   return results.map((result) => result.item);
 }
 
+const initialDirectoryId = "file-browser-table" as DirectoryId;
+const secondaryDirectoryId = "file-browser-table2" as DirectoryId;
+
+type DirectoryContextDirectory = {
+  directoryId: DirectoryId;
+  directory: DirectoryInfo;
+  loading: boolean;
+  directoryData: GetFilesAndFoldersInDirectoryItem[];
+  error: string | undefined;
+  historyStack: HistoryStack<DirectoryInfo>;
+  pendingSelection: string | null;
+  selection: {
+    indexes: Set<number>;
+    last: number | undefined;
+  };
+  fuzzyQuery: string;
+};
+
+type DirectoryContext = {
+  directoriesById: { [id: DirectoryId]: DirectoryContextDirectory };
+  directoryOrder: DirectoryId[];
+  activeDirectoryId: DirectoryId;
+};
+
+function updateDirectory(
+  context: DirectoryContext,
+  directoryId: DirectoryId | undefined,
+  fn: (d: DirectoryContextDirectory) => DirectoryContextDirectory,
+) {
+  const activeDirectory = getActiveDirectory(context, directoryId);
+  const newItem = fn(activeDirectory);
+  return {
+    ...context,
+    directoriesById: {
+      ...context.directoriesById,
+      [activeDirectory.directoryId]: newItem,
+    },
+  };
+}
+
 export const directoryStore = createStore({
   context: {
-    directoryId: "file-browser-table",
-    directory: initialDirectoryInfo,
-    loading: false,
-    directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-    error: undefined as string | undefined,
-    historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
-    pendingSelection: null as string | null,
-    // Selection state
-    selection: {
-      indexes: new Set<number>(),
-      last: undefined as number | undefined,
+    directoriesById: {
+      [initialDirectoryId]: {
+        directoryId: initialDirectoryId,
+        directory: initialDirectoryInfo,
+        loading: false,
+        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+        error: undefined as string | undefined,
+        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
+        pendingSelection: null as string | null,
+        // Selection state
+        selection: {
+          indexes: new Set<number>(),
+          last: undefined as number | undefined,
+        },
+        // Fuzzy finder state
+        fuzzyQuery: "",
+      },
+      [secondaryDirectoryId]: {
+        directoryId: secondaryDirectoryId,
+        directory: initialDirectoryInfo,
+        loading: false,
+        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+        error: undefined as string | undefined,
+        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
+        pendingSelection: null as string | null,
+        // Selection state
+        selection: {
+          indexes: new Set<number>(),
+          last: undefined as number | undefined,
+        },
+        // Fuzzy finder state
+        fuzzyQuery: "",
+      },
     },
-    // Fuzzy finder state
-    fuzzyQuery: "",
-  },
+    directoryOrder: [initialDirectoryId, secondaryDirectoryId],
+    activeDirectoryId: initialDirectoryId,
+  } as DirectoryContext,
   emits: {
-    focusFuzzyInput: (_: { e: KeyboardEvent }) => {},
+    focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
   },
   on: {
     focusFuzzyInput: (context, event: { e: KeyboardEvent }, enqueue) => {
-      enqueue.emit.focusFuzzyInput(event);
+      enqueue.emit.focusFuzzyInput({
+        e: event.e,
+        directoryId: context.activeDirectoryId,
+      });
       return context;
     },
-    setLoading: (context, event: { loading: boolean }) => ({
-      ...context,
-      loading: event.loading,
-    }),
+    setLoading: (
+      context,
+      event: { loading: boolean; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        loading: event.loading,
+      })),
 
     setDirectoryData: (
       context,
-      event: { data: GetFilesAndFoldersInDirectoryItem[] },
-    ) => {
-      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-      const directoryData = DirectoryDataFromSettings.getDirectoryData(
-        event.data,
-        settings,
-      );
-      const filteredDirectoryData = computeFilteredData(
-        directoryData,
-        context.fuzzyQuery,
-      );
-      return {
-        ...context,
+      event: {
+        data: GetFilesAndFoldersInDirectoryItem[];
+        directoryId: DirectoryId;
+      },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
         directoryData: event.data,
-        filteredDirectoryData,
         error: undefined,
-      };
-    },
+      })),
 
-    setError: (context, event: { error: string }) => ({
-      ...context,
-      error: event.error,
-    }),
+    setDirectory: (
+      context,
+      event: { directory: DirectoryInfo; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        directory: event.directory,
+      })),
 
-    setDirectory: (context, event: { directory: DirectoryInfo }) => ({
-      ...context,
-      directory: event.directory,
-    }),
+    historyGoNew: (
+      context,
+      event: { directory: DirectoryInfo; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => {
+        d.historyStack.goNew(event.directory);
+        return d;
+      }),
 
-    historyGoNew: (context, event: { directory: DirectoryInfo }) => {
-      context.historyStack.goNew(event.directory);
-      return context;
-    },
+    historyGoNext: (context, event: { directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, (d) => {
+        const nextDir = d.historyStack.goNext();
+        return {
+          ...d,
+          directory: nextDir,
+        };
+      }),
 
-    historyGoNext: (context) => {
-      const nextDir = context.historyStack.goNext();
-      return {
-        ...context,
-        directory: nextDir,
-      };
-    },
+    historyGoPrev: (context, event: { directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, (d) => {
+        const prevDir = d.historyStack.goPrev();
+        return {
+          ...d,
+          directory: prevDir,
+        };
+      }),
 
-    historyGoPrev: (context) => {
-      const prevDir = context.historyStack.goPrev();
-      return {
-        ...context,
-        directory: prevDir,
-      };
-    },
+    setPendingSelection: (
+      context,
+      event: { name: string | null; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        pendingSelection: event.name,
+      })),
 
-    setPendingSelection: (context, event: { name: string | null }) => ({
-      ...context,
-      pendingSelection: event.name,
-    }),
-
-    itemCreated: (context, event: { name: string }) => ({
-      ...context,
-      pendingSelection: event.name,
-    }),
-
-    itemRenamed: (context, event: { name: string }) => ({
-      ...context,
-      pendingSelection: event.name,
-    }),
-
-    // Selection events
     setSelection: (
       context,
-      event: { indexes: Set<number>; last?: number },
-    ) => ({
-      ...context,
-      selection: {
-        indexes: event.indexes,
-        last: event.last,
-      },
-    }),
+      event: { indexes: Set<number>; last?: number; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        selection: {
+          indexes: event.indexes,
+          last: event.last,
+        },
+      })),
 
-    resetSelection: (context) => ({
-      ...context,
-      selection: {
-        indexes: new Set<number>(),
-        last: undefined,
-      },
-    }),
+    resetSelection: (context, event: { directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        selection: {
+          indexes: new Set<number>(),
+          last: undefined,
+        },
+      })),
 
-    selectManually: (context, event: { index: number }) => ({
-      ...context,
-      selection: {
-        indexes: new Set([event.index]),
-        last: event.index,
-      },
-    }),
+    selectManually: (
+      context,
+      event: { index: number; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        selection: {
+          indexes: new Set([event.index]),
+          last: event.index,
+        },
+      })),
 
     // Fuzzy finder events
-    setFuzzyQuery: (context, event: { query: string }) => {
-      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-      const directoryData = DirectoryDataFromSettings.getDirectoryData(
-        context.directoryData,
-        settings,
-      );
-      const filteredDirectoryData = computeFilteredData(
-        directoryData,
-        event.query,
-      );
-      return {
-        ...context,
+    setFuzzyQuery: (
+      context,
+      event: { query: string; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
         fuzzyQuery: event.query,
-        filteredDirectoryData,
-        // Reset selection to first item when query changes (if query is not empty)
         selection: event.query
           ? {
               indexes: new Set([0]),
               last: 0,
             }
-          : context.selection,
-      };
-    },
-
-    clearFuzzyQuery: (context) => {
-      const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-      const directoryData = DirectoryDataFromSettings.getDirectoryData(
-        context.directoryData,
-        settings,
-      );
-      return {
-        ...context,
+          : d.selection,
+      })),
+    clearFuzzyQuery: (context, event: { directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
         fuzzyQuery: "",
-        filteredDirectoryData: directoryData,
-      };
-    },
+      })),
   },
 });
 
-const loadDirectoryPath = async (dir: string) => {
-  directoryStore.send({ type: "setLoading", loading: true });
+const loadDirectoryPath = async (dir: string, directoryId: DirectoryId) => {
+  directoryStore.send({ type: "setLoading", loading: true, directoryId });
   try {
     const result = await FileBrowserCache.load(dir);
 
@@ -250,26 +303,33 @@ const loadDirectoryPath = async (dir: string) => {
       return a.name.localeCompare(b.name);
     });
 
-    directoryStore.send({ type: "setDirectoryData", data: result });
+    directoryStore.send({
+      type: "setDirectoryData",
+      data: result,
+      directoryId,
+    });
     return result;
   } catch (e) {
-    directoryStore.send({ type: "setError", error: errorToString(e) });
+    toast.show({
+      message: errorToString(e),
+      severity: "error",
+    });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false });
+    directoryStore.send({ type: "setLoading", loading: false, directoryId });
   }
 };
 
-const loadTaggedFiles = async (color: TagColor) => {
+const loadTaggedFiles = async (color: TagColor, directoryId: DirectoryId) => {
   const getFilesWithTag = (color: TagColor) =>
     Object.entries(tagsStore.get().context.fileTags)
       .filter(([_, tags]) => tags.includes(color))
       .map(([path]) => path);
 
-  directoryStore.send({ type: "setLoading", loading: true });
+  directoryStore.send({ type: "setLoading", loading: true, directoryId });
   try {
     const filePaths = getFilesWithTag(color);
     if (filePaths.length === 0) {
-      directoryStore.send({ type: "setDirectoryData", data: [] });
+      directoryStore.send({ type: "setDirectoryData", data: [], directoryId });
       return [];
     }
     const result = await getWindowElectron().getFileInfoByPaths(filePaths);
@@ -286,66 +346,98 @@ const loadTaggedFiles = async (color: TagColor) => {
         fullPaths: staleItems,
       });
     }
-    directoryStore.send({ type: "setDirectoryData", data: result });
+    directoryStore.send({
+      type: "setDirectoryData",
+      data: result,
+      directoryId,
+    });
     return result;
   } catch (e) {
-    directoryStore.send({ type: "setError", error: errorToString(e) });
+    toast.show({
+      message: errorToString(e),
+      severity: "error",
+    });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false });
+    directoryStore.send({ type: "setLoading", loading: false, directoryId });
   }
 };
 
-const loadDirectoryInfo = async (info: DirectoryInfo) => {
+const loadDirectoryInfo = async (
+  info: DirectoryInfo,
+  directoryId: DirectoryId,
+) => {
   if (info.type === "path") {
-    return loadDirectoryPath(info.fullPath);
+    return loadDirectoryPath(info.fullPath, directoryId);
   } else {
-    return loadTaggedFiles(info.color);
+    return loadTaggedFiles(info.color, directoryId);
   }
 };
 
-// Load the initial directory
-loadDirectoryPath(defaultPath);
-
-const cd = async (newDirectory: DirectoryInfo, isNew: boolean) => {
-  const state = directoryStore.get();
-  if (state.context.loading) return;
-  if (directoryInfoEquals(newDirectory, state.context.directory)) return;
+const cd = async (
+  newDirectory: DirectoryInfo,
+  isNew: boolean,
+  directoryId: DirectoryId,
+) => {
+  const context = getActiveDirectory(
+    directoryStore.getSnapshot().context,
+    directoryId,
+  );
+  if (context.loading) return;
+  if (directoryInfoEquals(newDirectory, context.directory)) return;
   if (isNew)
     directoryStore.send({
       type: "historyGoNew",
       directory: newDirectory,
+      directoryId,
     });
-  directoryStore.send({ type: "setDirectory", directory: newDirectory });
+  directoryStore.send({
+    type: "setDirectory",
+    directory: newDirectory,
+    directoryId,
+  });
   if (newDirectory.type === "path") {
     recentsStore.send({
       type: "addRecent",
       item: { fullPath: newDirectory.fullPath, type: "dir" },
     });
   }
-  return loadDirectoryInfo(newDirectory);
+  return loadDirectoryInfo(newDirectory, directoryId);
 };
 
 const preloadDirectory = (dir: string) => {
   return FileBrowserCache.load(dir);
 };
 
-const getFullPath = (dir: string) => {
-  const state = directoryStore.get();
-  if (state.context.directory.type === "path") {
-    return mergeMaybeSlashed(state.context.directory.fullPath, dir);
+const getFullPath = (dir: string, directoryId: DirectoryId) => {
+  const context = getActiveDirectory(
+    directoryStore.getSnapshot().context,
+    directoryId,
+  );
+  if (context.directory.type === "path") {
+    return mergeMaybeSlashed(context.directory.fullPath, dir);
   }
   // For tags view, we cannot merge paths
   return dir;
 };
 
-const getFullPathForItem = (item: GetFilesAndFoldersInDirectoryItem) => {
-  return item.fullPath ?? getFullPath(item.name);
+const getFullPathForItem = (
+  item: GetFilesAndFoldersInDirectoryItem,
+  directoryId: DirectoryId,
+) => {
+  return item.fullPath ?? getFullPath(item.name, directoryId);
 };
 
-const cdWithMetadata = async (newDirectory: DirectoryInfo, isNew: boolean) => {
-  const state = directoryStore.get();
-  const beforeNavigation = state.context.directory;
-  const directoryData = await cd(newDirectory, isNew);
+const cdWithMetadata = async (
+  newDirectory: DirectoryInfo,
+  isNew: boolean,
+  directoryId: DirectoryId,
+) => {
+  const context = getActiveDirectory(
+    directoryStore.getSnapshot().context,
+    directoryId,
+  );
+  const beforeNavigation = context.directory;
+  const directoryData = await cd(newDirectory, isNew, directoryId);
   const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
   return {
     directoryData:
@@ -355,19 +447,24 @@ const cdWithMetadata = async (newDirectory: DirectoryInfo, isNew: boolean) => {
   };
 };
 
-const changeDirectory = async (newDirectory: string) => {
+const changeDirectory = async (
+  newDirectory: string,
+  directoryId: DirectoryId,
+) => {
   cd(
     {
       type: "path",
-      fullPath: getFullPath(newDirectory),
+      fullPath: getFullPath(newDirectory, directoryId),
     },
     true,
+    directoryId,
   );
 };
 
 const openFileFull = (fullPath: string) =>
   getWindowElectron().openFile(fullPath);
-const openFile = (filePath: string) => openFileFull(getFullPath(filePath));
+const openFile = (filePath: string, directoryId: DirectoryId) =>
+  openFileFull(getFullPath(filePath, directoryId));
 
 type ReturnOfGoPrev = Promise<
   | {
@@ -379,22 +476,32 @@ type ReturnOfGoPrev = Promise<
 
 // Helper functions
 export const directoryHelpers = {
-  createNewItem: async (name: string): Promise<ResultHandlerResult> => {
-    const state = directoryStore.get();
-    if (state.context.directory.type !== "path") {
+  createNewItem: async (
+    name: string,
+    directoryId: DirectoryId,
+  ): Promise<ResultHandlerResult> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
       return GenericError.Message("Cannot create items in tags view");
     }
 
     try {
       const result = await getWindowElectron().createFileOrFolder(
-        state.context.directory.fullPath,
+        context.directory.fullPath,
         name,
       );
       if (result.success) {
-        await loadDirectoryInfo(state.context.directory);
+        await loadDirectoryInfo(context.directory, directoryId);
         // Emit itemCreated event to set pending selection
         const itemName = name.endsWith("/") ? name.slice(0, -1) : name;
-        directoryStore.send({ type: "itemCreated", name: itemName });
+        directoryStore.send({
+          type: "setPendingSelection",
+          name: itemName,
+          directoryId,
+        });
       }
       return result;
     } catch (err) {
@@ -407,19 +514,28 @@ export const directoryHelpers = {
   renameItem: async (
     item: GetFilesAndFoldersInDirectoryItem,
     newName: string,
+    directoryId: DirectoryId,
   ): Promise<ResultHandlerResult> => {
     try {
       if (!item) throw new Error("No item selected");
-      const oldPath = item.fullPath ?? directoryHelpers.getFullPath(item.name);
+      const oldPath =
+        item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId);
       const result = await getWindowElectron().renameFileOrFolder(
         oldPath,
         newName,
       );
       if (result.success) {
-        const state = directoryStore.get();
-        await loadDirectoryInfo(state.context.directory);
+        const context = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
+        await loadDirectoryInfo(context.directory, directoryId);
         // Emit itemRenamed event to set pending selection
-        directoryStore.send({ type: "itemRenamed", name: newName });
+        directoryStore.send({
+          type: "setPendingSelection",
+          name: newName,
+          directoryId,
+        });
       }
       return result;
     } catch (err) {
@@ -429,29 +545,39 @@ export const directoryHelpers = {
     }
   },
 
-  setPendingSelection: (name: string | null) => {
-    directoryStore.send({ type: "setPendingSelection", name });
+  setPendingSelection: (name: string | null, directoryId: DirectoryId) => {
+    directoryStore.send({ type: "setPendingSelection", name, directoryId });
   },
 
   changeDirectory,
 
-  cd: (dir: DirectoryInfo) => cd(dir, true),
+  cd: (dir: DirectoryInfo, directoryId: DirectoryId) =>
+    cd(dir, true, directoryId),
 
-  cdFull: (fullPath: string) => {
-    return cd({ type: "path", fullPath }, true);
+  cdFull: (fullPath: string, directoryId: DirectoryId) => {
+    return cd({ type: "path", fullPath }, true, directoryId);
   },
 
-  showTaggedFiles: (color: TagColor) => {
-    return cd({ type: "tags", color }, true);
+  showTaggedFiles: (color: TagColor, directoryId: DirectoryId) => {
+    return cd({ type: "tags", color }, true, directoryId);
   },
 
-  goNext: async () => {
-    const state = directoryStore.get();
-    if (!state.context.historyStack.hasNext) return;
-    const beforeNavigation = state.context.directory;
-    directoryStore.send({ type: "historyGoNext" });
-    const newState = directoryStore.get();
-    const directoryData = await loadDirectoryInfo(newState.context.directory);
+  goNext: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (!context.historyStack.hasNext) return;
+    const beforeNavigation = context.directory;
+    directoryStore.send({ type: "historyGoNext", directoryId });
+    const newContext = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const directoryData = await loadDirectoryInfo(
+      newContext.directory,
+      directoryId,
+    );
     const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
     return {
       directoryData:
@@ -461,13 +587,22 @@ export const directoryHelpers = {
     };
   },
 
-  goPrev: async () => {
-    const state = directoryStore.get();
-    if (!state.context.historyStack.hasPrev) return;
-    const beforeNavigation = state.context.directory;
-    directoryStore.send({ type: "historyGoPrev" });
-    const newState = directoryStore.get();
-    const directoryData = await loadDirectoryInfo(newState.context.directory);
+  goPrev: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (!context.historyStack.hasPrev) return;
+    const beforeNavigation = context.directory;
+    directoryStore.send({ type: "historyGoPrev", directoryId });
+    const newContext = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const directoryData = await loadDirectoryInfo(
+      newContext.directory,
+      directoryId,
+    );
     const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
     return {
       directoryData:
@@ -477,27 +612,23 @@ export const directoryHelpers = {
     };
   },
 
-  goUp: async () => {
-    const state = directoryStore.get();
-    const directory = state.context.directory;
+  goUp: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const directory = context.directory;
     // goUp only makes sense when in a path directory
     if (directory.type !== "path") return;
-    let parts = getFolderNameParts(directory.fullPath);
-    if (parts.length === 1) {
-      if (parts[0] === "~") {
-        const home = await getWindowElectron().getHomeDirectory();
-        parts = getFolderNameParts(home);
-      }
-    }
-    let fullPath = parts.slice(0, parts.length - 1).join("/") + "/";
-    if (fullPath[0] !== "/" && fullPath[0] !== "~") {
-      fullPath = "/" + fullPath;
-    }
+
     const info: DirectoryInfo = {
       type: "path",
-      fullPath,
+      fullPath: PathHelpers.resolveUpDirectory(
+        getWindowElectron().homeDirectory,
+        directory.fullPath,
+      ),
     };
-    return await cdWithMetadata(info, true);
+    return await cdWithMetadata(info, true, directoryId);
   },
 
   toggleShowDotFiles: fileBrowserSettingsHelpers.toggleShowDotFiles,
@@ -513,21 +644,27 @@ export const directoryHelpers = {
   setSettings: fileBrowserSettingsHelpers.setSettings,
   setSort: fileBrowserSettingsHelpers.setSort,
 
-  reload: () => {
-    const state = directoryStore.get();
-    return loadDirectoryInfo(state.context.directory);
+  reload: (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    return loadDirectoryInfo(context.directory, directoryId);
   },
 
-  openItem: (item: GetFilesAndFoldersInDirectoryItem) => {
+  openItem: (
+    item: GetFilesAndFoldersInDirectoryItem,
+    directoryId: DirectoryId,
+  ) => {
     if (item.type === "dir") {
       // If we have a fullPath (from tags view), use it directly
       if (item.fullPath) {
-        cd({ type: "path", fullPath: item.fullPath }, true);
+        cd({ type: "path", fullPath: item.fullPath }, true, directoryId);
       } else {
-        changeDirectory(item.name);
+        changeDirectory(item.name, directoryId);
       }
     } else {
-      const fullPath = item.fullPath || getFullPath(item.name);
+      const fullPath = item.fullPath || getFullPath(item.name, directoryId);
       recentsStore.send({
         type: "addRecent",
         item: { fullPath, type: "file" },
@@ -538,17 +675,27 @@ export const directoryHelpers = {
 
   openFileFull,
 
-  openItemFull: (item: { type: "dir" | "file"; fullPath: string }) => {
+  openItemFull: (
+    item: { type: "dir" | "file"; fullPath: string },
+    directoryId: DirectoryId,
+  ) => {
     if (item.type === "dir") {
-      directoryHelpers.cdFull(item.fullPath);
+      directoryHelpers.cdFull(item.fullPath, directoryId);
     } else {
       directoryHelpers.openFileFull(item.fullPath);
     }
   },
 
   // Selection helpers
-  select: (index: number, event: React.MouseEvent | KeyboardEvent) => {
-    const state = directoryStore.get().context;
+  select: (
+    index: number,
+    event: React.MouseEvent | KeyboardEvent,
+    directoryId: DirectoryId,
+  ) => {
+    const state = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
 
     // Helper to remove item from set
     const removeFromSet = (set: Set<number>, item: number) => {
@@ -606,6 +753,7 @@ export const directoryHelpers = {
         type: "setSelection",
         indexes,
         last: index,
+        directoryId,
       });
       return;
     }
@@ -619,6 +767,7 @@ export const directoryHelpers = {
           type: "setSelection",
           indexes: removeFromSet(state.selection.indexes, index),
           last: index,
+          directoryId,
         });
         return;
       }
@@ -626,6 +775,7 @@ export const directoryHelpers = {
         type: "setSelection",
         indexes: new Set([...state.selection.indexes, index]),
         last: index,
+        directoryId,
       });
       return;
     }
@@ -634,10 +784,14 @@ export const directoryHelpers = {
       type: "setSelection",
       indexes: new Set([index]),
       last: index,
+      directoryId,
     });
   },
 
-  getSelectionShortcuts: (count: number) => [
+  getSelectionShortcuts: (
+    count: number,
+    directoryId: DirectoryId,
+  ): ShortcutInput[] => [
     {
       key: [{ key: "a", metaKey: true }],
       handler: (e: KeyboardEvent) => {
@@ -645,6 +799,7 @@ export const directoryHelpers = {
           type: "setSelection",
           indexes: new Set(Array.from({ length: count }).map((_, i) => i)),
           last: count - 1,
+          directoryId,
         });
         e.preventDefault();
       },
@@ -652,7 +807,10 @@ export const directoryHelpers = {
     {
       key: ["ArrowUp", "k", "K"],
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
         if (state.selection.indexes.has(lastSelected - 1)) {
           const newSet = new Set(state.selection.indexes);
@@ -661,12 +819,13 @@ export const directoryHelpers = {
             type: "setSelection",
             indexes: newSet,
             last: lastSelected - 1,
+            directoryId,
           });
         } else {
           if (lastSelected - 1 < 0) {
-            directoryHelpers.select(count - 1, e);
+            directoryHelpers.select(count - 1, e, directoryId);
           } else {
-            directoryHelpers.select(lastSelected - 1, e);
+            directoryHelpers.select(lastSelected - 1, e, directoryId);
           }
         }
         e.preventDefault();
@@ -675,7 +834,10 @@ export const directoryHelpers = {
     {
       key: ["ArrowDown", "j", "J"],
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
         if (state.selection.indexes.has(lastSelected + 1)) {
           const newSet = new Set(state.selection.indexes);
@@ -684,12 +846,13 @@ export const directoryHelpers = {
             type: "setSelection",
             indexes: newSet,
             last: lastSelected + 1,
+            directoryId,
           });
         } else {
           if (lastSelected + 1 === count) {
-            directoryHelpers.select(0, e);
+            directoryHelpers.select(0, e, directoryId);
           } else {
-            directoryHelpers.select(lastSelected + 1, e);
+            directoryHelpers.select(lastSelected + 1, e, directoryId);
           }
         }
         e.preventDefault();
@@ -698,18 +861,24 @@ export const directoryHelpers = {
     {
       key: "ArrowLeft",
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
-        directoryHelpers.select(lastSelected - 10, e);
+        directoryHelpers.select(lastSelected - 10, e, directoryId);
         e.preventDefault();
       },
     },
     {
       key: "ArrowRight",
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
-        directoryHelpers.select(lastSelected + 10, e);
+        directoryHelpers.select(lastSelected + 10, e, directoryId);
         e.preventDefault();
       },
     },
@@ -717,7 +886,7 @@ export const directoryHelpers = {
       key: "G",
       handler: (e: KeyboardEvent) => {
         // Go to the bottom (like vim G)
-        directoryHelpers.select(count - 1, e);
+        directoryHelpers.select(count - 1, e, directoryId);
         e.preventDefault();
       },
     },
@@ -725,45 +894,64 @@ export const directoryHelpers = {
       // Go to the top (like vim gg)
       sequence: ["g", "g"],
       handler: (e: KeyboardEvent) => {
-        directoryHelpers.select(0, e);
+        directoryHelpers.select(0, e, directoryId);
         e.preventDefault();
       },
     },
     {
       key: { key: "d", ctrlKey: true },
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
-        directoryHelpers.select(Math.min(lastSelected + 10, count - 1), e);
+        directoryHelpers.select(
+          Math.min(lastSelected + 10, count - 1),
+          e,
+          directoryId,
+        );
         e.preventDefault();
       },
     },
     {
       key: { key: "u", ctrlKey: true },
       handler: (e: KeyboardEvent) => {
-        const state = directoryStore.get().context;
+        const state = getActiveDirectory(
+          directoryStore.getSnapshot().context,
+          directoryId,
+        );
         const lastSelected = state.selection.last ?? 0;
-        directoryHelpers.select(Math.max(lastSelected - 10, 0), e);
+        directoryHelpers.select(Math.max(lastSelected - 10, 0), e, directoryId);
         e.preventDefault();
       },
     },
   ],
 
-  resetSelection: () => {
-    directoryStore.send({ type: "resetSelection" });
+  resetSelection: (directoryId: DirectoryId) => {
+    directoryStore.send({ type: "resetSelection", directoryId });
   },
 
-  isSelected: (index: number) => {
-    const state = directoryStore.get().context;
+  isSelected: (index: number, directoryId: DirectoryId) => {
+    const state = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
     return state.selection.indexes.has(index);
   },
 
-  selectManually: (index: number) => {
-    directoryStore.send({ type: "selectManually", index });
+  selectManually: (index: number, directoryId: DirectoryId) => {
+    directoryStore.send({ type: "selectManually", index, directoryId });
   },
 
-  setSelection: (h: number | ((s: number) => number)) => {
-    const state = directoryStore.get().context;
+  setSelection: (
+    h: number | ((s: number) => number),
+    directoryId: DirectoryId,
+  ) => {
+    const state = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
     let newSelection: number;
     if (state.selection.indexes.size === 0) {
       newSelection = typeof h === "number" ? h : h(0);
@@ -776,15 +964,18 @@ export const directoryHelpers = {
       type: "setSelection",
       indexes: new Set([newSelection]),
       last: newSelection,
+      directoryId,
     });
   },
 
   handleCopy: async (
     items: GetFilesAndFoldersInDirectoryItem[],
     cut: boolean = false,
+    directoryId: DirectoryId,
   ) => {
     const paths = items.map(
-      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
+      (item) =>
+        item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId),
     );
     const result = await getWindowElectron().copyFiles(paths, cut);
     if (!result.success) {
@@ -792,20 +983,26 @@ export const directoryHelpers = {
     }
   },
 
-  handlePaste: async () => {
-    const state = directoryStore.get();
-    if (state.context.directory.type !== "path") {
+  handlePaste: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
       toast.show(GenericError.Message("Cannot paste in tags view"));
       return;
     }
     const result = await getWindowElectron().pasteFiles(
-      state.context.directory.fullPath,
+      context.directory.fullPath,
     );
     if (result.success) {
-      await directoryHelpers.reload();
+      await directoryHelpers.reload(directoryId);
       // Select the first pasted item
       if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
-        directoryHelpers.setPendingSelection(result.data.pastedItems[0]);
+        directoryHelpers.setPendingSelection(
+          result.data.pastedItems[0],
+          directoryId,
+        );
       }
     } else {
       toast.show(result);
@@ -815,9 +1012,11 @@ export const directoryHelpers = {
   handleDelete: async (
     items: GetFilesAndFoldersInDirectoryItem[],
     tableData: GetFilesAndFoldersInDirectoryItem[],
+    directoryId: DirectoryId,
   ) => {
     const paths = items.map(
-      (item) => item.fullPath ?? directoryHelpers.getFullPath(item.name),
+      (item) =>
+        item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId),
     );
     const deletedNames = new Set(items.map((item) => item.name));
 
@@ -855,7 +1054,7 @@ export const directoryHelpers = {
           });
 
           // Reload the directory without affecting history
-          await directoryHelpers.reload();
+          await directoryHelpers.reload(directoryId);
 
           // Select the nearest item (prefer top, fallback to bottom)
           const remainingItems = tableData.filter(
@@ -868,9 +1067,12 @@ export const directoryHelpers = {
               remainingItems.length - 1,
             );
             const itemToSelect = remainingItems[newIndex];
-            directoryHelpers.setPendingSelection(itemToSelect.name);
+            directoryHelpers.setPendingSelection(
+              itemToSelect.name,
+              directoryId,
+            );
           } else {
-            directoryStore.send({ type: "resetSelection" });
+            directoryStore.send({ type: "resetSelection", directoryId });
           }
         } catch (error) {
           console.error("Error deleting files:", error);
@@ -884,8 +1086,11 @@ export const directoryHelpers = {
     });
   },
 
-  onGoUpOrPrev: async (fn: () => ReturnOfGoPrev) => {
-    const metadata = await fn();
+  onGoUpOrPrev: async (
+    fn: (directoryId: DirectoryId) => ReturnOfGoPrev,
+    directoryId: DirectoryId,
+  ) => {
+    const metadata = await fn(directoryId);
     if (!metadata) return;
     const { directoryData, beforeNavigation } = metadata;
 
@@ -899,17 +1104,21 @@ export const directoryHelpers = {
         (i) => i.name === beforeNavigationName,
       );
       if (idx === -1) return;
-      directoryHelpers.selectManually(idx);
+      directoryHelpers.selectManually(idx, directoryId);
     }, 5);
   },
 
   openSelectedItem: (
     data: GetFilesAndFoldersInDirectoryItem[],
-    e?: KeyboardEvent,
+    e: KeyboardEvent | undefined,
+    directoryId: DirectoryId,
   ) => {
-    const state = directoryStore.getSnapshot();
-    const lastSelected = state.context.selection.last;
-    const selectionIndexes = state.context.selection.indexes;
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const lastSelected = context.selection.last;
+    const selectionIndexes = context.selection.indexes;
     function resolveItemToOpen() {
       if (lastSelected == null || selectionIndexes.size !== 1) {
         return data[0];
@@ -925,18 +1134,24 @@ export const directoryHelpers = {
     //   fuzzy.clearQuery();
     //   tableRef.current?.querySelector("tbody")?.focus();
     // }
-    directoryHelpers.openItem(itemToOpen);
+    directoryHelpers.openItem(itemToOpen, directoryId);
   },
 
   openAssignTagsDialog: (
     fullPath: string,
     data: GetFilesAndFoldersInDirectoryItem[],
+    directoryId: DirectoryId,
   ) => {
-    const indexes = directoryStore.getSnapshot().context.selection.indexes;
+    const indexes = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    ).selection.indexes;
     const selectedIndexes = [...indexes.values()];
     const selectedItems = selectedIndexes.map((i) => {
       const item = data[i];
-      return item.fullPath ?? directoryHelpers.getFullPath(item.name);
+      return (
+        item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId)
+      );
     });
     if (selectedItems.length > 1) {
       // Multiple files selected - use grid dialog
@@ -948,18 +1163,23 @@ export const directoryHelpers = {
   },
 
   // Fuzzy finder helpers
-  setFuzzyQuery: (query: string) => {
-    directoryStore.send({ type: "setFuzzyQuery", query });
+  setFuzzyQuery: (query: string, directoryId: DirectoryId) => {
+    directoryStore.send({ type: "setFuzzyQuery", query, directoryId });
   },
 
-  clearFuzzyQuery: () => {
-    directoryStore.send({ type: "clearFuzzyQuery" });
+  clearFuzzyQuery: (directoryId: DirectoryId) => {
+    directoryStore.send({ type: "clearFuzzyQuery", directoryId });
   },
   getFullPathForItem,
-  getSelectedItemsOrCurrentItem(index: number) {
-    const snapshot = directoryStore.getSnapshot();
-    const selection = snapshot.context.selection;
-    const tableData = getFilteredDirectoryData()!;
+  getSelectedItemsOrCurrentItem(index: number, directoryId: DirectoryId) {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const selection = context.selection;
+    const tableData = directoryDerivedStores
+      .get(directoryId)
+      ?.getFilteredDirectoryData()!;
     const item = tableData[index];
 
     const alreadySelected = selection.indexes.has(index);
@@ -970,106 +1190,147 @@ export const directoryHelpers = {
 };
 
 // Selectors
-export const selectDirectory = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.directory;
+export const selectDirectory =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId);
 
-export const selectLoading = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.loading;
+export const selectLoading =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).loading;
 
-export const selectRawDirectoryData = (
-  state: ReturnType<typeof directoryStore.get>,
-) => state.context.directoryData;
+export const selectRawDirectoryData =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).directoryData;
 
-export const selectDirectoryData = (
-  state: ReturnType<typeof directoryStore.get>,
-) => {
-  const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-  return DirectoryDataFromSettings.getDirectoryData(
-    state.context.directoryData,
-    settings,
-  );
-};
+export const selectHasNext =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).historyStack.hasNext;
 
-export const selectError = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.error;
-
-export const selectHasNext = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.historyStack.hasNext;
-
-export const selectHasPrev = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.historyStack.hasPrev;
+export const selectHasPrev =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).historyStack.hasPrev;
 
 export const selectSettings = (): FileBrowserSettings => {
   return selectSettingsFromStore(fileBrowserSettingsStore.get());
 };
 
-export const selectPendingSelection = (
-  state: ReturnType<typeof directoryStore.get>,
-) => state.context.pendingSelection;
+export const selectPendingSelection =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).pendingSelection;
 
-export const selectSelection = (state: ReturnType<typeof directoryStore.get>) =>
-  state.context.selection;
+export const selectSelection =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).selection;
 
-export const selectFuzzyQuery = (
-  state: ReturnType<typeof directoryStore.get>,
-) => state.context.fuzzyQuery;
+export const selectFuzzyQuery =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).fuzzyQuery;
 
-subscribeToStores(
-  [directoryStore],
-  ([s]) => [s.directoryData],
-  (_) => {
-    directoryHelpers.resetSelection();
-  },
-);
+export const directorySubscriptions = new Map<DirectoryId, (() => void)[]>();
 
-subscribeToStores(
-  [directoryStore],
-  ([s]) => [s.selection.last],
-  ([s]) => {
-    if (s.selection.last != null) {
-      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
-    }
-  },
-);
+export const directoryDerivedStores = new Map<
+  DirectoryId,
+  {
+    useFilteredDirectoryData: () => GetFilesAndFoldersInDirectoryItem[];
+    getFilteredDirectoryData: () =>
+      | GetFilesAndFoldersInDirectoryItem[]
+      | undefined;
+  }
+>();
 
-export const [useFilteredDirectoryData, getFilteredDirectoryData] =
-  createUseDerivedStoreValue(
-    [directoryStore, fileBrowserSettingsStore],
-    ([directory, settings]) => [
-      directory.directoryData,
-      settings.settings,
-      directory.fuzzyQuery,
-    ],
-    ([directory, settings]) => {
-      const directoryData = DirectoryDataFromSettings.getDirectoryData(
-        directory.directoryData,
-        settings.settings,
-      );
-      const filteredDirectoryData = computeFilteredData(
-        directoryData,
-        directory.fuzzyQuery,
-      );
-
-      return filteredDirectoryData;
-    },
+function setupSubscriptions(directoryId: DirectoryId) {
+  const subscriptions: (() => void)[] = [];
+  directorySubscriptions.set(directoryId, subscriptions);
+  subscriptions.push(
+    subscribeToStores(
+      [directoryStore],
+      ([s]) => [s.directoriesById[directoryId].directoryData],
+      ([s]) => {
+        directoryHelpers.resetSelection(
+          s.directoriesById[directoryId].directoryId,
+        );
+      },
+    ),
   );
 
-// DO NOT MOVE THIS FUNCTION, Terrible code!!!
-subscribeToStores(
-  [directoryStore, fileBrowserSettingsStore],
-  ([d, settings]) => [d.pendingSelection, settings.settings],
-  ([s]) => {
-    const filteredDirectoryData = getFilteredDirectoryData();
-    if (!filteredDirectoryData) return;
-    if (s.pendingSelection && filteredDirectoryData.length > 0) {
-      const newItemIndex = filteredDirectoryData.findIndex(
-        (item) => item.name === s.pendingSelection,
-      );
-      if (newItemIndex !== -1) {
-        directoryHelpers.selectManually(newItemIndex);
-        scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
-      }
-      directoryHelpers.setPendingSelection(null);
-    }
-  },
-);
+  subscriptions.push(
+    subscribeToStores(
+      [directoryStore],
+      ([s]) => [s.directoriesById[directoryId].selection.last],
+      ([s]) => {
+        const ss = s.directoriesById[directoryId];
+        if (ss.selection.last != null) {
+          scrollRowIntoViewIfNeeded(ss.directoryId, ss.selection.last);
+        }
+      },
+    ),
+  );
+
+  const [useFilteredDirectoryData, getFilteredDirectoryData] =
+    createUseDerivedStoreValue(
+      [directoryStore, fileBrowserSettingsStore],
+      ([d, settings]) => [
+        d.directoriesById[directoryId].directoryData,
+        settings.settings,
+        d.directoriesById[directoryId].fuzzyQuery,
+      ],
+      ([d, settings]) => {
+        const directoryData = DirectoryDataFromSettings.getDirectoryData(
+          d.directoriesById[directoryId].directoryData,
+          settings.settings,
+        );
+        const filteredDirectoryData = computeFilteredData(
+          directoryData,
+          d.directoriesById[directoryId].fuzzyQuery,
+        );
+
+        return filteredDirectoryData;
+      },
+    );
+
+  directoryDerivedStores.set(directoryId, {
+    useFilteredDirectoryData,
+    getFilteredDirectoryData,
+  });
+
+  // DO NOT MOVE THIS FUNCTION, Terrible code!!!
+  subscriptions.push(
+    subscribeToStores(
+      [directoryStore, fileBrowserSettingsStore],
+      ([d, settings]) => [
+        d.directoriesById[directoryId].pendingSelection,
+        settings.settings,
+      ],
+      ([d]) => {
+        const filteredDirectoryData = getFilteredDirectoryData();
+        if (!filteredDirectoryData) return;
+        const s = d.directoriesById[directoryId];
+        if (s.pendingSelection && filteredDirectoryData.length > 0) {
+          const newItemIndex = filteredDirectoryData.findIndex(
+            (item) => item.name === s.pendingSelection,
+          );
+          if (newItemIndex !== -1) {
+            directoryHelpers.selectManually(newItemIndex, directoryId);
+            scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
+          }
+          directoryHelpers.setPendingSelection(null, directoryId);
+        }
+      },
+    ),
+  );
+}
+
+setupSubscriptions(initialDirectoryId);
+setupSubscriptions(secondaryDirectoryId);
+
+// Load the initial directory
+loadDirectoryPath(defaultPath, initialDirectoryId);
+loadDirectoryPath(defaultPath, secondaryDirectoryId);

@@ -2,7 +2,7 @@ import { createFormDialog } from "@/lib/libs/form/createFormDialog";
 import z from "zod";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { PencilIcon } from "lucide-react";
-import { directoryHelpers } from "../directory";
+import { directoryHelpers, directoryStore } from "../directory";
 
 export const RenameDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
@@ -12,7 +12,12 @@ export const RenameDialog = createFormDialog<
   schema: z.object({
     name: z.string(),
   }),
-  action: (body, _, item) => directoryHelpers.renameItem(item, body.name),
+  action: (body, _, item) =>
+    directoryHelpers.renameItem(
+      item,
+      body.name,
+      directoryStore.getSnapshot().context.activeDirectoryId,
+    ),
   getConfigs: () => [
     {
       field: "name",

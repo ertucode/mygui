@@ -3,7 +3,11 @@ import { useSelector } from "@xstate/store/react";
 import { type RecentItem, recentsStore, selectRecents } from "../recents";
 import { FileBrowserSidebarSection } from "./FileBrowserSidebarSection";
 import { getWindowElectron } from "@/getWindowElectron";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
 
 interface RecentsListProps {
   className?: string;
@@ -11,7 +15,14 @@ interface RecentsListProps {
 
 export function RecentsList({ className }: RecentsListProps) {
   const r = useSelector(recentsStore, selectRecents);
-  const directory = useSelector(directoryStore, selectDirectory);
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
 
   return (
     <FileBrowserSidebarSection
@@ -19,10 +30,12 @@ export function RecentsList({ className }: RecentsListProps) {
       header="Recents"
       emptyMessage="No recent directories"
       getKey={(recent) => recent.fullPath}
-      isSelected={(recent) => directory.type === "path" && directory.fullPath === recent.fullPath}
+      isSelected={(recent) =>
+        directory.type === "path" && directory.fullPath === recent.fullPath
+      }
       onClick={(recent) => {
         if (recent.type === "dir") {
-          directoryHelpers.cdFull(recent.fullPath);
+          directoryHelpers.cdFull(recent.fullPath, activeDirectoryId);
         } else {
           getWindowElectron().openFile(recent.fullPath);
         }

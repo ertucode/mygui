@@ -9,7 +9,11 @@ import {
 } from "../tags";
 import { useState } from "react";
 import { clsx } from "@/lib/functions/clsx";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
 
 interface TagsListProps {
   className?: string;
@@ -30,14 +34,17 @@ export function TagsList({ className }: TagsListProps) {
   );
 }
 
-function TagListItem({
-  tag,
-}: {
-  tag: TagColor;
-}) {
+function TagListItem({ tag }: { tag: TagColor }) {
   const [editingTag, setEditingTag] = useState<boolean>(false);
   const [editValue, setEditValue] = useState("");
-  const directory = useSelector(directoryStore, selectDirectory);
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
 
   const isShowingTag = (color: TagColor) => {
     return directory.type === "tags" && directory.color === color;
@@ -48,7 +55,7 @@ function TagListItem({
 
   const handleTagClick = () => {
     if (fileCount > 0) {
-      directoryHelpers.showTaggedFiles(tag);
+      directoryHelpers.showTaggedFiles(tag, activeDirectoryId);
     }
   };
 

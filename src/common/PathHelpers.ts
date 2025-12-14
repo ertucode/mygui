@@ -42,4 +42,19 @@ export namespace PathHelpers {
     }
     return filePath;
   }
+
+  export function resolveUpDirectory(homeDirectory: string, input: string) {
+    let parts = getFolderNameParts(input);
+    if (parts.length === 1) {
+      if (parts[0] === "~") {
+        parts = getFolderNameParts(homeDirectory);
+      }
+    }
+    let fullPath = parts.slice(0, parts.length - 1).join("/") + "/";
+    if (fullPath[0] !== "/" && fullPath[0] !== "~") {
+      fullPath = "/" + fullPath;
+    }
+
+    return fullPath;
+  }
 }

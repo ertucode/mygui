@@ -31,7 +31,9 @@ export type UseShortcutsOptions = {
   sequenceTimeout?: number;
 };
 
-type ShortcutInput = $Maybe<ShortcutWithHandler | SequenceShortcut> | boolean;
+export type ShortcutInput =
+  | $Maybe<ShortcutWithHandler | SequenceShortcut>
+  | boolean;
 
 function isSequenceShortcut(
   shortcut: ShortcutWithHandler | SequenceShortcut,

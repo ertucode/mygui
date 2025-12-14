@@ -8,34 +8,38 @@ import {
   selectHasNext,
   selectHasPrev,
   selectFuzzyQuery,
-  useFilteredDirectoryData,
+  directoryDerivedStores,
 } from "../directory";
+import { useDirectoryContext } from "../DirectoryContext";
 
 export function FileBrowserNavigationAndInputSection() {
   const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
   const navigationButtonIconClassName = "size-4";
-  const hasNext = useSelector(directoryStore, selectHasNext);
-  const hasPrev = useSelector(directoryStore, selectHasPrev);
+  const directoryId = useDirectoryContext().directoryId;
+  const hasNext = useSelector(directoryStore, selectHasNext(directoryId));
+  const hasPrev = useSelector(directoryStore, selectHasPrev(directoryId));
 
   return (
     <div className="join items-center mb-2">
       <button
         className={navigationButtonClassName}
-        onClick={directoryHelpers.goPrev}
+        onClick={() => directoryHelpers.goPrev(directoryId)}
         disabled={!hasPrev}
       >
         {<ArrowLeftIcon className={navigationButtonIconClassName} />}
       </button>
       <button
         className={navigationButtonClassName}
-        onClick={directoryHelpers.goNext}
+        onClick={() => directoryHelpers.goNext(directoryId)}
         disabled={!hasNext}
       >
         {<ArrowRightIcon className={navigationButtonIconClassName} />}
       </button>
       <button
         className={navigationButtonClassName}
-        onClick={() => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp)}
+        onClick={() =>
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId)
+        }
       >
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
@@ -48,16 +52,22 @@ export function FileBrowserNavigationAndInputSection() {
 }
 
 function FuzzyInput() {
-  const fuzzyQuery = useSelector(directoryStore, selectFuzzyQuery);
-  const filteredData = useFilteredDirectoryData();
+  const directoryId = useDirectoryContext().directoryId;
+  const fuzzyQuery = useSelector(directoryStore, selectFuzzyQuery(directoryId));
+  const filteredData = directoryDerivedStores
+    .get(directoryId)!
+    .useFilteredDirectoryData();
 
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    return directoryStore.on("focusFuzzyInput", ({ e }) => {
+    return directoryStore.on("focusFuzzyInput", ({ e, directoryId: dId }) => {
+      if (dId !== directoryId) return;
       e.preventDefault();
       inputRef.current?.focus();
-      const query = directoryStore.getSnapshot().context.fuzzyQuery;
+      const query =
+        directoryStore.getSnapshot().context.directoriesById[directoryId]
+          .fuzzyQuery;
       if (query) {
         setTimeout(() => {
           const i = inputRef.current;
@@ -78,23 +88,28 @@ function FuzzyInput() {
       placeholder="Search... (/)"
       value={fuzzyQuery}
       onChange={(e) => {
-        directoryHelpers.setFuzzyQuery(e.target.value);
+        directoryHelpers.setFuzzyQuery(e.target.value, directoryId);
       }}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
-          directoryHelpers.clearFuzzyQuery();
+          directoryHelpers.clearFuzzyQuery(directoryId);
           e.currentTarget.blur();
         }
         if (e.key === "j" && e.ctrlKey)
-          directoryHelpers.setSelection((h) =>
-            Math.min(h + 1, filteredData.length - 1),
+          directoryHelpers.setSelection(
+            (h) => Math.min(h + 1, filteredData.length - 1),
+            directoryId,
           );
         if (e.key === "k" && e.ctrlKey)
-          directoryHelpers.setSelection((h) => Math.max(h - 1, 0));
+          directoryHelpers.setSelection((h) => Math.max(h - 1, 0), directoryId);
 
         if (e.key === "Enter") {
-          directoryHelpers.openSelectedItem(filteredData);
-          directoryHelpers.clearFuzzyQuery();
+          directoryHelpers.openSelectedItem(
+            filteredData,
+            undefined,
+            directoryId,
+          );
+          directoryHelpers.clearFuzzyQuery(directoryId);
           e.currentTarget.blur();
         }
       }}

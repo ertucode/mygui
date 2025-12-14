@@ -28,6 +28,7 @@ import {
   selectTagName,
   TAG_COLOR_CLASSES,
 } from "./tags";
+import { useDirectoryContext } from "./DirectoryContext";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -38,7 +39,9 @@ export const FileTableRowContextMenu = ({
   close: () => void;
   tableData: GetFilesAndFoldersInDirectoryItem[];
 }) => {
-  const fullPath = item.fullPath ?? directoryHelpers.getFullPath(item.name);
+  const directoryId = useDirectoryContext().directoryId;
+  const fullPath =
+    item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId);
   const isFavorite = selectIsFavorite(fullPath)(favoritesStore.get());
   const itemIndex = tableData.findIndex((i) => i.name === item.name);
 
@@ -66,8 +69,9 @@ export const FileTableRowContextMenu = ({
         view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
       };
 
-  const directory = directoryStore.getSnapshot();
-  const selectionIndexes = directory.context.selection.indexes;
+  const directory =
+    directoryStore.getSnapshot().context.directoriesById[directoryId];
+  const selectionIndexes = directory.selection.indexes;
   const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex);
   const selectedItems =
     isSelected && selectionIndexes.size > 0
@@ -76,7 +80,7 @@ export const FileTableRowContextMenu = ({
 
   const copyItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, false);
+      directoryHelpers.handleCopy(selectedItems, false, directoryId);
       close();
     },
     view: (
@@ -91,7 +95,7 @@ export const FileTableRowContextMenu = ({
 
   const cutItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, true);
+      directoryHelpers.handleCopy(selectedItems, true, directoryId);
       close();
     },
     view: (
@@ -106,7 +110,7 @@ export const FileTableRowContextMenu = ({
 
   const pasteItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handlePaste();
+      directoryHelpers.handlePaste(directoryId);
       close();
     },
     view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,
@@ -114,7 +118,7 @@ export const FileTableRowContextMenu = ({
 
   const deleteItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handleDelete(selectedItems, tableData);
+      directoryHelpers.handleDelete(selectedItems, tableData, directoryId);
       close();
     },
     view: (
@@ -146,7 +150,7 @@ export const FileTableRowContextMenu = ({
   // Tag-related menu items
   const assignTagsItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.openAssignTagsDialog(fullPath, tableData);
+      directoryHelpers.openAssignTagsDialog(fullPath, tableData, directoryId);
       close();
     },
     view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
@@ -168,7 +172,9 @@ export const FileTableRowContextMenu = ({
             tagsStore.send({
               type: "addTagToFiles",
               fullPaths: selectedItems.map(
-                (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name),
+                (i) =>
+                  i.fullPath ??
+                  directoryHelpers.getFullPath(i.name, directoryId),
               ),
               color: lastUsedTag!,
             });

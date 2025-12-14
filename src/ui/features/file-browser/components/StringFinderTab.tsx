@@ -10,18 +10,26 @@ import {
 } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { StringSearchResult } from "@common/Contracts";
-import { directoryStore, directoryHelpers, selectDirectory } from "../directory";
+import {
+  directoryStore,
+  directoryHelpers,
+  selectDirectory,
+} from "../directory";
 
 type StringFinderTabProps = {
   isOpen: boolean;
   onClose: () => void;
 };
 
-export function StringFinderTab({
-  isOpen,
-  onClose,
-}: StringFinderTabProps) {
-  const directory = useSelector(directoryStore, selectDirectory);
+export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
+  const activeDirectoryId = useSelector(
+    directoryStore,
+    (s) => s.context.activeDirectoryId,
+  );
+  const directory = useSelector(
+    directoryStore,
+    selectDirectory(activeDirectoryId),
+  ).directory;
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<StringSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -134,7 +142,7 @@ export function StringFinderTab({
   }, [selectedIndex]);
 
   const handleSelect = (result: StringSearchResult) => {
-    directoryHelpers.openFile(result.filePath);
+    directoryHelpers.openFile(result.filePath, activeDirectoryId);
     onClose();
   };
 
@@ -143,7 +151,10 @@ export function StringFinderTab({
     if (lastSlashIndex === -1) return;
 
     const dirPath = result.filePath.slice(0, lastSlashIndex);
-    directoryHelpers.cdFull(directoryHelpers.getFullPath(dirPath));
+    directoryHelpers.cdFull(
+      directoryHelpers.getFullPath(dirPath, activeDirectoryId),
+      activeDirectoryId,
+    );
     onClose();
   };
 

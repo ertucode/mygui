@@ -7,10 +7,11 @@ import { useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
+  directoryDerivedStores,
   directoryHelpers,
   directoryStore,
   selectLoading,
-  useFilteredDirectoryData,
+  selectSelection,
 } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
@@ -29,18 +30,22 @@ export type TableContextMenuProps<T> = {
 };
 
 export function FileBrowserTable() {
-  const filteredDirectoryData = useFilteredDirectoryData();
+  const context = useDirectoryContext();
+  const directoryId = context.directoryId;
+  const filteredDirectoryData = directoryDerivedStores
+    .get(context.directoryId)!
+    .useFilteredDirectoryData();
   const fileTags = useSelector(tagsStore, selectFileTags);
   const columns = createColumns({
     fileTags,
-    getFullPath: directoryHelpers.getFullPath,
+    getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
   });
 
   const table = useTable({
     columns,
     data: filteredDirectoryData,
   });
-  useFileBrowserShortcuts(table.data);
+  useFileBrowserShortcuts(table.data, context.directoryId);
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
   const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
     null,
@@ -53,10 +58,8 @@ export function FileBrowserTable() {
 
   const selectionIndexes = useSelector(
     directoryStore,
-    (s) => s.context.selection.indexes,
-  );
-
-  const context = useDirectoryContext();
+    selectSelection(directoryId),
+  ).indexes;
 
   return (
     <>
@@ -123,11 +126,11 @@ export function FileBrowserTable() {
                       // This is a double-click
                       e.preventDefault();
                       e.stopPropagation();
-                      directoryHelpers.openItem(table.data[idx]);
+                      directoryHelpers.openItem(table.data[idx], directoryId);
                       lastClickRef.current = null;
                     } else {
                       // This is a single click
-                      directoryHelpers.select(idx, e);
+                      directoryHelpers.select(idx, e, directoryId);
                       lastClickRef.current = { index: idx, timestamp: now };
                     }
                   }}
@@ -139,8 +142,10 @@ export function FileBrowserTable() {
                     e.preventDefault();
                     getWindowElectron().onDragStart({
                       files: directoryHelpers
-                        .getSelectedItemsOrCurrentItem(idx)
-                        .map(directoryHelpers.getFullPathForItem),
+                        .getSelectedItemsOrCurrentItem(idx, directoryId)
+                        .map((i) =>
+                          directoryHelpers.getFullPathForItem(i, directoryId),
+                        ),
                       image: await captureDivAsBase64(
                         e.currentTarget.closest("tbody")!,
                       ),
@@ -151,7 +156,7 @@ export function FileBrowserTable() {
                     if (item.type === "dir") {
                       directoryHelpers.preloadDirectory(
                         item.fullPath ??
-                          directoryHelpers.getFullPath(item.name),
+                          directoryHelpers.getFullPath(item.name, directoryId),
                       );
                     }
                   }}
@@ -180,7 +185,8 @@ export function FileBrowserTable() {
 }
 
 function LoadingOverlay() {
-  const _loading = useSelector(directoryStore, selectLoading);
+  const directoryId = useDirectoryContext().directoryId;
+  const _loading = useSelector(directoryStore, selectLoading(directoryId));
 
   const loading = useDebounce(_loading, 100);
 
