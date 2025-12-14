@@ -11,11 +11,9 @@ import {
 } from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon, MinusIcon } from "lucide-react";
-import {
-  useDialogForItem,
-  type DialogForItem,
-} from "@/lib/hooks/useDialogForItem";
+import { type DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { Ref } from "react";
+import { useDialogStoreDialog } from "../dialogStore";
 
 function getFileNameToDisplay(fullPath: string) {
   return fullPath.split("/").pop() || fullPath;
@@ -41,12 +39,16 @@ export function MultiFileTagsDialog({
 }: {
   ref?: Ref<DialogForItem<string[]>>;
 }) {
-  const { item: fullPaths, dialogOpen, setDialogOpen } = useDialogForItem<string[]>(ref);
-    
-    const fileTags = useSelector(tagsStore, selectFileTags);
-    const tagConfig = useSelector(tagsStore, selectTagConfig);
+  const {
+    item: fullPaths,
+    dialogOpen,
+    onClose,
+  } = useDialogStoreDialog<string[]>(ref);
 
-    if (!dialogOpen || !fullPaths || fullPaths.length === 0) return null;
+  const fileTags = useSelector(tagsStore, selectFileTags);
+  const tagConfig = useSelector(tagsStore, selectTagConfig);
+
+  if (!dialogOpen || !fullPaths || fullPaths.length === 0) return null;
 
   const handleCellClick = (fullPath: string, color: TagColor) => {
     tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
@@ -69,14 +71,10 @@ export function MultiFileTagsDialog({
     }
   };
 
-  const handleClose = () => {
-    setDialogOpen(false);
-  };
-
   return (
     <Dialog
       title={`Assign Tags to ${fullPaths.length} Items`}
-      onClose={handleClose}
+      onClose={onClose}
     >
       <div className="flex flex-col gap-3 min-w-[500px] max-w-[800px] max-h-[60vh]">
         <p className="text-sm text-gray-500">
@@ -183,7 +181,7 @@ export function MultiFileTagsDialog({
         </div>
 
         <div className="flex justify-end mt-2">
-          <button className="btn btn-sm btn-primary" onClick={handleClose}>
+          <button className="btn btn-sm btn-primary" onClick={onClose}>
             Done
           </button>
         </div>

@@ -4,12 +4,19 @@ import { RenameDialog } from "./components/RenameDialog";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
-import { FilePlusIcon, PencilIcon, TagIcon } from "lucide-react";
-import { useRef, useEffect } from "react";
-import { DialogForItem } from "@/lib/hooks/useDialogForItem";
+import { FinderDialog, FinderTab } from "./components/FinderDialog";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon } from "lucide-react";
+import { useRef, useEffect, Ref } from "react";
+import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
+import { useSelector, useStore } from "@xstate/store/react";
 
 // Define the dialog types that can be opened
-export type DialogType = "rename" | "newItem" | "assignTags" | "multiFileTags";
+export type DialogType =
+  | "rename"
+  | "newItem"
+  | "assignTags"
+  | "multiFileTags"
+  | "finder";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -17,6 +24,7 @@ export type DialogMetadata = {
   newItem: GetFilesAndFoldersInDirectoryItem | {};
   assignTags: string;
   multiFileTags: string[];
+  finder: { initialTab?: FinderTab };
 };
 
 // Store context - only one dialog can be open at a time
@@ -98,13 +106,17 @@ const dialogDefinitions = [
     icon: TagIcon,
     title: "Assign Tags (Multiple Files)",
   },
+  {
+    type: "finder" as const,
+    component: FinderDialog,
+    icon: SearchIcon,
+    title: "Finder",
+  },
 ] as const;
 
 // Hook to render dialogs
 export function useDialogStoreRenderer() {
-  const refs = useRef(
-    new Map<DialogType, DialogForItem<any> | null>(),
-  );
+  const refs = useRef(new Map<DialogType, DialogForItem<any> | null>());
 
   // Subscribe to store and open the appropriate dialog
   useEffect(() => {
@@ -139,4 +151,22 @@ export function useDialogStoreRenderer() {
   );
 
   return { RenderOutside, dialogDefinitions };
+}
+
+export function useIsDialogOpen() {
+  return !!useSelector(dialogStore, (s) => s.context.openDialog);
+}
+
+export function useDialogStoreDialog<TItem>(ref?: Ref<DialogForItem<TItem>>) {
+  const dialogs = useDialogForItem<TItem>(ref);
+
+  const onClose = () => {
+    dialogs.setDialogOpen(false);
+    dialogStore.trigger.closeDialog();
+  };
+
+  return {
+    ...dialogs,
+    onClose,
+  };
 }

@@ -20,6 +20,7 @@ import { defaultPath } from "./defaultPath";
 import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { favoritesStore, selectIsFavorite } from "./favorites";
+import { dialogActions } from "./dialogStore";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -456,6 +457,14 @@ export const directoryHelpers = {
 
   openFileFull,
 
+  openItemFull: (item: { type: "dir" | "file"; fullPath: string }) => {
+    if (item.type === "dir") {
+      directoryHelpers.cdFull(item.fullPath);
+    } else {
+      directoryHelpers.openFileFull(item.fullPath);
+    }
+  },
+
   // Selection helpers
   select: (index: number, event: React.MouseEvent | KeyboardEvent) => {
     const state = directoryStore.get().context;
@@ -813,6 +822,50 @@ export const directoryHelpers = {
       if (idx === -1) return;
       directoryHelpers.selectManually(idx);
     }, 5);
+  },
+
+  openSelectedItem: (
+    data: GetFilesAndFoldersInDirectoryItem[],
+    e?: KeyboardEvent,
+  ) => {
+    const state = directoryStore.getSnapshot();
+    const lastSelected = state.context.selectionLastSelected;
+    const selectionIndexes = state.context.selectionIndexes;
+    function resolveItemToOpen() {
+      if (lastSelected == null || selectionIndexes.size !== 1) {
+        return data[0];
+      } else {
+        return data[lastSelected];
+      }
+    }
+
+    const itemToOpen = resolveItemToOpen();
+    if (itemToOpen.type === "file" && e?.key === "l") return;
+
+    // if ((e.target as HTMLInputElement).id === "fuzzy-finder-input") {
+    //   fuzzy.clearQuery();
+    //   tableRef.current?.querySelector("tbody")?.focus();
+    // }
+    directoryHelpers.openItem(itemToOpen);
+  },
+
+  openAssignTagsDialog: (
+    fullPath: string,
+    data: GetFilesAndFoldersInDirectoryItem[],
+  ) => {
+    const indexes = directoryStore.getSnapshot().context.selectionIndexes;
+    const selectedIndexes = [...indexes.values()];
+    const selectedItems = selectedIndexes.map((i) => {
+      const item = data[i];
+      return item.fullPath ?? directoryHelpers.getFullPath(item.name);
+    });
+    if (selectedItems.length > 1) {
+      // Multiple files selected - use grid dialog
+      dialogActions.open("multiFileTags", selectedItems);
+    } else {
+      // Single file - use standard dialog
+      dialogActions.open("assignTags", fullPath);
+    }
   },
 };
 

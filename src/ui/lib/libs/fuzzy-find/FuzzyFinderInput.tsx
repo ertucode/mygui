@@ -15,6 +15,7 @@ export type UseFuzzyFinderProps<T> = {
 export type FuzzyFinderInputProps<T> = {
   fuzzy: ReturnType<typeof useFuzzyFinder<T>>;
   className?: string;
+  onEnter: () => void;
 };
 
 export function useFuzzyFinder<T>({
@@ -84,6 +85,7 @@ export function useFuzzyFinder<T>({
 export function FuzzyFinderInput<T>({
   fuzzy: { inputRef, query, setQuery, clearQuery, setHighlight, results },
   className,
+  onEnter,
 }: FuzzyFinderInputProps<T>) {
   return (
     <input
@@ -104,6 +106,12 @@ export function FuzzyFinderInput<T>({
         if (e.key === "j" && e.ctrlKey)
           setHighlight((h) => Math.min(h + 1, results.length - 1));
         if (e.key === "k" && e.ctrlKey) setHighlight((h) => Math.max(h - 1, 0));
+
+        if (e.key === "Enter") {
+          onEnter();
+          setQuery("");
+          e.currentTarget.blur();
+        }
       }}
     />
   );

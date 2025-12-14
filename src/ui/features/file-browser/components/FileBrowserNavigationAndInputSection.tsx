@@ -11,9 +11,10 @@ import {
   selectHasNext,
   selectHasPrev,
 } from "../directory";
+import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 
 export type FileBrowserNavigationAndInputSectionProps = {
-  fuzzy: ReturnType<typeof useFuzzyFinder>;
+  fuzzy: ReturnType<typeof useFuzzyFinder<GetFilesAndFoldersInDirectoryItem>>;
 };
 
 export function FileBrowserNavigationAndInputSection({
@@ -52,6 +53,7 @@ export function FileBrowserNavigationAndInputSection({
       <FuzzyFinderInput
         fuzzy={fuzzy}
         className="w-48 min-[1000px]:w-80 join-item"
+        onEnter={() => directoryHelpers.openSelectedItem(fuzzy.results)}
       />
     </div>
   );

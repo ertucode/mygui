@@ -10,11 +10,9 @@ import {
 } from "../tags";
 import { clsx } from "@/lib/functions/clsx";
 import { CheckIcon } from "lucide-react";
-import {
-  useDialogForItem,
-  type DialogForItem,
-} from "@/lib/hooks/useDialogForItem";
+import { type DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { Ref } from "react";
+import { useDialogStoreDialog } from "../dialogStore";
 
 function getFileNameToDisplay(fullPath: string) {
   return fullPath.split("/").pop() || fullPath;
@@ -25,27 +23,27 @@ export function AssignTagsDialog({
 }: {
   ref?: Ref<DialogForItem<string>>;
 }) {
-  const { item: fullPath, dialogOpen, setDialogOpen } = useDialogForItem<string>(ref);
-    
-    // Select all needed data at component level
-    const tagConfig = useSelector(tagsStore, selectTagConfig);
-    const fileTags = useSelector(tagsStore, selectFileTags);
+  const {
+    item: fullPath,
+    dialogOpen,
+    onClose,
+  } = useDialogStoreDialog<string>(ref);
 
-    if (!dialogOpen || !fullPath) return null;
+  // Select all needed data at component level
+  const tagConfig = useSelector(tagsStore, selectTagConfig);
+  const fileTags = useSelector(tagsStore, selectFileTags);
 
-    const fileName = getFileNameToDisplay(fullPath);
+  if (!dialogOpen || !fullPath) return null;
+
+  const fileName = getFileNameToDisplay(fullPath);
   const currentTags = fileTags[fullPath] || [];
 
   const handleToggleTag = (color: TagColor) => {
     tagsStore.send({ type: "toggleTagOnFile", fullPath, color });
   };
 
-  const handleClose = () => {
-    setDialogOpen(false);
-  };
-
   return (
-    <Dialog title={`Assign Tags to "${fileName}"`} onClose={handleClose}>
+    <Dialog title={`Assign Tags to "${fileName}"`} onClose={onClose}>
       <div className="flex flex-col gap-2 min-w-[300px]">
         <p className="text-sm text-gray-500 mb-2">
           Select tags to assign to this item:
@@ -85,7 +83,7 @@ export function AssignTagsDialog({
           })}
         </div>
         <div className="flex justify-end mt-4">
-          <button className="btn btn-sm btn-primary" onClick={handleClose}>
+          <button className="btn btn-sm btn-primary" onClick={onClose}>
             Done
           </button>
         </div>

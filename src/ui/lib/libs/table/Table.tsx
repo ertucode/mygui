@@ -32,6 +32,7 @@ export type TableProps<T> = {
 export type TableContextMenuProps<T> = {
   item: T;
   close: () => void;
+  tableData: T[];
 };
 
 export function Table<T>({
@@ -56,6 +57,7 @@ export function Table<T>({
             <props.ContextMenu
               item={contextMenu.item}
               close={contextMenu.close}
+              tableData={table.data}
             />
           }
         </ContextMenu>

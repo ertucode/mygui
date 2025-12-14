@@ -1,37 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { Dialog } from "@/lib/components/dialog";
 import { FileIcon, SearchIcon, FolderIcon } from "lucide-react";
 import { FileFinderTab } from "./FileFinderTab";
 import { StringFinderTab } from "./StringFinderTab";
 import { FolderFinderTab } from "./FolderFinderTab";
+import { DialogForItem } from "@/lib/hooks/useDialogForItem";
+import { useDialogStoreDialog } from "../dialogStore";
 
 export type FinderTab = "files" | "folders" | "strings";
 
-type FuzzyFileFinderDialogProps = {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-  initialTab?: FinderTab;
-};
-
 const MIN_WIDTH_FOR_PREVIEW = 900;
 
-export function FinderDialog({
-  isOpen,
-  setIsOpen,
-  initialTab = "files",
-}: FuzzyFileFinderDialogProps) {
-  const [activeTab, setActiveTab] = useState<FinderTab>(initialTab);
+export const FinderDialog = forwardRef<
+  DialogForItem<{ initialTab?: FinderTab }>,
+  {}
+>(function FinderDialog(_props, ref) {
+  const { item, dialogOpen, onClose } = useDialogStoreDialog<{
+    initialTab?: FinderTab;
+  }>(ref);
+  const [activeTab, setActiveTab] = useState<FinderTab>("files");
   const [showPreview, setShowPreview] = useState(
     window.innerWidth >= MIN_WIDTH_FOR_PREVIEW,
   );
 
   // Reset tab to initial when dialog opens
   useEffect(() => {
-    if (isOpen) {
-      setActiveTab(initialTab);
+    if (dialogOpen && item) {
+      setActiveTab(item.initialTab ?? "files");
     }
-  }, [isOpen, initialTab]);
+  }, [dialogOpen, item]);
 
   // Track window width for showing/hiding preview
   useEffect(() => {
@@ -42,10 +40,6 @@ export function FinderDialog({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const onClose = () => {
-    setIsOpen(false);
-  };
 
   const handleTabSwitch = () => {
     setActiveTab((prev) => {
@@ -75,10 +69,10 @@ export function FinderDialog({
         enabledIn: () => true,
       },
     ],
-    { isDisabled: !isOpen },
+    { isDisabled: !dialogOpen },
   );
 
-  if (!isOpen) return null;
+  if (!dialogOpen) return null;
 
   const tabs: { id: FinderTab; label: string; icon: React.ReactNode }[] = [
     {
@@ -129,26 +123,23 @@ export function FinderDialog({
         <div className="flex-1 min-h-0 overflow-visible">
           {activeTab === "files" && (
             <FileFinderTab
-              isOpen={isOpen}
+              isOpen={dialogOpen}
               onClose={onClose}
               showPreview={showPreview}
             />
           )}
           {activeTab === "folders" && (
             <FolderFinderTab
-              isOpen={isOpen}
+              isOpen={dialogOpen}
               onClose={onClose}
               showPreview={showPreview}
             />
           )}
           {activeTab === "strings" && (
-            <StringFinderTab
-              isOpen={isOpen}
-              onClose={onClose}
-            />
+            <StringFinderTab isOpen={dialogOpen} onClose={onClose} />
           )}
         </div>
       </div>
     </Dialog>
   );
-}
+});

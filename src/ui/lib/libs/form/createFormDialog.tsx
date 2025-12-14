@@ -11,8 +11,9 @@ import {
 } from "@/lib/hooks/useDefaultResultHandler";
 import { ZodType } from "zod";
 import { Dialog } from "@/lib/components/dialog";
-import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
+import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { Button } from "@/lib/components/button";
+import { useDialogStoreDialog } from "@/features/file-browser/dialogStore";
 
 export type CreateFormDialogOpts<
   TItem,
@@ -78,7 +79,7 @@ export function createFormDialog<
 >(opts: CreateFormDialogOpts<TItem, TForm, TProps>) {
   const formId = opts.formId ?? "dialog-form";
   return function ({ ref, ...props }: FormDialogProps<TItem, TProps>) {
-    const { item, dialogOpen, setDialogOpen } = useDialogForItem(ref);
+    const { item, dialogOpen, onClose } = useDialogStoreDialog(ref);
 
     const formParams = useMemo(() => opts.getFormParams(item), [item]);
     const hookForm = useForm<TForm>({
@@ -108,7 +109,7 @@ export function createFormDialog<
             hookForm.reset();
           }
           if (onSuccessBehavior.closeDialog) {
-            setDialogOpen(false);
+            onClose();
           }
         },
       });
@@ -168,7 +169,7 @@ export function createFormDialog<
         )}
         {dialogOpen && (
           <Dialog
-            onClose={() => setDialogOpen(false)}
+            onClose={onClose}
             style={opts.dialogContentStyle}
             title={text.title}
             footer={
