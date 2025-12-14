@@ -22,7 +22,10 @@ import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { favoritesStore, selectIsFavorite } from "./favorites";
 import { dialogActions } from "./dialogStore";
-import { subscribeToStore } from "@/lib/functions/storeHelpers";
+import {
+  createUseDerivedStoreValue,
+  subscribeToStores,
+} from "@/lib/functions/storeHelpers";
 import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
 import { FileBrowserCache } from "./FileBrowserCache";
 
@@ -76,7 +79,6 @@ export const directoryStore = createStore({
     directory: initialDirectoryInfo,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-    filteredDirectoryData: [] as GetFilesAndFoldersInDirectoryItem[],
     error: undefined as string | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
     pendingSelection: null as string | null,
@@ -234,28 +236,6 @@ export const directoryStore = createStore({
       };
     },
   },
-});
-
-// Subscribe to settings changes to recompute filtered data
-fileBrowserSettingsStore.subscribe(() => {
-  const state = directoryStore.get().context;
-  const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
-  const directoryData = DirectoryDataFromSettings.getDirectoryData(
-    state.directoryData,
-    settings,
-  );
-  const filteredDirectoryData = computeFilteredData(
-    directoryData,
-    state.fuzzyQuery,
-  );
-
-  // Only update if filtered data actually changed
-  if (filteredDirectoryData !== state.filteredDirectoryData) {
-    directoryStore.send({
-      type: "setDirectoryData",
-      data: state.directoryData,
-    });
-  }
 });
 
 const loadDirectoryPath = async (dir: string) => {
@@ -979,7 +959,7 @@ export const directoryHelpers = {
   getSelectedItemsOrCurrentItem(index: number) {
     const snapshot = directoryStore.getSnapshot();
     const selection = snapshot.context.selection;
-    const tableData = snapshot.context.filteredDirectoryData;
+    const tableData = getFilteredDirectoryData()!;
     const item = tableData[index];
 
     const alreadySelected = selection.indexes.has(index);
@@ -1034,24 +1014,55 @@ export const selectFuzzyQuery = (
   state: ReturnType<typeof directoryStore.get>,
 ) => state.context.fuzzyQuery;
 
-export const selectFilteredDirectoryData = (
-  state: ReturnType<typeof directoryStore.get>,
-) => state.context.filteredDirectoryData;
-
-subscribeToStore(
-  directoryStore,
-  (s) => [s.directoryData],
+subscribeToStores(
+  [directoryStore],
+  ([s]) => [s.directoryData],
   (_) => {
     directoryHelpers.resetSelection();
   },
 );
 
-subscribeToStore(
-  directoryStore,
-  (s) => [s.pendingSelection, s.filteredDirectoryData],
-  (s) => {
-    if (s.pendingSelection && s.filteredDirectoryData.length > 0) {
-      const newItemIndex = s.filteredDirectoryData.findIndex(
+subscribeToStores(
+  [directoryStore],
+  ([s]) => [s.selection.last],
+  ([s]) => {
+    if (s.selection.last != null) {
+      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
+    }
+  },
+);
+
+export const [useFilteredDirectoryData, getFilteredDirectoryData] =
+  createUseDerivedStoreValue(
+    [directoryStore, fileBrowserSettingsStore],
+    ([directory, settings]) => [
+      directory.directoryData,
+      settings.settings,
+      directory.fuzzyQuery,
+    ],
+    ([directory, settings]) => {
+      const directoryData = DirectoryDataFromSettings.getDirectoryData(
+        directory.directoryData,
+        settings.settings,
+      );
+      const filteredDirectoryData = computeFilteredData(
+        directoryData,
+        directory.fuzzyQuery,
+      );
+
+      return filteredDirectoryData;
+    },
+  );
+
+// DO NOT MOVE THIS FUNCTION, Terrible code!!!
+subscribeToStores(
+  [directoryStore, fileBrowserSettingsStore],
+  ([d, settings]) => [d.pendingSelection, settings.settings],
+  ([s]) => {
+    const filteredDirectoryData = getFilteredDirectoryData();
+    if (!filteredDirectoryData) return;
+    if (s.pendingSelection && filteredDirectoryData.length > 0) {
+      const newItemIndex = filteredDirectoryData.findIndex(
         (item) => item.name === s.pendingSelection,
       );
       if (newItemIndex !== -1) {
@@ -1059,16 +1070,6 @@ subscribeToStore(
         scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
       }
       directoryHelpers.setPendingSelection(null);
-    }
-  },
-);
-
-subscribeToStore(
-  directoryStore,
-  (s) => [s.selection.last],
-  (s) => {
-    if (s.selection.last != null) {
-      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
     }
   },
 );

@@ -1,21 +1,94 @@
 import { Store } from "@xstate/store";
+import { useSelector } from "@xstate/store/react";
 
-export function subscribeToStore<T extends Store<any, any, any>>(
-  store: T,
-  selector: (state: ReturnType<T["getSnapshot"]>["context"]) => any[],
-  fn: (state: ReturnType<T["getSnapshot"]>["context"]) => void,
+export function subscribeToStores<const Stores extends readonly AnyStore[]>(
+  stores: Stores,
+  selector: (contexts: ContextsOf<Stores>) => readonly any[],
+  fn: (contexts: ContextsOf<Stores>) => void,
 ) {
-  let lastChecks: any[] | undefined = undefined;
-  store.subscribe((state) => {
-    const currentChecks = selector(state.context);
+  let lastChecks: readonly any[] | undefined;
+
+  const getContexts = (): ContextsOf<Stores> =>
+    stores.map((s) => s.getSnapshot().context) as ContextsOf<Stores>;
+
+  const notifyIfChanged = () => {
+    const contexts = getContexts();
+    const currentChecks = selector(contexts);
+
     if (
-      lastChecks !== undefined &&
-      lastChecks.every((prevItem, index) => prevItem === currentChecks[index])
-    )
+      lastChecks &&
+      lastChecks.length === currentChecks.length &&
+      lastChecks.every((v, i) => v === currentChecks[i])
+    ) {
       return;
+    }
 
     lastChecks = currentChecks;
+    fn(contexts);
+  };
 
-    fn(state.context);
-  });
+  // initial run (optional but usually desired)
+  notifyIfChanged();
+
+  const unsubscribers = stores.map((store) =>
+    store.subscribe(() => {
+      notifyIfChanged();
+    }),
+  );
+
+  return () => {
+    unsubscribers.forEach((unsub) => unsub.unsubscribe());
+  };
+}
+
+type AnyStore = Store<any, any, any>;
+
+type StoreContext<S> =
+  S extends Store<infer TContext, any, any> ? TContext : never;
+
+type ContextsOf<Stores extends readonly AnyStore[]> = {
+  [K in keyof Stores]: StoreContext<Stores[K]>;
+};
+
+export function createUseDerivedStoreValue<
+  const Stores extends readonly AnyStore[],
+  TDerivedValue,
+>(
+  stores: Stores,
+  selector: (contexts: ContextsOf<Stores>) => readonly any[],
+  fn: (contexts: ContextsOf<Stores>) => TDerivedValue,
+) {
+  let last:
+    | {
+        checks: readonly any[];
+        id: number;
+        value: TDerivedValue;
+      }
+    | undefined;
+
+  return [
+    function useDerivedStoreValue(): TDerivedValue {
+      // subscribe to each store context
+      const contexts = stores.map((store) =>
+        useSelector(store, (state) => state.context),
+      ) as ContextsOf<Stores>;
+
+      const checks = selector(contexts);
+
+      if (
+        !last ||
+        last.checks.length !== checks.length ||
+        last.checks.some((v, i) => v !== checks[i])
+      ) {
+        last = {
+          checks,
+          id: Math.random(),
+          value: fn(contexts),
+        };
+      }
+
+      return last.value;
+    },
+    () => last?.value,
+  ] as const;
 }

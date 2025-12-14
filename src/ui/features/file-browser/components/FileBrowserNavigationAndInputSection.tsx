@@ -8,7 +8,7 @@ import {
   selectHasNext,
   selectHasPrev,
   selectFuzzyQuery,
-  selectFilteredDirectoryData,
+  useFilteredDirectoryData,
 } from "../directory";
 
 export function FileBrowserNavigationAndInputSection() {
@@ -17,7 +17,7 @@ export function FileBrowserNavigationAndInputSection() {
   const hasNext = useSelector(directoryStore, selectHasNext);
   const hasPrev = useSelector(directoryStore, selectHasPrev);
   const fuzzyQuery = useSelector(directoryStore, selectFuzzyQuery);
-  const filteredData = useSelector(directoryStore, selectFilteredDirectoryData);
+  const filteredData = useFilteredDirectoryData();
 
   const inputRef = useRef<HTMLInputElement>(null);
 

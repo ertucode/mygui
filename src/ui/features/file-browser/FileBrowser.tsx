@@ -6,7 +6,7 @@ import {
   directoryHelpers,
   selectLoading,
   selectSelection,
-  selectFilteredDirectoryData,
+  useFilteredDirectoryData,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
 import { RecentsList } from "./components/RecentsList";
@@ -30,10 +30,7 @@ export function FileBrowser() {
   const _loading = useSelector(directoryStore, selectLoading);
 
   const loading = useDebounce(_loading, 100);
-  const filteredDirectoryData = useSelector(
-    directoryStore,
-    selectFilteredDirectoryData,
-  );
+  const filteredDirectoryData = useFilteredDirectoryData();
 
   const columns = createColumns({
     fileTags,
@@ -106,10 +103,7 @@ export function FileBrowser() {
 
 function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
   const selection = useSelector(directoryStore, selectSelection);
-  const filteredDirectoryData = useSelector(
-    directoryStore,
-    selectFilteredDirectoryData,
-  );
+  const filteredDirectoryData = useFilteredDirectoryData();
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
     selection.indexes.size === 1 && selection.last != null
