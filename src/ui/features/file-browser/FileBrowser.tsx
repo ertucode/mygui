@@ -11,7 +11,6 @@ import {
   TagIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Alert } from "@/lib/components/alert";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
@@ -66,20 +65,6 @@ import { PathHelpers } from "@common/PathHelpers";
 import { setDefaultPath } from "./defaultPath";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
-type SelectionHelpers = {
-  state: {
-    indexes: Set<number>;
-    lastSelected: number | undefined;
-  };
-  setState: (update: any) => void;
-  select: (index: number, event: React.MouseEvent | KeyboardEvent) => void;
-  reset: () => void;
-  isSelected: (index: number) => boolean;
-  selectManually: (index: number) => void;
-  setSelection: (h: number | ((s: number) => number)) => void;
-  getShortcuts: (count: number) => any[];
-};
-
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
   const fileTags = useSelector(tagsStore, selectFileTags);
@@ -120,12 +105,8 @@ export function FileBrowser() {
     select: directoryHelpers.select,
     reset: directoryHelpers.resetSelection,
     isSelected: directoryHelpers.isSelected,
-    selectManually: directoryHelpers.selectManually,
-    setSelection: directoryHelpers.setSelection,
-    getShortcuts: directoryHelpers.getSelectionShortcuts,
   };
   const confirmation = useConfirmation();
-  const [localError] = useState<string | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const [isFuzzyFinderOpen, setIsFuzzyFinderOpen] = useState(false);
   const [finderInitialTab, setFinderInitialTab] = useState<FinderTab>("files");
@@ -141,7 +122,7 @@ export function FileBrowser() {
   const fuzzy = useFuzzyFinder({
     items: directoryData,
     keys: ["name"],
-    setHighlight: s.setSelection,
+    setHighlight: directoryHelpers.setSelection,
   });
 
   const columns = createColumns({
@@ -187,7 +168,7 @@ export function FileBrowser() {
         (item) => item.name === pendingSelection,
       );
       if (newItemIndex !== -1) {
-        s.selectManually(newItemIndex);
+        directoryHelpers.selectManually(newItemIndex);
         scrollRowIntoViewIfNeeded(newItemIndex, "center");
       }
       directoryHelpers.setPendingSelection(null);
@@ -227,7 +208,7 @@ export function FileBrowser() {
         (i) => i.name === beforeNavigationName,
       );
       if (idx === -1) return;
-      s?.selectManually(idx);
+      directoryHelpers.selectManually(idx);
     }, 5);
   };
 
@@ -300,7 +281,7 @@ export function FileBrowser() {
         key: " ",
         handler: (_) => {
           if (s.state.lastSelected == null) {
-            s?.selectManually(0);
+            directoryHelpers.selectManually(0);
           }
         },
       },
@@ -400,7 +381,7 @@ export function FileBrowser() {
           }
         },
       })),
-      ...s.getShortcuts(table.data.length),
+      ...directoryHelpers.getSelectionShortcuts(table.data.length),
     ],
     {
       isDisabled: someDialogIsOpened,
@@ -414,8 +395,6 @@ export function FileBrowser() {
       directoryHelpers.openFileFull(favorite.fullPath);
     }
   };
-
-
 
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
@@ -486,8 +465,6 @@ export function FileBrowser() {
           />
           {loading ? (
             <div>Loading...</div>
-          ) : localError ? (
-            <Alert children={localError!} />
           ) : (
             <Table
               tableRef={tableRef}
@@ -496,7 +473,6 @@ export function FileBrowser() {
               onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
               ContextMenu={getRowContextMenu({
-                selection: s,
                 tableData: table.data,
                 openAssignTagsDialog: (fullPath: string) => {
                   const selectedIndexes = [...s.state.indexes.values()];
@@ -577,11 +553,9 @@ export function FileBrowser() {
 }
 
 function getRowContextMenu({
-  selection,
   tableData,
   openAssignTagsDialog,
 }: {
-  selection: SelectionHelpers;
   tableData: GetFilesAndFoldersInDirectoryItem[];
   openAssignTagsDialog: (fullPath: string) => void;
 }) {
@@ -622,11 +596,12 @@ function getRowContextMenu({
           view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
         };
 
-    const isSelected =
-      itemIndex !== -1 && selection.state.indexes.has(itemIndex);
+    const directory = directoryStore.getSnapshot();
+    const selectionIndexes = directory.context.selectionIndexes;
+    const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex);
     const selectedItems =
-      isSelected && selection.state.indexes.size > 0
-        ? [...selection.state.indexes].map((i) => tableData[i])
+      isSelected && selectionIndexes.size > 0
+        ? [...selectionIndexes].map((i) => tableData[i])
         : [item];
 
     const copyItem: ContextMenuItem = {
@@ -637,8 +612,8 @@ function getRowContextMenu({
       view: (
         <TextWithIcon icon={CopyIcon}>
           Copy
-          {isSelected && selection.state.indexes.size > 1
-            ? ` (${selection.state.indexes.size} items)`
+          {isSelected && selectionIndexes.size > 1
+            ? ` (${selectionIndexes.size} items)`
             : ""}
         </TextWithIcon>
       ),
@@ -652,8 +627,8 @@ function getRowContextMenu({
       view: (
         <TextWithIcon icon={ScissorsIcon}>
           Cut
-          {isSelected && selection.state.indexes.size > 1
-            ? ` (${selection.state.indexes.size} items)`
+          {isSelected && selectionIndexes.size > 1
+            ? ` (${selectionIndexes.size} items)`
             : ""}
         </TextWithIcon>
       ),
@@ -675,8 +650,8 @@ function getRowContextMenu({
       view: (
         <TextWithIcon icon={Trash2Icon}>
           Delete
-          {isSelected && selection.state.indexes.size > 1
-            ? ` (${selection.state.indexes.size} items)`
+          {isSelected && selectionIndexes.size > 1
+            ? ` (${selectionIndexes.size} items)`
             : ""}
         </TextWithIcon>
       ),
