@@ -45,34 +45,10 @@ export function FileBrowser() {
     selectSelectionLastSelected,
   );
 
-  // Create a selection object compatible with the old API
-  const s = {
-    state: {
-      indexes: selectionIndexes,
-      lastSelected: selectionLastSelected,
-    },
-    setState: (update: any) => {
-      const newState =
-        typeof update === "function"
-          ? update({
-              indexes: selectionIndexes,
-              lastSelected: selectionLastSelected,
-            })
-          : update;
-      directoryStore.send({
-        type: "setSelection",
-        indexes: newState.indexes,
-        lastSelected: newState.lastSelected,
-      } as any);
-    },
-    select: directoryHelpers.select,
-    reset: directoryHelpers.resetSelection,
-    isSelected: directoryHelpers.isSelected,
-  };
   const tableRef = useRef<HTMLTableElement>(null);
 
   useEffect(() => {
-    s.reset();
+    directoryHelpers.resetSelection();
   }, [directoryData]);
 
   const fuzzy = useFuzzyFinder({
@@ -89,8 +65,6 @@ export function FileBrowser() {
   const table = useTable({
     columns,
     data: fuzzy.results,
-    selection: s,
-    resetSelectionOnDataChange: false,
   });
 
   const scrollRowIntoViewIfNeeded = (
@@ -133,10 +107,10 @@ export function FileBrowser() {
 
   // Scroll to selected row when selection changes (keyboard navigation)
   useEffect(() => {
-    if (s.state.lastSelected != null) {
-      scrollRowIntoViewIfNeeded(s.state.lastSelected);
+    if (selectionLastSelected != null) {
+      scrollRowIntoViewIfNeeded(selectionLastSelected);
     }
-  }, [s.state.lastSelected]);
+  }, [selectionLastSelected]);
 
   useFileBrowserShortcuts(table.data);
 
@@ -166,8 +140,8 @@ export function FileBrowser() {
 
   // Get selected file for preview (only if exactly one file is selected)
   const selectedItem =
-    s.state.indexes.size === 1 && s.state.lastSelected != null
-      ? table.data[s.state.lastSelected]
+    selectionIndexes.size === 1 && selectionLastSelected != null
+      ? table.data[selectionLastSelected]
       : null;
   const previewFilePath =
     selectedItem && selectedItem.type === "file"
@@ -203,11 +177,10 @@ export function FileBrowser() {
             <Table
               tableRef={tableRef}
               table={table}
-              selection={s}
               onRowDragStart={async (item, index, e) => {
-                const alreadySelected = s.state.indexes.has(index);
+                const alreadySelected = selectionIndexes.has(index);
                 const files = alreadySelected
-                  ? [...s.state.indexes].map((i) => {
+                  ? [...selectionIndexes].map((i) => {
                       const tableItem = table.data[i];
                       return (
                         tableItem.fullPath ??

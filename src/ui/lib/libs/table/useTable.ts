@@ -1,17 +1,11 @@
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { ColumnDef } from "./table-types";
 
 export type TableMetadata<T> = ReturnType<typeof useTable<T>>;
 
-type SelectionHelpers = {
-  reset: () => void;
-};
-
 export type UseTableOptions<T> = {
   columns: ColumnDef<T>[];
   data: T[];
-  selection?: SelectionHelpers;
-  resetSelectionOnDataChange?: boolean;
 };
 
 export function useTable<T>(opts: UseTableOptions<T>) {
@@ -43,12 +37,6 @@ export function useTable<T>(opts: UseTableOptions<T>) {
       };
     });
   }, [data, cols]);
-
-  useEffect(() => {
-    if (opts.resetSelectionOnDataChange !== false) {
-      opts?.selection?.reset();
-    }
-  }, [data]);
 
   return {
     headers,

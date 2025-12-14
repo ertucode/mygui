@@ -6,22 +6,12 @@ import { onSortKey } from "./useTableSort";
 import { RefObject, useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
-import { directoryHelpers } from "@/features/file-browser/directory";
+import { directoryHelpers, directoryStore } from "@/features/file-browser/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 
-type SelectionHelpers = {
-  state: {
-    indexes: Set<number>;
-    lastSelected: number | undefined;
-  };
-  select: (index: number, event: React.MouseEvent | KeyboardEvent) => void;
-  isSelected: (index: number) => boolean;
-};
-
 export type TableProps = {
   table: TableMetadata<GetFilesAndFoldersInDirectoryItem>;
-  selection?: SelectionHelpers;
   onRowDragStart?: (
     item: GetFilesAndFoldersInDirectoryItem,
     index: number,
@@ -42,7 +32,6 @@ export type TableContextMenuProps<T> = {
 
 export function Table({
   table,
-  selection,
   tableRef,
   children,
   ...props
@@ -55,6 +44,11 @@ export function Table({
   const sortSettings = useSelector(
     fileBrowserSettingsStore,
     (s) => s.context.settings.sort,
+  );
+
+  const selectionIndexes = useSelector(
+    directoryStore,
+    (s) => s.context.selectionIndexes,
   );
 
   return (
@@ -106,7 +100,7 @@ export function Table({
                 <tr
                   key={row.id}
                   className={clsx(
-                    selection?.isSelected(idx) &&
+                    selectionIndexes.has(idx) &&
                       "bg-base-content/10 row-selected",
                     "select-none",
                   )}
@@ -127,7 +121,7 @@ export function Table({
                       lastClickRef.current = null;
                     } else {
                       // This is a single click
-                      selection?.select(idx, e);
+                      directoryHelpers.select(idx, e);
                       lastClickRef.current = { index: idx, timestamp: now };
                     }
                   }}
