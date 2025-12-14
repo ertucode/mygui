@@ -7,7 +7,7 @@ export function subscribeToStore<T extends Store<any, any, any>>(
 ) {
   let lastChecks: any[] | undefined = undefined;
   store.subscribe((state) => {
-    const currentChecks = selector(state);
+    const currentChecks = selector(state.context);
     if (
       lastChecks !== undefined &&
       lastChecks.every((prevItem, index) => prevItem === currentChecks[index])
@@ -16,6 +16,6 @@ export function subscribeToStore<T extends Store<any, any, any>>(
 
     lastChecks = currentChecks;
 
-    fn(state);
+    fn(state.context);
   });
 }

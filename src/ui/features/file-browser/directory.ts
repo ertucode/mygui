@@ -258,41 +258,6 @@ fileBrowserSettingsStore.subscribe(() => {
   }
 });
 
-subscribeToStore(
-  directoryStore,
-  (s) => [s.directoryData],
-  (_) => {
-    directoryHelpers.resetSelection();
-  },
-);
-
-subscribeToStore(
-  directoryStore,
-  (s) => [s.pendingSelection, s.filteredDirectoryData],
-  (s) => {
-    if (s.pendingSelection && s.filteredDirectoryData.length > 0) {
-      const newItemIndex = s.filteredDirectoryData.findIndex(
-        (item) => item.name === s.pendingSelection,
-      );
-      if (newItemIndex !== -1) {
-        directoryHelpers.selectManually(newItemIndex);
-        scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
-      }
-      directoryHelpers.setPendingSelection(null);
-    }
-  },
-);
-
-subscribeToStore(
-  directoryStore,
-  (s) => [s.selection.last],
-  (s) => {
-    if (s.selection.last != null) {
-      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
-    }
-  },
-);
-
 const loadDirectoryPath = async (dir: string) => {
   directoryStore.send({ type: "setLoading", loading: true });
   try {
@@ -1072,3 +1037,38 @@ export const selectFuzzyQuery = (
 export const selectFilteredDirectoryData = (
   state: ReturnType<typeof directoryStore.get>,
 ) => state.context.filteredDirectoryData;
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.directoryData],
+  (_) => {
+    directoryHelpers.resetSelection();
+  },
+);
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.pendingSelection, s.filteredDirectoryData],
+  (s) => {
+    if (s.pendingSelection && s.filteredDirectoryData.length > 0) {
+      const newItemIndex = s.filteredDirectoryData.findIndex(
+        (item) => item.name === s.pendingSelection,
+      );
+      if (newItemIndex !== -1) {
+        directoryHelpers.selectManually(newItemIndex);
+        scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
+      }
+      directoryHelpers.setPendingSelection(null);
+    }
+  },
+);
+
+subscribeToStore(
+  directoryStore,
+  (s) => [s.selection.last],
+  (s) => {
+    if (s.selection.last != null) {
+      scrollRowIntoViewIfNeeded(s.directoryId, s.selection.last);
+    }
+  },
+);
