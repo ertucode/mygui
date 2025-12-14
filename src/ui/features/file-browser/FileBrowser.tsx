@@ -13,7 +13,6 @@ import {
   selectFilteredDirectoryData,
 } from "./directory";
 import { FavoritesList } from "./components/FavoritesList";
-import { type FavoriteItem } from "./favorites";
 import { RecentsList } from "./components/RecentsList";
 import { TagsList } from "./components/TagsList";
 import { useSelector } from "@xstate/store/react";
@@ -32,7 +31,7 @@ export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
   const fileTags = useSelector(tagsStore, selectFileTags);
 
-  // Subscribe to directory store
+  const selection = useSelector(directoryStore, selectSelection);
   const _loading = useSelector(directoryStore, selectLoading);
 
   const loading = useDebounce(_loading, 100);
@@ -42,7 +41,6 @@ export function FileBrowser() {
     selectFilteredDirectoryData,
   );
   const pendingSelection = useSelector(directoryStore, selectPendingSelection);
-  const selection = useSelector(directoryStore, selectSelection);
 
   const tableRef = useRef<HTMLTableElement>(null);
 
@@ -107,14 +105,6 @@ export function FileBrowser() {
 
   useFileBrowserShortcuts(table.data);
 
-  const openFavorite = (favorite: FavoriteItem) => {
-    if (favorite.type === "dir") {
-      directoryHelpers.cdFull(favorite.fullPath);
-    } else {
-      directoryHelpers.openFileFull(favorite.fullPath);
-    }
-  };
-
   const sidebarPanel = useResizablePanel({
     storageKey: "file-browser-sidebar-width",
     defaultWidth: 120,
@@ -130,17 +120,6 @@ export function FileBrowser() {
     maxWidth: 900,
     direction: "right",
   });
-
-  // Get selected file for preview (only if exactly one file is selected)
-  const selectedItem =
-    selection.indexes.size === 1 && selection.last != null
-      ? table.data[selection.last]
-      : null;
-  const previewFilePath =
-    selectedItem && selectedItem.type === "file"
-      ? (selectedItem.fullPath ??
-        directoryHelpers.getFullPath(selectedItem.name))
-      : null;
 
   return (
     <div className="flex flex-col items-stretch gap-3 h-full p-6 overflow-hidden">
@@ -196,13 +175,6 @@ export function FileBrowser() {
                   }),
                 });
               }}
-              onRowMouseDown={(item) => {
-                if (item.type === "dir") {
-                  directoryHelpers.preloadDirectory(
-                    item.fullPath ?? directoryHelpers.getFullPath(item.name),
-                  );
-                }
-              }}
             ></Table>
           )}
         </div>
@@ -215,15 +187,37 @@ export function FileBrowser() {
           className="hidden min-[1000px]:flex flex-col min-h-0 overflow-hidden flex-shrink-0"
           style={{ width: previewPanel.width }}
         >
-          <FilePreview
-            filePath={previewFilePath}
-            isFile={selectedItem?.type === "file"}
-            fileSize={selectedItem?.size}
-            fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
-            isResizing={previewPanel.isDragging}
-          />
+          <FileBrowserFilePreview isDragging={previewPanel.isDragging} />
         </div>
       </div>
     </div>
+  );
+}
+
+function FileBrowserFilePreview({ isDragging }: { isDragging: boolean }) {
+  const selection = useSelector(directoryStore, selectSelection);
+  const filteredDirectoryData = useSelector(
+    directoryStore,
+    selectFilteredDirectoryData,
+  );
+  // Get selected file for preview (only if exactly one file is selected)
+  const selectedItem =
+    selection.indexes.size === 1 && selection.last != null
+      ? filteredDirectoryData[selection.last]
+      : null;
+  const previewFilePath =
+    selectedItem && selectedItem.type === "file"
+      ? (selectedItem.fullPath ??
+        directoryHelpers.getFullPath(selectedItem.name))
+      : null;
+
+  return (
+    <FilePreview
+      filePath={previewFilePath}
+      isFile={selectedItem?.type === "file"}
+      fileSize={selectedItem?.size}
+      fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
+      isResizing={isDragging}
+    />
   );
 }
