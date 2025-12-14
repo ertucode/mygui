@@ -10,6 +10,7 @@ import {
   selectSelection,
 } from "./directory";
 import { favoritesStore } from "./favorites";
+import { useEffect } from "react";
 
 function getData(activeDirectoryId: DirectoryId) {
   return directoryDerivedStores
@@ -215,8 +216,9 @@ export function FileBrowserShortcuts() {
       })),
       ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
       ...directories.map((d, i) => ({
-        key: { key: (i + 1).toString(), ctrlKey: true },
-        handler: () => {
+        key: { key: (i + 1).toString(), metaKey: true },
+        handler: (e: KeyboardEvent) => {
+          e.preventDefault();
           directoryStore.send({ type: "setActiveDirectoryId", directoryId: d });
         },
       })),

@@ -129,6 +129,9 @@ export function FileBrowserTable() {
                     } else {
                       // This is a single click
                       directoryHelpers.select(idx, e, directoryId);
+                      directoryStore.trigger.setActiveDirectoryId({
+                        directoryId,
+                      });
                       lastClickRef.current = { index: idx, timestamp: now };
                     }
                   }}
