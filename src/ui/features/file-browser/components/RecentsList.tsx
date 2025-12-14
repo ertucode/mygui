@@ -22,7 +22,7 @@ export function RecentsList({ className }: RecentsListProps) {
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
 
   return (
     <FileBrowserSidebarSection

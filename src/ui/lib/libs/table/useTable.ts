@@ -23,6 +23,7 @@ export function useTable<T>(opts: UseTableOptions<T>) {
   }, [cols]);
 
   const rows = useMemo(() => {
+    console.log("creating rows");
     return data.map((item, idx) => {
       return {
         cells: cols.map((col, colIdx) => {

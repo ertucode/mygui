@@ -44,7 +44,7 @@ function TagListItem({ tag }: { tag: TagColor }) {
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
 
   const isShowingTag = (color: TagColor) => {
     return directory.type === "tags" && directory.color === color;

@@ -28,7 +28,7 @@ export function FolderFinderTab({
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
   const [query, setQuery] = useState("");
   const [filteredFolders, setFilteredFolders] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);

@@ -29,7 +29,7 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<StringSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);

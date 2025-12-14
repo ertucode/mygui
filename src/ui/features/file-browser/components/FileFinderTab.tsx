@@ -29,7 +29,7 @@ export function FileFinderTab({
   const directory = useSelector(
     directoryStore,
     selectDirectory(activeDirectoryId),
-  ).directory;
+  );
   const [query, setQuery] = useState("");
   const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
