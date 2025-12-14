@@ -23,19 +23,14 @@ export function FolderBreadcrumb() {
   if (directory.type === "tags") {
     const tagName = tagConfig[directory.color] || directory.color;
     return (
-      <div className="breadcrumbs text-sm py-0">
-        <ul>
-          <li className="flex items-center gap-1">
-            <a className="flex items-center gap-3">
-              {/* <TagIcon className="size-4" /> */}
-              <span
-                className={`size-3 rounded-full ${TAG_COLOR_CLASSES[directory.color].dot}`}
-              />
-              <div>{tagName}</div>
-            </a>
-          </li>
-        </ul>
-      </div>
+      <>
+        <button className="join-item btn btn-xs btn-soft btn-info rounded-none flex items-center gap-3">
+          <span
+            className={`size-3 rounded-full ${TAG_COLOR_CLASSES[directory.color].dot}`}
+          />
+          <div>{tagName}</div>
+        </button>
+      </>
     );
   }
 
