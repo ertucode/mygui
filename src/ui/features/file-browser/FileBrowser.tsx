@@ -1,4 +1,4 @@
-import { Table } from "@/lib/libs/table/Table";
+import { Table } from "@/features/file-browser/FileBrowserTable";
 import { useTable } from "@/lib/libs/table/useTable";
 import { createColumns } from "./config/columns";
 import {

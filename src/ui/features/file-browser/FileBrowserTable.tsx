@@ -1,8 +1,8 @@
 import { ChevronDownIcon, ChevronUpIcon } from "lucide-react";
-import { ContextMenu, useContextMenu } from "../../components/context-menu";
-import { clsx } from "../../functions/clsx";
-import type { TableMetadata } from "./useTable";
-import { onSortKey } from "./useTableSort";
+import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
+import { clsx } from "../../lib/functions/clsx";
+import type { TableMetadata } from "../../lib/libs/table/useTable";
+import { onSortKey } from "../../lib/libs/table/useTableSort";
 import { RefObject, useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
