@@ -61,7 +61,6 @@ import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNa
 import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { getWindowElectron } from "@/getWindowElectron";
-import { PathHelpers } from "@common/PathHelpers";
 import { setDefaultPath } from "./defaultPath";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
@@ -191,27 +190,6 @@ export function FileBrowser() {
     [settings],
   );
 
-  const onGoUpOrPrev = async (
-    fn: typeof directoryHelpers.goPrev | typeof directoryHelpers.goUp,
-  ) => {
-    const metadata = await fn();
-    if (!metadata) return;
-    const { directoryData, beforeNavigation } = metadata;
-
-    setTimeout(() => {
-      if (!directoryData) return;
-      if (beforeNavigation.type !== "path") return;
-      const beforeNavigationName = PathHelpers.getLastPathPart(
-        beforeNavigation.fullPath,
-      );
-      const idx = directoryData.findIndex(
-        (i) => i.name === beforeNavigationName,
-      );
-      if (idx === -1) return;
-      directoryHelpers.selectManually(idx);
-    }, 5);
-  };
-
   // Track if any dialog is open
   const someDialogIsOpened = isFuzzyFinderOpen || confirmation.isOpen;
 
@@ -268,13 +246,13 @@ export function FileBrowser() {
       {
         key: { key: "o", ctrlKey: true },
         handler: (_) => {
-          onGoUpOrPrev(directoryHelpers.goPrev);
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev);
         },
       },
       {
         key: { key: "i", ctrlKey: true },
         handler: (_) => {
-          onGoUpOrPrev(directoryHelpers.goNext);
+          directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext);
         },
       },
       {
@@ -287,7 +265,7 @@ export function FileBrowser() {
       },
       {
         key: ["-", "h"],
-        handler: () => onGoUpOrPrev(directoryHelpers.goUp),
+        handler: () => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp),
       },
       {
         key: { key: "Backspace", metaKey: true },
@@ -459,10 +437,7 @@ export function FileBrowser() {
           direction="left"
         />
         <div className="relative flex flex-col min-h-0 min-w-0 overflow-hidden flex-1">
-          <FileBrowserNavigationAndInputSection
-            fuzzy={fuzzy}
-            onGoUpOrPrev={onGoUpOrPrev}
-          />
+          <FileBrowserNavigationAndInputSection fuzzy={fuzzy} />
           {loading ? (
             <div>Loading...</div>
           ) : (

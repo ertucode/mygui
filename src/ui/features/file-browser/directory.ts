@@ -92,7 +92,6 @@ export const directoryStore = createStore({
     selectionLastSelected: undefined as number | undefined,
   },
   on: {
-
     setLoading: (context, event: { loading: boolean }) => ({
       ...context,
       loading: event.loading,
@@ -303,6 +302,14 @@ const changeDirectory = async (newDirectory: string) => {
 const openFileFull = (fullPath: string) =>
   getWindowElectron().openFile(fullPath);
 const openFile = (filePath: string) => openFileFull(getFullPath(filePath));
+
+type ReturnOfGoPrev = Promise<
+  | {
+      directoryData: GetFilesAndFoldersInDirectoryItem[] | undefined;
+      beforeNavigation: DirectoryInfo;
+    }
+  | undefined
+>;
 
 // Helper functions
 export const directoryHelpers = {
@@ -781,11 +788,31 @@ export const directoryHelpers = {
           console.error("Error deleting files:", error);
           toast.show({
             severity: "error",
-            message: error instanceof Error ? error.message : "Error deleting files",
+            message:
+              error instanceof Error ? error.message : "Error deleting files",
           });
         }
       },
     });
+  },
+
+  onGoUpOrPrev: async (fn: () => ReturnOfGoPrev) => {
+    const metadata = await fn();
+    if (!metadata) return;
+    const { directoryData, beforeNavigation } = metadata;
+
+    setTimeout(() => {
+      if (!directoryData) return;
+      if (beforeNavigation.type !== "path") return;
+      const beforeNavigationName = PathHelpers.getLastPathPart(
+        beforeNavigation.fullPath,
+      );
+      const idx = directoryData.findIndex(
+        (i) => i.name === beforeNavigationName,
+      );
+      if (idx === -1) return;
+      directoryHelpers.selectManually(idx);
+    }, 5);
   },
 };
 

@@ -14,14 +14,10 @@ import {
 
 export type FileBrowserNavigationAndInputSectionProps = {
   fuzzy: ReturnType<typeof useFuzzyFinder>;
-  onGoUpOrPrev: (
-    fn: typeof directoryHelpers.goPrev | typeof directoryHelpers.goUp,
-  ) => void;
 };
 
 export function FileBrowserNavigationAndInputSection({
   fuzzy,
-  onGoUpOrPrev,
 }: FileBrowserNavigationAndInputSectionProps) {
   const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
   const navigationButtonIconClassName = "size-4";
@@ -46,7 +42,7 @@ export function FileBrowserNavigationAndInputSection({
       </button>
       <button
         className={navigationButtonClassName}
-        onClick={() => onGoUpOrPrev(directoryHelpers.goUp)}
+        onClick={() => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp)}
       >
         {<ArrowUpIcon className={navigationButtonIconClassName} />}
       </button>
