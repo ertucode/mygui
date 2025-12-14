@@ -2,15 +2,13 @@ import { useEffect, useRef } from "react";
 import { Table } from "@/lib/libs/table/Table";
 import { useTable } from "@/lib/libs/table/useTable";
 import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
-import { useTableSort } from "@/lib/libs/table/useTableSort";
 import { useFuzzyFinder } from "@/lib/libs/fuzzy-find/FuzzyFinderInput";
-import { createColumns, sortNames } from "./config/columns";
+import { createColumns } from "./config/columns";
 import {
   directoryStore,
   directoryHelpers,
   selectLoading,
   selectDirectoryData,
-  selectSettings as selectDirectorySettings,
   selectPendingSelection,
   selectSelectionIndexes,
   selectSelectionLastSelected,
@@ -30,7 +28,6 @@ import { useResizablePanel, ResizeHandle } from "@/lib/hooks/useResizablePanel";
 import { getWindowElectron } from "@/getWindowElectron";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { useFileBrowserShortcuts } from "./useFileBrowserShortcuts";
-import { FileTableRowContextMenu } from "./FileTableRowContextMenu";
 
 export function FileBrowser() {
   const dialogs = useDialogStoreRenderer();
@@ -47,7 +44,6 @@ export function FileBrowser() {
     directoryStore,
     selectSelectionLastSelected,
   );
-  const settings = selectDirectorySettings();
 
   // Create a selection object compatible with the old API
   const s = {
@@ -142,15 +138,6 @@ export function FileBrowser() {
     }
   }, [s.state.lastSelected]);
 
-  const sort = useTableSort(
-    {
-      state: settings.sort,
-      changeState: directoryHelpers.setSort,
-      schema: sortNames,
-    },
-    [settings],
-  );
-
   useFileBrowserShortcuts(table.data);
 
   const openFavorite = (favorite: FavoriteItem) => {
@@ -216,10 +203,7 @@ export function FileBrowser() {
             <Table
               tableRef={tableRef}
               table={table}
-              sort={sort}
-              onRowDoubleClick={directoryHelpers.openItem}
               selection={s}
-              ContextMenu={FileTableRowContextMenu}
               onRowDragStart={async (item, index, e) => {
                 const alreadySelected = s.state.indexes.has(index);
                 const files = alreadySelected
