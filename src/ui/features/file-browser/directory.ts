@@ -493,17 +493,33 @@ export const directoryHelpers = {
   goNext: async () => {
     const state = directoryStore.get();
     if (!state.context.historyStack.hasNext) return;
+    const beforeNavigation = state.context.directory;
     directoryStore.send({ type: "historyGoNext" });
     const newState = directoryStore.get();
-    return await cdWithMetadata(newState.context.directory, false);
+    const directoryData = await loadDirectoryInfo(newState.context.directory);
+    const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+    return {
+      directoryData:
+        directoryData &&
+        DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
+      beforeNavigation,
+    };
   },
 
   goPrev: async () => {
     const state = directoryStore.get();
     if (!state.context.historyStack.hasPrev) return;
+    const beforeNavigation = state.context.directory;
     directoryStore.send({ type: "historyGoPrev" });
     const newState = directoryStore.get();
-    return await cdWithMetadata(newState.context.directory, false);
+    const directoryData = await loadDirectoryInfo(newState.context.directory);
+    const settings = selectSettingsFromStore(fileBrowserSettingsStore.get());
+    return {
+      directoryData:
+        directoryData &&
+        DirectoryDataFromSettings.getDirectoryData(directoryData, settings),
+      beforeNavigation,
+    };
   },
 
   goUp: async () => {
