@@ -11,7 +11,6 @@ import { useSelector } from "@xstate/store/react";
 
 import { FilePreview } from "./components/FilePreview";
 import { useDialogStoreRenderer } from "./dialogStore";
-import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
 import "./pane.css";
 
 import { FileBrowserShortcuts } from "./FileBrowserShortcuts";
@@ -20,7 +19,6 @@ import {
   TileBranchSubstance,
   TileContainer,
   TileProvider,
-  StretchBarConfig,
 } from "react-tile-pane";
 import { DirectoryTablePane } from "./components/DirectoryTablePane";
 import { useMemo } from "react";
