@@ -3,7 +3,7 @@ import {
   ClockIcon,
   CogIcon,
   EyeIcon,
-  FileQuestionIcon,
+  FoldersIcon,
   HeartIcon,
   TagIcon,
   XIcon,
@@ -11,92 +11,15 @@ import {
 import React from "react";
 import {
   TabsBarConfig,
-  PaneName,
   DraggableTitle,
   StretchBarConfig,
 } from "react-tile-pane";
-import { FileBrowserNavigationAndInputSection } from "./components/FileBrowserNavigationAndInputSection";
-import { DirectoryId } from "./directory";
+import { DirectoryId, directoryStore, selectDirectory } from "./directory";
 import { clsx } from "@/lib/functions/clsx";
 import { FileBrowserOptionsSection } from "./components/FileBrowserOptionsSection";
-
-function createStyles<T extends Record<string, React.CSSProperties>>(
-  styles: T,
-): T {
-  return styles;
-}
+import { useSelector } from "@xstate/store/react";
 
 export const thickness = 32;
-
-export const color = {
-  backL: "#1C242D",
-  back: "#181E26",
-  backD: "#12171D",
-  secondary: "#567091",
-  secondaryL: "#29394e",
-  secondaryLL: "rgba(41,57,78,0.3)",
-  primary: "#60cbff",
-};
-
-export const size = createStyles({
-  full: {
-    height: "100%",
-    width: "100%",
-  },
-});
-
-export const flex = createStyles({
-  center: {
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  around: {
-    display: "flex",
-    justifyContent: "space-around",
-    alignItems: "center",
-  },
-  between: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  columnBetween: {
-    flexDirection: "column",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-});
-
-export const styles = createStyles({
-  container: {
-    color: "#fff",
-    height: "100%",
-    width: "100%",
-  },
-  tabBar: {
-    background: color.backL,
-    ...size.full,
-    ...flex.between,
-  },
-  tabTitleOn: {
-    background: color.secondaryL,
-  },
-  pane: {
-    background: color.back,
-    ...size.full,
-    ...flex.center,
-  },
-  closeButton: {
-    height: thickness * 1.5,
-    width: thickness,
-    color: color.secondary,
-    fontSize: 35,
-    cursor: "pointer",
-    ...flex.center,
-  },
-});
 
 function getIcon(name: string) {
   if (name === "favorites") return HeartIcon;
@@ -104,7 +27,7 @@ function getIcon(name: string) {
   if (name === "tags") return TagIcon;
   if (name === "options") return CogIcon;
   if (name === "preview") return EyeIcon;
-  return FileQuestionIcon;
+  return FoldersIcon;
 }
 
 function SimpleHeader({ children }: { children: React.ReactNode }) {
@@ -124,20 +47,66 @@ function getTabBarComponent(name: string) {
     );
   if (name === "preview") return <SimpleHeader>Preview</SimpleHeader>;
   if (name.startsWith("dir-")) {
-    const directoryId = name.replace("dir-", "") as DirectoryId;
-    return <FileBrowserNavigationAndInputSection directoryId={directoryId} />;
+    // const directoryId = name.replace("dir-", "") as DirectoryId;
+    // return <FileBrowserNavigationAndInputSection directoryId={directoryId} />;
+    return undefined;
   }
 
   return "todo";
 }
 
+function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
+  const directory = useSelector(directoryStore, selectDirectory(directoryId));
+
+  if (directory.type !== "path") return null;
+
+  return (
+    <span className="text-xs truncate max-w-[200px]">{directory.fullPath}</span>
+  );
+}
+
 export const tabBarConfig: () => TabsBarConfig = () => ({
   render({ tabs, onTab, action }) {
-    // return undefined;
     return (
-      <div className="flex justify-between items-center group relative bg-base-100 z-100">
+      <div className="flex justify-between items-center group relative z-100 h-[32px]">
         <div className="flex items-center w-full">
-          {tabs.map(tabBar)}
+          <div className="flex items-center overflow-x-auto">
+            {tabs.map((tab, i) => {
+              const tabStr = tab as string;
+              const Icon = getIcon(tabStr);
+              const isActive = tabs.length > 1 && i === onTab;
+              const isDirectory = tabStr.startsWith("dir-");
+              const directoryId = isDirectory
+                ? (tabStr.replace("dir-", "") as DirectoryId)
+                : null;
+
+              return (
+                <DraggableTitle
+                  className={clsx(
+                    "h-[32px] cursor-move select-none flex items-center justify-center flex-shrink-0",
+                    isDirectory ? "min-w-fit" : "aspect-square",
+                    isActive && "bg-base-300",
+                  )}
+                  name={tab}
+                  key={tab}
+                  onClick={() => action.switchTab(i)}
+                >
+                  {isDirectory && directoryId ? (
+                    <button className="btn btn-ghost btn-sm flex items-center gap-1 rounded-none">
+                      <Icon className="size-4 flex-shrink-0" />
+                      {isDirectory && directoryId && (
+                        <DirectoryTabLabel directoryId={directoryId} />
+                      )}
+                    </button>
+                  ) : (
+                    <div className="flex items-center px-1">
+                      <Icon className="size-4 flex-shrink-0" />
+                    </div>
+                  )}
+                </DraggableTitle>
+              );
+            })}
+          </div>
           {getTabBarComponent(tabs[onTab] as string)}
         </div>
         <Button
@@ -147,25 +116,6 @@ export const tabBarConfig: () => TabsBarConfig = () => ({
         ></Button>
       </div>
     );
-    function tabBar(tab: PaneName, i: number, tabs: PaneName[]) {
-      const Icon = getIcon(tab as string);
-      const isActive = tabs.length > 1 && i === onTab;
-      return (
-        <DraggableTitle
-          className={clsx(
-            "h-[32px] aspect-square cursor-move select-none flex justify-center",
-            isActive && "bg-base-300",
-          )}
-          name={tab}
-          key={tab}
-          onClick={() => action.switchTab(i)}
-        >
-          <div className="flex justify-center items-center px-1">
-            <Icon className="size-4" />
-          </div>
-        </DraggableTitle>
-      );
-    }
   },
   thickness,
   position: "top",

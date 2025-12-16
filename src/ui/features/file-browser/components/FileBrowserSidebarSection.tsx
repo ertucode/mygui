@@ -34,7 +34,7 @@ export function FileBrowserSidebarSection<T>({
     <>
       <div
         className={clsx(
-          "flex flex-col gap-1 pr-2 overflow-hidden pt-2 bg-base-100",
+          "flex flex-col max-h-full gap-1 pr-2 overflow-hidden pt-2 bg-base-100",
           className,
         )}
       >

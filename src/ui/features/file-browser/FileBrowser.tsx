@@ -19,10 +19,11 @@ import {
   TileBranchSubstance,
   TileContainer,
   TileProvider,
+  useGetRootNode,
 } from "react-tile-pane";
 import { DirectoryTablePane } from "./components/DirectoryTablePane";
 import { useMemo } from "react";
-import { styles, theme } from "./paneStyles";
+import { theme } from "./paneStyles";
 
 // Configure stretch bars to be visible
 
@@ -79,8 +80,12 @@ export function FileBrowser() {
             },
             // Middle section with directories
             {
-              children: directoryChildren.length > 0 ? directoryChildren : [],
+              children:
+                directoryChildren.length > 0
+                  ? directoryChildren.map((d) => d.children)
+                  : [],
               grow: 10,
+              onTab: 1,
             },
             // Right section with preview
             {
@@ -101,7 +106,8 @@ export function FileBrowser() {
       <FileBrowserShortcuts />
       <div className="flex-1 overflow-hidden min-w-0 min-h-0">
         <TileProvider tilePanes={paneList} rootNode={rootPane} {...theme()}>
-          <TileContainer style={styles.container} />
+          <AutoSaveLayout />
+          <TileContainer className="w-full h-full" />
         </TileProvider>
       </div>
     </div>
@@ -140,4 +146,9 @@ function FileBrowserFilePreview() {
       isResizing={false}
     />
   );
+}
+function AutoSaveLayout() {
+  const getRootNode = useGetRootNode();
+  console.log(getRootNode());
+  return <></>;
 }

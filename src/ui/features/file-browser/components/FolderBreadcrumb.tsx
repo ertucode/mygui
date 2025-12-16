@@ -13,6 +13,8 @@ import {
 } from "../directory";
 import { setDefaultPath } from "../defaultPath";
 import { useDirectoryContext } from "../DirectoryContext";
+import { ChevronRightIcon } from "lucide-react";
+import React from "react";
 
 export function FolderBreadcrumb() {
   const menu = useContextMenu<number>();
@@ -60,28 +62,34 @@ export function FolderBreadcrumb() {
       )}
       {parts.map((part, idx) => {
         return (
-          <button
-            key={idx}
-            onClick={() =>
-              directoryHelpers.cd(
-                {
-                  type: "path",
-                  fullPath: PathHelpers.reconstructDirectoryUntilIndex(
-                    parts,
-                    idx,
-                  ),
-                },
-                directoryId,
-              )
-            }
-            onContextMenu={(e) => {
-              e.preventDefault();
-              menu.onRightClick(e, idx);
-            }}
-            className="join-item btn btn-xs btn-soft btn-info rounded-none"
-          >
-            {part}
-          </button>
+          <React.Fragment key={idx}>
+            <button
+              onClick={() =>
+                directoryHelpers.cd(
+                  {
+                    type: "path",
+                    fullPath: PathHelpers.reconstructDirectoryUntilIndex(
+                      parts,
+                      idx,
+                    ),
+                  },
+                  directoryId,
+                )
+              }
+              onContextMenu={(e) => {
+                e.preventDefault();
+                menu.onRightClick(e, idx);
+              }}
+              className="join-item btn btn-xs btn-ghost btn-info rounded-none"
+            >
+              {part}
+            </button>
+            {idx !== parts.length - 1 && (
+              <button className="join-item btn btn-xs btn-ghost btn-info rounded-none px-0">
+                <ChevronRightIcon className="size-3" strokeWidth={2} />
+              </button>
+            )}
+          </React.Fragment>
         );
       })}
     </>

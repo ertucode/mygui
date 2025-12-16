@@ -78,9 +78,6 @@ function computeFilteredData(
   return results.map((result) => result.item);
 }
 
-const initialDirectoryId = "file-browser-table" as DirectoryId;
-const secondaryDirectoryId = "file-browser-table2" as DirectoryId;
-
 type DirectoryContextDirectory = {
   directoryId: DirectoryId;
   directory: DirectoryInfo;
@@ -118,44 +115,40 @@ function updateDirectory(
   };
 }
 
+const directories = Array.from(
+  { length: 10 },
+  (_, i) => i.toString() as DirectoryId,
+);
+
+const directoiesById: Record<DirectoryId, DirectoryContextDirectory> =
+  directories.reduce(
+    (acc, directoryId) => {
+      acc[directoryId] = {
+        directoryId,
+        directory: initialDirectoryInfo,
+        loading: false,
+        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+        error: undefined as string | undefined,
+        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
+        pendingSelection: null as string | null,
+        // Selection state
+        selection: {
+          indexes: new Set<number>(),
+          last: undefined as number | undefined,
+        },
+        // Fuzzy finder state
+        fuzzyQuery: "",
+      };
+      return acc;
+    },
+    {} as Record<DirectoryId, DirectoryContextDirectory>,
+  );
+
 export const directoryStore = createStore({
   context: {
-    directoriesById: {
-      [initialDirectoryId]: {
-        directoryId: initialDirectoryId,
-        directory: initialDirectoryInfo,
-        loading: false,
-        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-        error: undefined as string | undefined,
-        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
-        pendingSelection: null as string | null,
-        // Selection state
-        selection: {
-          indexes: new Set<number>(),
-          last: undefined as number | undefined,
-        },
-        // Fuzzy finder state
-        fuzzyQuery: "",
-      },
-      [secondaryDirectoryId]: {
-        directoryId: secondaryDirectoryId,
-        directory: initialDirectoryInfo,
-        loading: false,
-        directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-        error: undefined as string | undefined,
-        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
-        pendingSelection: null as string | null,
-        // Selection state
-        selection: {
-          indexes: new Set<number>(),
-          last: undefined as number | undefined,
-        },
-        // Fuzzy finder state
-        fuzzyQuery: "",
-      },
-    },
-    directoryOrder: [initialDirectoryId, secondaryDirectoryId],
-    activeDirectoryId: initialDirectoryId,
+    directoriesById: directoiesById,
+    directoryOrder: directories,
+    activeDirectoryId: directories[0],
   } as DirectoryContext,
   emits: {
     focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
@@ -1335,9 +1328,5 @@ function setupSubscriptions(directoryId: DirectoryId) {
   );
 }
 
-setupSubscriptions(initialDirectoryId);
-setupSubscriptions(secondaryDirectoryId);
-
-// Load the initial directory
-loadDirectoryPath(defaultPath, initialDirectoryId);
-loadDirectoryPath(defaultPath, secondaryDirectoryId);
+directories.forEach(setupSubscriptions);
+directories.forEach((id) => loadDirectoryPath(defaultPath, id));
