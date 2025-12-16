@@ -31,7 +31,7 @@ let pendingOpenPath: string | undefined;
 app.on("open-file", (event, path) => {
   event.preventDefault();
   pendingOpenPath = path;
-  
+
   // If app is already ready, create a new window with this path
   if (app.isReady()) {
     createWindow(path);
@@ -43,8 +43,10 @@ function createWindow(initialPath?: string) {
 
   const basePaths = [`--home-dir=${os.homedir()}`];
   const mainWindow = new BrowserWindow({
-    width: (7 * width) / 8,
-    height: (2 * height) / 3,
+    // width: (7 * width) / 8,
+    // height: (2 * height) / 3,
+    width,
+    height,
     x: 0,
     y: 0,
     webPreferences: {
