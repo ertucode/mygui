@@ -18,19 +18,20 @@
 
 /* Tab strip padding and gap for join styling */
 .flexlayout__tabset_tabbar_inner {
-  padding: 4px;
+  padding: 0;
   gap: 0;
 }
 
-/* Remove margins from tabs for join-item styling */
+/* Remove margins and padding from tabs */
 .flexlayout__tab {
   margin: 0;
   padding: 0;
 }
 
 .flexlayout__tab_button {
+  padding: 0 !important;
   margin: 0;
-  padding: 0;
+  gap: 0 !important;
 }
 
 /* Tab button content container */
@@ -38,19 +39,9 @@
   padding: 0;
 }
 
-/* Close button styling */
+/* Close button styling - hidden since we use custom Button component */
 .flexlayout__tab_button_trailing {
-  margin-left: 4px;
-  opacity: 0.6;
-}
-
-.flexlayout__tab_button_trailing:hover {
-  opacity: 1;
-}
-
-.flexlayout__tab_button_trailing svg {
-  width: 14px;
-  height: 14px;
+  display: none !important;
 }
 
 .flexlayout__splitter:hover {
@@ -144,13 +135,13 @@
 .flexlayout__tab_button_overflow {
   background: transparent;
   border-radius: 0.5rem;
-  padding: 0.5rem;
   opacity: 0.7;
   transition: all 0.2s;
   cursor: pointer;
   min-width: 2rem;
   width: auto;
   border: 1px solid transparent;
+  @apply h-full px-2 flex gap-1 items-center;
 }
 
 .flexlayout__tab_button_overflow:hover {
@@ -175,7 +166,6 @@
 }
 
 .flexlayout__popup_menu_item {
-  padding: 0.5rem 0.75rem;
   border-radius: 0.375rem;
   cursor: pointer;
   transition: background 0.2s;
@@ -344,9 +334,9 @@
   overflow: hidden;
   flex-grow: 1;
 }
-.flexlayout__tabset_tab_divider {
-  width: 4px;
-}
+/* .flexlayout__tabset_tab_divider { */
+/*   width: 4px; */
+/* } */
 .flexlayout__tabset_content {
   display: flex;
   flex-basis: 0px;
@@ -394,8 +384,6 @@
 .flexlayout__tabset_tabbar_inner_tab_container {
   position: relative;
   display: flex;
-  padding-left: 4px;
-  padding-right: 4px;
   box-sizing: border-box;
   white-space: nowrap;
 }
@@ -509,7 +497,7 @@
   font-size: inherit;
   margin: 0px;
   border-radius: 4px;
-  padding: 1px;
+  @apply text-sm;
 }
 .flexlayout__tab_toolbar_sticky_buttons_container {
   display: flex;
@@ -640,7 +628,6 @@
   font-family: var(--font-family);
 }
 .flexlayout__popup_menu_item {
-  padding: 2px 0.5em;
   white-space: nowrap;
   cursor: pointer;
   border-radius: 2px;

@@ -15,6 +15,7 @@ import {
   TabSetNode,
   BorderNode,
   Actions,
+  IIcons,
 } from "flexlayout-react";
 import { FavoritesList } from "../file-browser/components/FavoritesList";
 import { RecentsList } from "../file-browser/components/RecentsList";
@@ -41,6 +42,8 @@ import {
   TagIcon,
   PlusIcon,
   Maximize2Icon,
+  XIcon,
+  ChevronDownIcon,
 } from "lucide-react";
 import { clsx } from "@/lib/functions/clsx";
 import { Button } from "@/lib/components/button";
@@ -318,19 +321,9 @@ export const FlexLayoutManager: React.FC = () => {
   const [isResizing, setIsResizing] = useState(false);
 
   // Icons for the layout
-  const icons = useMemo(
+  const icons: IIcons = useMemo(
     () => ({
-      edgeArrow: (
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M7 10l5 5 5-5z" />
-        </svg>
-      ),
+      edgeArrow: <ChevronDownIcon className="w-4 h-4" />,
     }),
     [],
   );
@@ -364,13 +357,16 @@ export const FlexLayoutManager: React.FC = () => {
     else if (component === "tags") Icon = TagIcon;
     else if (component === "preview") Icon = EyeIcon;
 
+    const isDirectory = component === "directory";
+
     // Use your actual Button component with join-item styling
     renderValues.content = (
       <Button
         icon={Icon}
         className={clsx(
-          "btn-ghost btn-sm join-item",
-          isSelected && "btn-active",
+          "btn-ghost btn-sm join-item rounded-none",
+          isSelected && isDirectory && "btn-active",
+          !isDirectory && "pl-1",
         )}
       >
         {component === "directory" && config?.directoryId ? (
@@ -380,6 +376,22 @@ export const FlexLayoutManager: React.FC = () => {
         )}
       </Button>
     );
+
+    // Customize close button with our Button component
+    if (node.isEnableClose()) {
+      renderValues.buttons = [
+        <Button
+          key={`close-${node.getId()}`}
+          icon={XIcon}
+          className="btn-ghost btn-sm btn-square join-item rounded-none"
+          title="Close"
+          onClick={(e) => {
+            e.stopPropagation();
+            model.doAction(Actions.deleteTab(node.getId()));
+          }}
+        />,
+      ];
+    }
   };
 
   useEffect(() => {
@@ -483,7 +495,7 @@ export const FlexLayoutManager: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col items-stretch h-full p-6 overflow-hidden">
+    <div className="flex flex-col items-stretch h-full p-3 overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
       <div className="flex-1 min-w-0 min-h-0 relative">
