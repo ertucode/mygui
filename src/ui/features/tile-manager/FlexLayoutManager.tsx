@@ -16,8 +16,6 @@ import {
   BorderNode,
   Actions,
 } from "flexlayout-react";
-import "/assets/flexlayout-react.css";
-// import "flexlayout-react/style/light.css";
 import { FavoritesList } from "../file-browser/components/FavoritesList";
 import { RecentsList } from "../file-browser/components/RecentsList";
 import { TagsList } from "../file-browser/components/TagsList";
@@ -87,7 +85,7 @@ const layoutJson = ((): IJsonModel => {
       tabSetEnableDivide: true,
       tabSetEnableClose: false,
       borderEnableDrop: true,
-      splitterSize: 8,
+      splitterSize: 4,
     },
     borders: [],
     layout: {
