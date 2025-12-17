@@ -235,7 +235,10 @@ const TableRow = memo(function TableRow({
         e.preventDefault();
         onContextMenu(e, item);
       }}
-      onDragStart={async (_) => {
+      onDragStart={async (e) => {
+        // Mark this as a file drag operation
+        e.dataTransfer.setData("application/x-mygui-file-drag", "true");
+        
         const items = directoryHelpers.getSelectedItemsOrCurrentItem(
           index,
           directoryId,

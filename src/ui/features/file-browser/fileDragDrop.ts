@@ -47,6 +47,12 @@ export const selectDragOverRowIdx = () => {
   return state.context.dragOverRowIdx;
 };
 
+// Helper to check if a drag event is a file drag (not a pane/tab drag)
+const isFileDrag = (e: React.DragEvent): boolean => {
+  // Check if this drag has our custom file drag marker
+  return e.dataTransfer.types.includes("application/x-mygui-file-drag");
+};
+
 // Handler functions
 export const fileDragDropHandlers = {
   // Handle drag start on table rows
@@ -61,6 +67,11 @@ export const fileDragDropHandlers = {
 
   // Handle drag over on the table container
   handleTableDragOver: (e: React.DragEvent, directoryId: DirectoryId) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     fileDragDropStore.send({ type: "setDragOverDirectory", directoryId });
@@ -75,6 +86,11 @@ export const fileDragDropHandlers = {
 
   // Handle drag leave on the table container
   handleTableDragLeave: (e: React.DragEvent) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     // Only clear if we're actually leaving the container, not just moving between children
     const rect = e.currentTarget.getBoundingClientRect();
     const isOutside =
@@ -95,6 +111,11 @@ export const fileDragDropHandlers = {
     directoryType: "path" | "tags",
     directoryFullPath?: string,
   ) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     e.preventDefault();
     e.stopPropagation();
     fileDragDropStore.send({ type: "setDragOverDirectory", directoryId: null });
@@ -168,6 +189,11 @@ export const fileDragDropHandlers = {
     idx: number,
     isFolder: boolean,
   ) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     // Only allow dropping on folders
     if (!isFolder) return;
 
@@ -180,6 +206,11 @@ export const fileDragDropHandlers = {
 
   // Handle drag leave on folder rows
   handleRowDragLeave: (e: React.DragEvent, isFolder: boolean) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     if (!isFolder) return;
 
     // Only clear if we're actually leaving the row
@@ -202,6 +233,11 @@ export const fileDragDropHandlers = {
     item: GetFilesAndFoldersInDirectoryItem,
     directoryId: DirectoryId,
   ) => {
+    // Only handle file drags, ignore pane/tab drags
+    if (!isFileDrag(e)) {
+      return;
+    }
+    
     // Only allow dropping on folders
     if (item.type !== "dir") return;
 
