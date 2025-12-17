@@ -1,4 +1,10 @@
-import React, { useRef, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useRef,
+  useCallback,
+  useMemo,
+  useEffect,
+  useState,
+} from "react";
 import {
   Layout,
   Model,
@@ -11,6 +17,7 @@ import {
   Actions,
 } from "flexlayout-react";
 import "/assets/flexlayout-react.css";
+// import "flexlayout-react/style/light.css";
 import { FavoritesList } from "../file-browser/components/FavoritesList";
 import { RecentsList } from "../file-browser/components/RecentsList";
 import { TagsList } from "../file-browser/components/TagsList";
@@ -72,6 +79,7 @@ const layoutJson = ((): IJsonModel => {
     global: {
       tabEnableClose: true,
       tabEnableRename: false,
+      tabEnableDrag: true,
       tabSetEnableMaximize: false,
       tabSetEnableTabStrip: true,
       tabSetEnableDrop: true,
@@ -195,7 +203,7 @@ const layoutJson = ((): IJsonModel => {
 const model = Model.fromJson(layoutJson);
 
 // Component factory function
-function createFactory() {
+function createFactory(isResizing: boolean) {
   return (node: TabNode) => {
     const component = node.getComponent();
     const config = node.getConfig();
@@ -230,7 +238,7 @@ function createFactory() {
       case "preview":
         return (
           <div className={paneClassName}>
-            <FileBrowserFilePreview />
+            <FileBrowserFilePreview isResizing={isResizing} />
           </div>
         );
       case "directory":
@@ -249,7 +257,7 @@ function createFactory() {
   };
 }
 
-function FileBrowserFilePreview() {
+function FileBrowserFilePreview({ isResizing }: { isResizing: boolean }) {
   const activeDirectoryId = useSelector(
     directoryStore,
     (s) => s.context.activeDirectoryId,
@@ -281,7 +289,7 @@ function FileBrowserFilePreview() {
       isFile={selectedItem?.type === "file"}
       fileSize={selectedItem?.size}
       fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
-      isResizing={false}
+      isResizing={isResizing}
     />
   );
 }
@@ -309,9 +317,28 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
 export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null);
   const dialogs = useDialogStoreRenderer();
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Icons for the layout
+  const icons = useMemo(
+    () => ({
+      edgeArrow: (
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path d="M7 10l5 5 5-5z" />
+        </svg>
+      ),
+    }),
+    [],
+  );
 
   // Save model to localStorage on changes
-  const handleModelChange = useCallback((newModel: Model) => {
+  const handleModelChange = useCallback((_newModel: Model) => {
     // const json = newModel.toJson();
     // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
   }, []);
@@ -420,20 +447,57 @@ export const FlexLayoutManager: React.FC = () => {
     [],
   );
 
-  const factory = useMemo(() => createFactory(), []);
+  const factory = useMemo(() => createFactory(isResizing), [isResizing]);
+
+  // Detect when resizing/dragging is happening
+  useEffect(() => {
+    const handleMouseDown = (e: MouseEvent) => {
+      // Check if the mouse is on a splitter (drag bar between panes)
+      const target = e.target as HTMLElement;
+      if (
+        target.classList.contains("flexlayout__splitter") ||
+        target.classList.contains("flexlayout__splitter_drag") ||
+        target.closest(".flexlayout__splitter")
+      ) {
+        setIsResizing(true);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  // Render drag preview when dragging tabs/panes
+  const onRenderDragRect = useCallback(
+    (content: React.ReactNode | undefined) => {
+      return content;
+    },
+    [],
+  );
 
   return (
     <div className="flex flex-col items-stretch h-full p-6 overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
-      <div className="flex-1 overflow-hidden min-w-0 min-h-0">
+      <div className="flex-1 min-w-0 min-h-0 relative">
         <Layout
           ref={layoutRef}
           model={model}
           factory={factory}
+          icons={icons}
           onModelChange={handleModelChange}
           onRenderTab={onRenderTab}
           onRenderTabSet={onRenderTabSet}
+          onRenderDragRect={onRenderDragRect}
         />
       </div>
     </div>

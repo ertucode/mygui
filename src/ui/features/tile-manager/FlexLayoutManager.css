@@ -1,5 +1,16 @@
 /* Custom FlexLayout overrides - using cleaned library CSS without colors */
 
+/* Ensure overlay container is visible and properly positioned */
+.flexlayout__layout_overlay {
+  position: absolute !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+}
+
 /* Tab strip padding and gap for join styling */
 .flexlayout__tabset_tabbar_inner {
   padding: 4px !important;
@@ -59,19 +70,57 @@
 
 /* Drag and drop indicators with theme colors */
 .flexlayout__outline_rect {
-  background: oklch(var(--p) / 0.1) !important;
-  border: 2px dashed oklch(var(--p) / 0.5) !important;
+  background: rgba(96, 165, 250, 0.15) !important;
+  border: 3px dashed rgba(96, 165, 250, 0.6) !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+  border-radius: 8px !important;
+}
+
+.flexlayout__outline_rect_edge {
+  background: rgba(96, 165, 250, 0.25) !important;
+  border: 3px solid rgba(96, 165, 250, 0.8) !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+  border-radius: 6px !important;
 }
 
 .flexlayout__edge_rect {
-  background: oklch(var(--p) / 0.2) !important;
-  border: 2px solid oklch(var(--p) / 0.8) !important;
+  background: rgba(96, 165, 250, 0.5) !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  pointer-events: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 50px !important;
+  min-height: 50px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 16px rgba(96, 165, 250, 0.4) !important;
+}
+
+.flexlayout__edge_rect svg {
+  width: 32px !important;
+  height: 32px !important;
+  fill: white !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
 }
 
 .flexlayout__drag_rect {
-  background: oklch(var(--p) / 0.2) !important;
-  border: 2px solid oklch(var(--p) / 0.8) !important;
-  border-radius: 6px !important;
+  background: rgba(96, 165, 250, 0.95) !important;
+  border: 2px solid rgb(96, 165, 250) !important;
+  border-radius: 8px !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  padding: 12px 16px !important;
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* Tabset toolbar buttons (maximize, etc) */
@@ -97,4 +146,13 @@
 /* Tab overlay slightly transparent */
 .flexlayout__tab_overlay {
   background-color: rgba(0, 0, 0, 0.24);
+}
+
+/* Ensure tab content is clipped but overlay is not */
+.flexlayout__tabset_content {
+  overflow: hidden !important;
+}
+
+.flexlayout__tab_content {
+  overflow: hidden !important;
 }
