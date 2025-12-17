@@ -16,6 +16,7 @@ import {
   FilePlusIcon,
   TagIcon,
   FolderCogIcon,
+  FolderPlusIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -192,7 +193,14 @@ export const FileTableRowContextMenu = ({
         }
       : null;
 
-  if (item.type === "dir")
+  if (item.type === "dir") {
+    const openDirectoryInNewTab: ContextMenuItem = {
+      onClick: () => {
+        directoryHelpers.openFolderInNewTab(item, directoryId);
+      },
+      view: <TextWithIcon icon={FolderPlusIcon}>Open in new tab</TextWithIcon>,
+    };
+
     return (
       <ContextMenuList
         items={[
@@ -216,9 +224,11 @@ export const FileTableRowContextMenu = ({
           deleteItem,
           renameItem,
           newFileItem,
+          openDirectoryInNewTab,
         ]}
       />
     );
+  }
 
   return (
     <ContextMenuList

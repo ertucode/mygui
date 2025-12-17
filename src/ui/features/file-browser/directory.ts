@@ -17,7 +17,7 @@ import { TagColor, tagsStore } from "./tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { GenericError } from "@common/GenericError";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
-import { defaultPath } from "./defaultPath";
+import { defaultPath, initialDirectoryInfo } from "./defaultPath";
 import { toast } from "@/lib/components/toast";
 import { confirmation } from "@/lib/hooks/useConfirmation";
 import { favoritesStore, selectIsFavorite } from "./favorites";
@@ -34,21 +34,12 @@ export type DirectoryInfo =
   | { type: "path"; fullPath: string }
   | { type: "tags"; color: TagColor };
 
-function getDirectoryInfo(dir: string): DirectoryInfo {
-  const idx = dir.indexOf("/");
-  if (idx === -1) throw new Error("Invalid directory name");
-  return { type: "path", fullPath: dir };
-}
-
 function directoryInfoEquals(a: DirectoryInfo, b: DirectoryInfo): boolean {
   if (a.type !== b.type) return false;
   if (a.type === "path" && b.type === "path") return a.fullPath === b.fullPath;
   if (a.type === "tags" && b.type === "tags") return a.color === b.color;
   return false;
 }
-
-const initialDirectoryInfo = getDirectoryInfo(defaultPath);
-
 function getActiveDirectory(
   context: DirectoryContext,
   directoryId: DirectoryId | undefined,
@@ -117,21 +108,20 @@ function updateDirectory(
   };
 }
 
-const directories = Array.from(
-  { length: 10 },
-  (_, i) => `dir-${i.toString()}` as DirectoryId,
-);
+const dummyDirectoryId = "dummmyy" as DirectoryId; // kimse dokunmadan initialize edilmeli zaten
 
-const directoiesById: Record<DirectoryId, DirectoryContextDirectory> =
-  directories.reduce(
-    (acc, directoryId) => {
-      acc[directoryId] = {
-        directoryId,
-        directory: initialDirectoryInfo,
+export const directoryStore = createStore({
+  context: {
+    directoriesById: {
+      [dummyDirectoryId]: {
+        directoryId: dummyDirectoryId,
+        directory: { color: "red", type: "tags" },
         loading: false,
         directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
         error: undefined as string | undefined,
-        historyStack: new HistoryStack<DirectoryInfo>([initialDirectoryInfo]),
+        historyStack: new HistoryStack<DirectoryInfo>([
+          { color: "red", type: "tags" },
+        ]),
         pendingSelection: null as string | null,
         // Selection state
         selection: {
@@ -140,17 +130,10 @@ const directoiesById: Record<DirectoryId, DirectoryContextDirectory> =
         },
         // Fuzzy finder state
         fuzzyQuery: "",
-      };
-      return acc;
+      },
     },
-    {} as Record<DirectoryId, DirectoryContextDirectory>,
-  );
-
-export const directoryStore = createStore({
-  context: {
-    directoriesById: directoiesById,
-    directoryOrder: directories,
-    activeDirectoryId: directories[0],
+    directoryOrder: [dummyDirectoryId],
+    activeDirectoryId: dummyDirectoryId,
   } as DirectoryContext,
   emits: {
     focusFuzzyInput: (_: { e: KeyboardEvent; directoryId: DirectoryId }) => {},
@@ -164,15 +147,6 @@ export const directoryStore = createStore({
       });
       return context;
     },
-    setLoading: (
-      context,
-      event: { loading: boolean; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
-        ...d,
-        loading: event.loading,
-      })),
-
     setDirectoryData: (
       context,
       event: {
@@ -304,10 +278,10 @@ export const directoryStore = createStore({
       });
 
       setupSubscriptions(directoryId);
-      loadDirectoryPath(defaultPath, directoryId);
       const directory: DirectoryInfo = event.fullPath
         ? { type: "path", fullPath: event.fullPath }
         : initialDirectoryInfo;
+      loadDirectoryPath(event.fullPath ?? defaultPath, directoryId);
 
       return {
         ...context,
@@ -370,11 +344,51 @@ export const directoryStore = createStore({
         directoryOrder: newItemOrder,
       };
     },
+    initDirectories: (
+      _,
+      event: {
+        directories: (DirectoryInfo & { id: string })[];
+        activeDirectoryId: string;
+      },
+    ) => {
+      const result: DirectoryContext = {
+        directoriesById: event.directories.reduce(
+          (acc, directory) => {
+            const directoryId = directory.id as DirectoryId;
+            acc[directoryId] = {
+              directoryId,
+              directory: directory,
+              loading: false,
+              directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+              error: undefined as string | undefined,
+              historyStack: new HistoryStack<DirectoryInfo>([directory]),
+              pendingSelection: null as string | null,
+              // Selection state
+              selection: {
+                indexes: new Set<number>(),
+                last: undefined as number | undefined,
+              },
+              // Fuzzy finder state
+              fuzzyQuery: "",
+            };
+            return acc;
+          },
+          {} as Record<DirectoryId, DirectoryContextDirectory>,
+        ),
+        directoryOrder: event.directories.map((d) => d.id as DirectoryId),
+        activeDirectoryId: event.activeDirectoryId as DirectoryId,
+      };
+      for (const directory of event.directories) {
+        const directoryId = directory.id as DirectoryId;
+        setupSubscriptions(directoryId);
+        loadDirectoryInfo(directory, directoryId);
+      }
+      return result;
+    },
   },
 });
 
 const loadDirectoryPath = async (dir: string, directoryId: DirectoryId) => {
-  directoryStore.send({ type: "setLoading", loading: true, directoryId });
   try {
     const result = await FileBrowserCache.load(dir);
 
@@ -397,7 +411,6 @@ const loadDirectoryPath = async (dir: string, directoryId: DirectoryId) => {
       severity: "error",
     });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false, directoryId });
   }
 };
 
@@ -407,7 +420,6 @@ const loadTaggedFiles = async (color: TagColor, directoryId: DirectoryId) => {
       .filter(([_, tags]) => tags.includes(color))
       .map(([path]) => path);
 
-  directoryStore.send({ type: "setLoading", loading: true, directoryId });
   try {
     const filePaths = getFilesWithTag(color);
     if (filePaths.length === 0) {
@@ -440,7 +452,6 @@ const loadTaggedFiles = async (color: TagColor, directoryId: DirectoryId) => {
       severity: "error",
     });
   } finally {
-    directoryStore.send({ type: "setLoading", loading: false, directoryId });
   }
 };
 
@@ -464,7 +475,6 @@ const cd = async (
     directoryStore.getSnapshot().context,
     directoryId,
   );
-  if (context.loading) return;
   if (directoryInfoEquals(newDirectory, context.directory)) return;
   if (isNew)
     directoryStore.send({
@@ -1314,6 +1324,30 @@ export const directoryHelpers = {
   isDirectoryId: (id: $Maybe<string>) => {
     return id && id.startsWith("dir-");
   },
+
+  openFolderInNewTab: (
+    item: GetFilesAndFoldersInDirectoryItem,
+    directoryId: DirectoryId,
+  ) => {
+    if (item.type !== "dir") return;
+
+    const fullPath = getFullPath(item.name, directoryId);
+    directoryStore.trigger.createDirectory({
+      fullPath: fullPath,
+    });
+  },
+  openContainingFolderInNewTab: (
+    item: GetFilesAndFoldersInDirectoryItem,
+    directoryId: DirectoryId,
+  ) => {
+    const fullPath = getFullPath(item.name, directoryId);
+    directoryStore.trigger.createDirectory({
+      fullPath: PathHelpers.resolveUpDirectory(
+        getWindowElectron().homeDirectory,
+        PathHelpers.getParentFolder(fullPath).path,
+      ),
+    });
+  },
 };
 
 // Selectors
@@ -1462,6 +1496,3 @@ const unsubscribeDirectorySubscriptions = (directoryId: DirectoryId) => {
   subscriptions.forEach((unsubscribe) => unsubscribe());
   directorySubscriptions.delete(directoryId);
 };
-
-directories.forEach(setupSubscriptions);
-directories.forEach((id) => loadDirectoryPath(defaultPath, id));
