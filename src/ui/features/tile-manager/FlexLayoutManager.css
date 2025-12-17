@@ -134,25 +134,23 @@
 /* Tab overflow button (dropdown for excess tabs) */
 .flexlayout__tab_button_overflow {
   background: transparent;
-  border-radius: 0.5rem;
-  opacity: 0.7;
   transition: all 0.2s;
   cursor: pointer;
   min-width: 2rem;
   width: auto;
   border: 1px solid transparent;
-  @apply h-full px-2 flex gap-1 items-center;
+  color: oklch(88.263% 0.093 212.846);
+  font-family: var(--default-font-family);
+  @apply h-full px-2 flex gap-1 items-center text-xs;
 }
 
 .flexlayout__tab_button_overflow:hover {
-  background: rgba(128, 128, 128, 0.15);
+  background: oklch(88.263% 0.093 212.846);
+  color: color-mix(in oklab, var(--btn-color, var(--color-base-200)), #000 7%);
   opacity: 1;
-  border-color: rgba(128, 128, 128, 0.2);
 }
 
 .flexlayout__tab_button_overflow svg {
-  width: 1rem;
-  height: 1rem;
   fill: currentColor;
 }
 
@@ -474,15 +472,11 @@
   align-items: center;
   border: none;
   font-size: inherit;
-  width: 2em;
   overflow: hidden;
 }
 .flexlayout__tab_toolbar {
   display: flex;
   align-items: center;
-  gap: 0.3em;
-  padding-left: 0.5em;
-  padding-right: 0.3em;
 }
 .flexlayout__tab_toolbar_icon {
   border: none;
@@ -496,7 +490,6 @@
   outline: none;
   font-size: inherit;
   margin: 0px;
-  border-radius: 4px;
   @apply text-sm;
 }
 .flexlayout__tab_toolbar_sticky_buttons_container {

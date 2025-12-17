@@ -98,7 +98,7 @@ const layoutJson = ((): IJsonModel => {
         // Left sidebar column - vertical split with favorites, recents, tags
         {
           type: "row",
-          weight: 15,
+          weight: 10,
           children: [
             {
               type: "tabset",
@@ -147,11 +147,11 @@ const layoutJson = ((): IJsonModel => {
         // Middle: Options at top, directories below
         {
           type: "row",
-          weight: 60,
+          weight: 80,
           children: [
             {
               type: "tabset",
-              weight: 8,
+              weight: 4,
               selected: 0,
               enableTabStrip: false,
               children: [
@@ -165,7 +165,7 @@ const layoutJson = ((): IJsonModel => {
             },
             {
               type: "tabset",
-              weight: 92,
+              weight: 96,
               selected: 0,
               enableTabStrip: true,
               children:
@@ -184,7 +184,7 @@ const layoutJson = ((): IJsonModel => {
         // Right preview section
         {
           type: "tabset",
-          weight: 25,
+          weight: 15,
           selected: 0,
           enableTabStrip: false,
           children: [
@@ -324,6 +324,7 @@ export const FlexLayoutManager: React.FC = () => {
   const icons: IIcons = useMemo(
     () => ({
       edgeArrow: <ChevronDownIcon className="w-4 h-4" />,
+      more: <ChevronDownIcon className="size-3" />,
     }),
     [],
   );
@@ -428,7 +429,7 @@ export const FlexLayoutManager: React.FC = () => {
             <Button
               key="add-directory"
               icon={PlusIcon}
-              className="btn-ghost btn-sm btn-square"
+              className="btn-ghost btn-sm btn-square rounded-none"
               title="Add New Directory"
               onClick={() => {
                 directoryStore.trigger.createDirectory({
@@ -442,7 +443,7 @@ export const FlexLayoutManager: React.FC = () => {
             <Button
               key="maximize-thing"
               icon={Maximize2Icon}
-              className="btn-ghost btn-sm btn-square"
+              className="btn-ghost btn-sm btn-square rounded-none"
               title="Maximize Thing"
               onClick={() => {
                 if (layoutRef.current) {
