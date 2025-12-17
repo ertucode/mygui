@@ -12,7 +12,6 @@ import {
   TabNode,
   ITabSetRenderValues,
   ITabRenderValues,
-  IJsonModel,
   TabSetNode,
   BorderNode,
   Actions,
@@ -46,164 +45,20 @@ import {
   Maximize2Icon,
   XIcon,
   ChevronDownIcon,
+  Trash2Icon,
+  SaveIcon,
 } from "lucide-react";
 import { clsx } from "@/lib/functions/clsx";
 import { Button } from "@/lib/components/button";
 import "./FlexLayoutManager.css";
 import { TAG_COLOR_CLASSES } from "../file-browser/tags";
-
-const LOCAL_STORAGE_KEY = "mygui-flexlayout-model";
-
-const layoutJson = ((): IJsonModel => {
-  const savedModel = localStorage.getItem(LOCAL_STORAGE_KEY);
-
-  // If we have a saved model with directories, use it
-  if (savedModel) {
-    try {
-      const parsed = JSON.parse(savedModel);
-      return parsed;
-    } catch (e) {
-      console.error("Failed to load saved layout:", e);
-    }
-  }
-  const directories = directoryStore.getSnapshot().context.directoryOrder;
-
-  // Create directory tabs
-  const directoryTabs = directories.map((dirId, index) => ({
-    type: "tab" as const,
-    name: `Directory ${index + 1}`,
-    component: "directory",
-    config: { directoryId: dirId },
-    enableClose: true,
-  }));
-
-  // Build the complete layout
-  return {
-    global: {
-      tabEnableClose: true,
-      tabEnableRename: false,
-      tabEnableDrag: true,
-      tabSetEnableMaximize: false,
-      tabSetEnableTabStrip: true,
-      tabSetEnableDrop: true,
-      tabSetEnableDrag: true,
-      tabSetEnableDivide: true,
-      tabSetEnableClose: false,
-      borderEnableDrop: true,
-      splitterSize: 4,
-    },
-    borders: [],
-    layout: {
-      type: "row",
-      weight: 100,
-      children: [
-        // Left sidebar column - vertical split with favorites, recents, tags
-        {
-          type: "row",
-          weight: 10,
-          children: [
-            {
-              type: "tabset",
-              weight: 33,
-              selected: 0,
-              enableTabStrip: true,
-              children: [
-                {
-                  type: "tab",
-                  name: "Favorites",
-                  component: "favorites",
-                  enableClose: false,
-                },
-              ],
-            },
-            {
-              type: "tabset",
-              weight: 33,
-              selected: 0,
-              enableTabStrip: true,
-              children: [
-                {
-                  type: "tab",
-                  name: "Recents",
-                  component: "recents",
-                  enableClose: false,
-                },
-              ],
-            },
-            {
-              type: "tabset",
-              weight: 34,
-              selected: 0,
-              enableTabStrip: true,
-              children: [
-                {
-                  type: "tab",
-                  name: "Tags",
-                  component: "tags",
-                  enableClose: false,
-                },
-              ],
-            },
-          ],
-        },
-        // Middle: Options at top, directories below
-        {
-          type: "row",
-          weight: 80,
-          children: [
-            {
-              type: "tabset",
-              weight: 4,
-              selected: 0,
-              enableTabStrip: false,
-              children: [
-                {
-                  type: "tab",
-                  name: "Options",
-                  component: "options",
-                  enableClose: false,
-                },
-              ],
-            },
-            {
-              type: "tabset",
-              weight: 96,
-              selected: 0,
-              enableTabStrip: true,
-              children:
-                directoryTabs.length > 0
-                  ? directoryTabs
-                  : [
-                      {
-                        type: "tab",
-                        name: "No Directories",
-                        component: "placeholder",
-                      },
-                    ],
-            },
-          ],
-        },
-        // Right preview section
-        {
-          type: "tabset",
-          weight: 15,
-          selected: 0,
-          enableTabStrip: false,
-          children: [
-            {
-              type: "tab",
-              name: "Preview",
-              component: "preview",
-              enableClose: false,
-            },
-          ],
-        },
-      ],
-    },
-  };
-})();
-
-const model = Model.fromJson(layoutJson);
+import { useShortcuts } from "@/lib/hooks/useShortcuts";
+import {
+  clearLayout,
+  layoutModel,
+  saveLayout,
+} from "../file-browser/initializeDirectory";
+import { toast } from "@/lib/components/toast";
 
 // Component factory function
 function createFactory(isResizing: boolean) {
@@ -302,14 +157,12 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
 
   if (directory.type !== "path")
     return (
-      <span className="text-xs truncate max-w-[200px]">
-        <span
-          className={clsx(
-            "size-3 min-w-3 rounded-full flex-shrink-0",
-            TAG_COLOR_CLASSES[directory.color].dot,
-          )}
-        />
-      </span>
+      <div
+        className={clsx(
+          "size-3 min-w-3 rounded-full flex-shrink-0",
+          TAG_COLOR_CLASSES[directory.color].dot,
+        )}
+      />
     );
 
   return (
@@ -331,8 +184,37 @@ export const FlexLayoutManager: React.FC = () => {
     [],
   );
 
+  useShortcuts([
+    {
+      key: { key: "y", ctrlKey: true },
+      notKey: { key: "y", ctrlKey: true, metaKey: true },
+      handler: () => {
+        saveLayout();
+        toast.show({
+          severity: "success",
+          message: "Layout saved",
+          customIcon: SaveIcon,
+        });
+      },
+    },
+    {
+      key: { key: "y", ctrlKey: true, metaKey: true },
+      handler: () => {
+        clearLayout();
+        toast.show({
+          severity: "success",
+          message: "Layout cleared",
+          customIcon: Trash2Icon,
+        });
+      },
+    },
+  ]);
+
   // Save model to localStorage on changes
   const handleModelChange = useCallback((newModel: Model) => {
+    // const json = newModel.toJson();
+    // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
+
     const node = newModel.getActiveTabset()?.getSelectedNode();
     if (
       node instanceof TabNode &&
@@ -342,8 +224,6 @@ export const FlexLayoutManager: React.FC = () => {
       const directoryId = node.getConfig()?.directoryId as DirectoryId;
       directoryStore.trigger.setActiveDirectoryId({ directoryId });
     }
-    // const json = newModel.toJson();
-    // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
 
     const nodeIds: DirectoryId[] = [];
     newModel.visitNodes((node) => {
@@ -410,7 +290,7 @@ export const FlexLayoutManager: React.FC = () => {
           title="Close"
           onClick={(e) => {
             e.stopPropagation();
-            model.doAction(Actions.deleteTab(node.getId()));
+            layoutModel.doAction(Actions.deleteTab(node.getId()));
           }}
         />,
       ];
@@ -474,7 +354,9 @@ export const FlexLayoutManager: React.FC = () => {
               title="Maximize Thing"
               onClick={() => {
                 if (layoutRef.current) {
-                  model.doAction(Actions.maximizeToggle(tabSetNode.getId()));
+                  layoutModel.doAction(
+                    Actions.maximizeToggle(tabSetNode.getId()),
+                  );
                 }
               }}
             />,
@@ -535,7 +417,7 @@ export const FlexLayoutManager: React.FC = () => {
       <div className="flex-1 min-w-0 min-h-0 relative">
         <Layout
           ref={layoutRef}
-          model={model}
+          model={layoutModel}
           factory={factory}
           onAction={onAction}
           icons={icons}

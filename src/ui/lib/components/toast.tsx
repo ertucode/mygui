@@ -23,6 +23,7 @@ export interface ToastOptions {
   severity: ToastSeverity;
   timeout?: number;
   location?: ToastLocation;
+  customIcon?: React.ComponentType<{ className?: string }>;
 }
 
 interface Toast extends ToastOptions {
@@ -45,9 +46,13 @@ export const useToast = () => {
 
 // Global toast manager - available anywhere, even outside React
 class ToastManager {
-  private showFn: ((options: ToastOptions | GenericError.ResultType) => void) | null = null;
+  private showFn:
+    | ((options: ToastOptions | GenericError.ResultType) => void)
+    | null = null;
 
-  setShowFunction(fn: (options: ToastOptions | GenericError.ResultType) => void) {
+  setShowFunction(
+    fn: (options: ToastOptions | GenericError.ResultType) => void,
+  ) {
     this.showFn = fn;
   }
 
@@ -83,7 +88,27 @@ const getLocationClasses = (location: ToastLocation = "top-right") => {
   }
 };
 
-const getSeverityIcon = (severity: ToastSeverity) => {
+const getSeverityStroke = (severity: ToastSeverity) => {
+  switch (severity) {
+    case "success":
+      return "stroke-success";
+    case "error":
+      return "stroke-error";
+    case "warning":
+      return "stroke-warning";
+    case "info":
+      return "stroke-info";
+  }
+};
+
+const getSeverityIcon = (
+  severity: ToastSeverity,
+  CustomIcon: React.ComponentType<{ className?: string }> | undefined,
+) => {
+  const stroke = getSeverityStroke(severity);
+  if (CustomIcon) {
+    return <CustomIcon className={"shrink-0 h-6 w-6 " + stroke} />;
+  }
   switch (severity) {
     case "success":
       return <CheckCircle className="shrink-0 h-6 w-6 stroke-success" />;
@@ -104,7 +129,7 @@ const ToastItem: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({
     <div
       className={`alert alert-vertical sm:alert-horizontal shadow-lg min-w-[300px] max-w-md`}
     >
-      {getSeverityIcon(toast.severity)}
+      {getSeverityIcon(toast.severity, toast.customIcon)}
       <div>
         <h3 className="font-bold">
           {toast.title && <h3 className="font-bold">{toast.title}</h3>}
