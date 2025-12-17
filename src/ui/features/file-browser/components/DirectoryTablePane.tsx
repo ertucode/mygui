@@ -9,7 +9,7 @@ export function DirectoryTablePane({
   directoryId: DirectoryId;
 }) {
   return (
-    <div className="relative flex flex-col min-h-0 min-w-0 h-full gap-1">
+    <div className="relative flex flex-col min-h-0 min-w-0 h-full gap-1 pt-1">
       <DirectoryContextProvider directoryId={directoryId}>
         <FileBrowserNavigationAndInputSection directoryId={directoryId} />
         <FileBrowserTable />

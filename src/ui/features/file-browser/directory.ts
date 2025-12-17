@@ -119,7 +119,7 @@ function updateDirectory(
 
 const directories = Array.from(
   { length: 10 },
-  (_, i) => i.toString() as DirectoryId,
+  (_, i) => `dir-${i.toString()}` as DirectoryId,
 );
 
 const directoiesById: Record<DirectoryId, DirectoryContextDirectory> =
@@ -291,7 +291,11 @@ export const directoryStore = createStore({
         activeDirectoryId: event.directoryId,
       };
     },
-    createDirectory: (context, event: { tabId?: string }, enqueue) => {
+    createDirectory: (
+      context,
+      event: { tabId?: string; fullPath?: string },
+      enqueue,
+    ) => {
       const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
 
       enqueue.emit.directoryCreated({
@@ -301,6 +305,9 @@ export const directoryStore = createStore({
 
       setupSubscriptions(directoryId);
       loadDirectoryPath(defaultPath, directoryId);
+      const directory: DirectoryInfo = event.fullPath
+        ? { type: "path", fullPath: event.fullPath }
+        : initialDirectoryInfo;
 
       return {
         ...context,
@@ -308,13 +315,11 @@ export const directoryStore = createStore({
           ...context.directoriesById,
           [directoryId]: {
             directoryId,
-            directory: initialDirectoryInfo,
+            directory,
             loading: false,
             directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
             error: undefined as string | undefined,
-            historyStack: new HistoryStack<DirectoryInfo>([
-              initialDirectoryInfo,
-            ]),
+            historyStack: new HistoryStack<DirectoryInfo>([directory]),
             pendingSelection: null as string | null,
             // Selection state
             selection: {
@@ -326,6 +331,43 @@ export const directoryStore = createStore({
           },
         },
         directoryOrder: [...context.directoryOrder, directoryId],
+      };
+    },
+    removeDirectory: (context, event: { directoryId: DirectoryId }) => {
+      const newItemOrder = context.directoryOrder.filter(
+        (id) => id !== event.directoryId,
+      );
+      if (newItemOrder.length === context.directoryOrder.length) return context;
+
+      delete context.directoriesById[event.directoryId];
+      unsubscribeDirectorySubscriptions(event.directoryId);
+      return {
+        ...context,
+        directoriesById: {
+          ...context.directoriesById,
+        },
+        directoryOrder: newItemOrder,
+      };
+    },
+
+    onDirectoriesMayHaveBeenRemoved: (
+      context,
+      event: { directoryIds: DirectoryId[] },
+    ) => {
+      const newItemOrder = context.directoryOrder.filter(
+        (id) => !event.directoryIds.includes(id),
+      );
+      if (newItemOrder.length === event.directoryIds.length) return context;
+      for (const directoryId of event.directoryIds) {
+        delete context.directoriesById[directoryId];
+        unsubscribeDirectorySubscriptions(directoryId);
+      }
+      return {
+        ...context,
+        directoriesById: {
+          ...context.directoriesById,
+        },
+        directoryOrder: newItemOrder,
       };
     },
   },
@@ -1268,6 +1310,10 @@ export const directoryHelpers = {
       }
     }, 50);
   },
+
+  isDirectoryId: (id: $Maybe<string>) => {
+    return id && id.startsWith("dir-");
+  },
 };
 
 // Selectors
@@ -1406,7 +1452,16 @@ function setupSubscriptions(directoryId: DirectoryId) {
       },
     ),
   );
+
+  return subscriptions;
 }
+
+const unsubscribeDirectorySubscriptions = (directoryId: DirectoryId) => {
+  const subscriptions = directorySubscriptions.get(directoryId);
+  if (!subscriptions) return;
+  subscriptions.forEach((unsubscribe) => unsubscribe());
+  directorySubscriptions.delete(directoryId);
+};
 
 directories.forEach(setupSubscriptions);
 directories.forEach((id) => loadDirectoryPath(defaultPath, id));

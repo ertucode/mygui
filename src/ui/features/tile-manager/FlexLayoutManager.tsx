@@ -4,6 +4,7 @@ import React, {
   useMemo,
   useEffect,
   useState,
+  ComponentProps,
 } from "react";
 import {
   Layout,
@@ -331,8 +332,8 @@ export const FlexLayoutManager: React.FC = () => {
   );
 
   // Save model to localStorage on changes
-  const handleModelChange = useCallback((_newModel: Model) => {
-    const node = _newModel.getActiveTabset()?.getSelectedNode();
+  const handleModelChange = useCallback((newModel: Model) => {
+    const node = newModel.getActiveTabset()?.getSelectedNode();
     if (
       node instanceof TabNode &&
       node.getComponent() === "directory" &&
@@ -343,6 +344,17 @@ export const FlexLayoutManager: React.FC = () => {
     }
     // const json = newModel.toJson();
     // localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(json));
+
+    const nodeIds: DirectoryId[] = [];
+    newModel.visitNodes((node) => {
+      if (
+        node instanceof TabNode &&
+        node.getComponent() === "directory" &&
+        node.getConfig()?.directoryId
+      ) {
+        nodeIds.push(node.getConfig()?.directoryId as DirectoryId);
+      }
+    });
   }, []);
 
   // Custom tab renderer - use actual Button component
@@ -368,24 +380,24 @@ export const FlexLayoutManager: React.FC = () => {
     else if (component === "tags") Icon = TagIcon;
     else if (component === "preview") Icon = EyeIcon;
 
-    const isDirectory = component === "directory";
+    const isDirectory = component === "directory" && config?.directoryId;
 
     // Use your actual Button component with join-item styling
-    renderValues.content = (
+    renderValues.content = isDirectory ? (
       <Button
         icon={Icon}
         className={clsx(
-          "btn-ghost btn-sm join-item rounded-none",
-          isSelected && isDirectory && "btn-active",
-          !isDirectory && "pl-1",
+          "btn-ghost btn-sm join-item rounded-none cursor-move",
+          isSelected && "btn-active",
         )}
       >
-        {component === "directory" && config?.directoryId ? (
-          <DirectoryTabLabel directoryId={config.directoryId} />
-        ) : (
-          <span className="text-xs">{node.getName()}</span>
-        )}
+        <DirectoryTabLabel directoryId={config.directoryId} />
       </Button>
+    ) : (
+      <div className="text-xs font-bold cursor-move flex items-center gap-3 pl-1.5">
+        <Icon className="size-4" />
+        {node.getName()}
+      </div>
     );
 
     // Customize close button with our Button component
@@ -510,6 +522,12 @@ export const FlexLayoutManager: React.FC = () => {
     [],
   );
 
+  type ActionFn = Exclude<ComponentProps<typeof Layout>["onAction"], undefined>;
+  const onAction: ActionFn = useCallback((action) => {
+    // TODO: we will disable deleting the last directory tab here
+    return action;
+  }, []);
+
   return (
     <div className="flex flex-col items-stretch h-full p-3 overflow-hidden">
       {dialogs.RenderOutside}
@@ -519,6 +537,7 @@ export const FlexLayoutManager: React.FC = () => {
           ref={layoutRef}
           model={model}
           factory={factory}
+          onAction={onAction}
           icons={icons}
           onModelChange={handleModelChange}
           onRenderTab={onRenderTab}
