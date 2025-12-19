@@ -1,6 +1,6 @@
 import { RefObject, useEffect, useRef } from "react";
 
-type ShortcutDefinition =
+export type ShortcutDefinition =
   | string
   | {
       key: string;
@@ -11,14 +11,14 @@ type ShortcutDefinition =
       altKey?: boolean;
     };
 
-type ShortcutWithHandler = {
+export type ShortcutWithHandler = {
   key: ShortcutDefinition | ShortcutDefinition[];
   handler: (e: KeyboardEvent) => void;
   enabledIn?: RefObject<HTMLElement | null> | ((e: KeyboardEvent) => boolean);
   notKey?: ShortcutDefinition | ShortcutDefinition[];
 };
 
-type SequenceShortcut = {
+export type SequenceShortcut = {
   sequence: string[];
   handler: (e: KeyboardEvent) => void;
   timeout?: number;
