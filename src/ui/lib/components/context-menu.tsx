@@ -68,7 +68,7 @@ export type ContextMenuListProps = {
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext);
   return (
-    <ul className="menu bg-base-200 rounded-box w-56">
+    <ul className="menu menu-sm bg-base-200 rounded-box w-56">
       {items
         .filter((i) => !!i)
         .map((item, idx) => {
