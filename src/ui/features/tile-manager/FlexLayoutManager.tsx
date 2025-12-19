@@ -24,6 +24,7 @@ import { TagsList } from "../file-browser/components/TagsList";
 import { DirectoryTablePane } from "../file-browser/components/DirectoryTablePane";
 import { FilePreview } from "../file-browser/components/FilePreview";
 import { FileBrowserOptionsSection } from "../file-browser/components/FileBrowserOptionsSection";
+import { BottomToolbar } from "../file-browser/components/BottomToolbar";
 import {
   directoryStore,
   directoryHelpers,
@@ -411,7 +412,7 @@ export const FlexLayoutManager: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-stretch h-full p-3 overflow-hidden">
+    <div className="flex flex-col items-stretch h-full p-3 pb-16 overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
       <div className="flex-1 min-w-0 min-h-0 relative">
@@ -427,6 +428,7 @@ export const FlexLayoutManager: React.FC = () => {
           onRenderDragRect={onRenderDragRect}
         />
       </div>
+      <BottomToolbar />
     </div>
   );
 };
