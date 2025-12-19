@@ -31,6 +31,7 @@ import {
   TAG_COLOR_CLASSES,
 } from "./tags";
 import { useDirectoryContext } from "./DirectoryContext";
+import { toast } from "@/lib/components/toast";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -161,6 +162,11 @@ export const FileTableRowContextMenu = ({
   const copyPathItem: ContextMenuItem = {
     onClick: () => {
       navigator.clipboard.writeText(fullPath);
+      toast.show({
+        severity: "success",
+        message: "Path copied to clipboard",
+        customIcon: ClipboardCopyIcon,
+      });
     },
     view: <TextWithIcon icon={ClipboardCopyIcon}>Copy Path</TextWithIcon>,
   };

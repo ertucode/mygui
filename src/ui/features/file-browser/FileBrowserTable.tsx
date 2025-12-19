@@ -234,6 +234,7 @@ const TableRow = memo(function TableRow({
       }}
       onContextMenu={(e) => {
         e.preventDefault();
+        directoryStore.trigger.selectManually({ index, directoryId });
         onContextMenu(e, item);
       }}
       onDragStart={async (e) => {

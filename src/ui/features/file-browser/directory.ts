@@ -94,9 +94,12 @@ function updateDirectory(
   context: DirectoryContext,
   directoryId: DirectoryId | undefined,
   fn: (d: DirectoryContextDirectory) => DirectoryContextDirectory,
+  needsUpdate?: (d: DirectoryContextDirectory) => boolean,
 ) {
   const activeDirectory = getActiveDirectory(context, directoryId);
   if (directoryId && !activeDirectory) return context;
+
+  if (needsUpdate && !needsUpdate(activeDirectory)) return context;
 
   const newItem = fn(activeDirectory);
   return {
@@ -228,16 +231,25 @@ export const directoryStore = createStore({
 
     selectManually: (
       context,
-      event: { index: number; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
-        ...d,
-        selection: {
-          indexes: new Set([event.index]),
-          last: event.index,
-        },
-      })),
-
+      event: {
+        index: number;
+        directoryId: DirectoryId;
+        dontTouchWhenSelected?: boolean;
+      },
+    ) => {
+      return updateDirectory(
+        context,
+        event.directoryId,
+        (d) => ({
+          ...d,
+          selection: {
+            indexes: new Set([event.index]),
+            last: event.index,
+          },
+        }),
+        (d) => !d.selection.indexes.has(event.index),
+      );
+    },
     // Fuzzy finder events
     setFuzzyQuery: (
       context,
