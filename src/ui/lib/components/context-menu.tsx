@@ -2,6 +2,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react";
@@ -12,11 +13,41 @@ export type ContextMenuProps<T> = {
 };
 
 export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
+  const [position, setPosition] = useState(menu.position);
+  useLayoutEffect(() => {
+    if (!menu || !menu.position || !menu.ref.current) return;
+
+    const dialog = menu.ref.current;
+    const { innerWidth, innerHeight } = window;
+    const rect = dialog.getBoundingClientRect();
+
+    let x = menu.position.x;
+    let y = menu.position.y;
+
+    // Right overflow
+    if (x + rect.width > innerWidth) {
+      x = innerWidth - rect.width - 8;
+    }
+
+    // Bottom overflow
+    if (y + rect.height > innerHeight) {
+      y = innerHeight - rect.height - 8;
+    }
+
+    // Left / Top safety
+    x = Math.max(8, x);
+    y = Math.max(8, y);
+
+    if (x !== menu.position.x || y !== menu.position.y) {
+      setPosition((prev) => (prev ? { ...prev, x, y } : { x, y }));
+    }
+  }, [menu.position]);
+
   return (
     <div
       ref={menu.ref}
       className="fixed z-50"
-      style={{ top: menu.position?.y, left: menu.position?.x }}
+      style={{ top: position?.y, left: position?.x }}
     >
       <ContextMenuContext.Provider value={menu}>
         {children}
@@ -77,12 +108,20 @@ export function useContextMenu<T>() {
       }
     };
 
+    const keydownHandler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setState(null);
+      }
+    };
+
     document.addEventListener("mousedown", handler);
     document.addEventListener("touchstart", handler);
+    document.addEventListener("keydown", keydownHandler);
 
     return () => {
       document.removeEventListener("mousedown", handler);
       document.removeEventListener("touchstart", handler);
+      document.removeEventListener("keydown", keydownHandler);
     };
   }, [state, ref]);
 

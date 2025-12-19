@@ -4,6 +4,5 @@
 
 # TODO
 
-- inline file rename
 - copy file path
 - context menu overflows screen
