@@ -73,8 +73,8 @@
 }
 
 /* Directory tabset styling - has the marker class */
-.flexlayout__tabset_tabbar_outer:has(.directory-tabset-marker) {
-  @apply bg-base-200 border-b border-base-300;
+.flexlayout__tabset_tabbar_outer {
+  @apply bg-base-200 border-b border-base-300 rounded-sm;
 }
 
 /* Drag and drop indicators with theme colors */

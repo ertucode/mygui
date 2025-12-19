@@ -190,7 +190,7 @@ export const layoutJson = ((): IJsonModel => {
           type: "tabset",
           weight: 15,
           selected: 0,
-          enableTabStrip: false,
+          enableTabStrip: true,
           children: [
             {
               type: "tab",
@@ -218,6 +218,7 @@ export function saveLayout() {
     }),
     activeDirectoryId: snapshot.context.activeDirectoryId,
   };
+  console.log(storage);
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storage));
 }
 
