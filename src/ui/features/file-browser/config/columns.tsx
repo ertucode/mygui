@@ -18,6 +18,8 @@ import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
+import { useEffect, useRef, useState } from "react";
+import { directoryHelpers, DirectoryId } from "../directory";
 
 /**
  * Icon and color mapping for file categories
@@ -78,6 +80,7 @@ function TagCircles({ tags }: { tags: TagColor[] }) {
 export interface ColumnsContext {
   fileTags: FileTags;
   getFullPath: (name: string) => string;
+  directoryId: DirectoryId;
 }
 
 export function createColumns(
@@ -96,28 +99,7 @@ export function createColumns(
       accessorKey: "name",
       header: "Name",
       cell: (row) => {
-        const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
-        const tags = ctx.fileTags[fullPath];
-        // Show folder name when fullPath is available (tags view)
-        const parentFolder = row.fullPath
-          ? PathHelpers.getParentFolder(row.fullPath)
-          : null;
-        return (
-          <div className="flex items-center min-w-0 gap-2">
-            <span className="block truncate" title={row.name}>
-              {row.name}
-            </span>
-            {tags && <TagCircles tags={tags} />}
-            {parentFolder && parentFolder.name && (
-              <span
-                className="text-gray-400 text-xs truncate flex-shrink-0"
-                title={parentFolder.path}
-              >
-                {parentFolder.path}
-              </span>
-            )}
-          </div>
-        );
+        return <DirectoryNameColumn row={row} ctx={ctx} />;
       },
     },
     {
@@ -165,6 +147,115 @@ export function createColumns(
       ),
     },
   ];
+}
+
+function DirectoryNameColumn({
+  row,
+  ctx,
+}: {
+  row: GetFilesAndFoldersInDirectoryItem;
+  ctx: ColumnsContext;
+}) {
+  const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
+  const tags = ctx.fileTags[fullPath];
+  // Show folder name when fullPath is available (tags view)
+  const parentFolder = row.fullPath
+    ? PathHelpers.getParentFolder(row.fullPath)
+    : null;
+
+  const [renaming, setRenaming] = useState(false);
+
+  return (
+    <div className="flex items-center min-w-0 gap-2">
+      {renaming ? (
+        <RenameInput row={row} ctx={ctx} setRenaming={setRenaming} />
+      ) : (
+        <span
+          className="block truncate"
+          title={row.name}
+          onClick={(e) => {
+            if (e.metaKey) {
+              e.preventDefault();
+              setRenaming(true);
+            }
+          }}
+        >
+          {row.name}
+        </span>
+      )}
+      {tags && <TagCircles tags={tags} />}
+      {parentFolder && parentFolder.name && (
+        <span
+          className="text-gray-400 text-xs truncate flex-shrink-0"
+          title={parentFolder.path}
+        >
+          {parentFolder.path}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function RenameInput({
+  row,
+  ctx,
+  setRenaming,
+}: {
+  row: GetFilesAndFoldersInDirectoryItem;
+  ctx: ColumnsContext;
+  setRenaming: (value: boolean) => void;
+}) {
+  const [value, setValue] = useState(row.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const c = inputRef.current;
+    if (!c) return;
+    c.focus();
+    c.selectionStart = 0;
+    const indexOfLastDot = c.value.lastIndexOf(".");
+    if (indexOfLastDot !== -1) {
+      c.selectionEnd = indexOfLastDot;
+    }
+
+    const closest = c.closest("tr");
+    if (closest) {
+      closest.draggable = false;
+    }
+
+    return () => {
+      if (!closest) return;
+      closest.draggable = true;
+    };
+  }, []);
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      directoryHelpers.renameItem(row, value, ctx.directoryId);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setRenaming(false);
+    }
+  };
+
+  const onBlur = (e: React.FocusEvent) => {
+    e.preventDefault();
+    setRenaming(false);
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={onKeyDown}
+      onClick={(e) => e.stopPropagation()}
+      onBlur={onBlur}
+      draggable={false}
+    />
+  );
 }
 
 export const sortNames = z.enum(["name", "modifiedTimestamp", "size", "ext"]);

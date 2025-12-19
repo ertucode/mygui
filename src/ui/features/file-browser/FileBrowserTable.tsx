@@ -43,6 +43,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     return createColumns({
       fileTags,
       getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
+      directoryId: context.directoryId,
     });
   }, [fileTags]);
 
@@ -238,7 +239,7 @@ const TableRow = memo(function TableRow({
       onDragStart={async (e) => {
         // Mark this as a file drag operation
         e.dataTransfer.setData("application/x-mygui-file-drag", "true");
-        
+
         const items = directoryHelpers.getSelectedItemsOrCurrentItem(
           index,
           directoryId,
