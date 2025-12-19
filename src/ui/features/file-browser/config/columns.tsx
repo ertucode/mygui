@@ -19,7 +19,7 @@ import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { useEffect, useRef, useState } from "react";
-import { directoryHelpers, DirectoryId } from "../directory";
+import { directoryHelpers, DirectoryId, directoryStore } from "../directory";
 
 /**
  * Icon and color mapping for file categories
@@ -98,8 +98,8 @@ export function createColumns(
     {
       accessorKey: "name",
       header: "Name",
-      cell: (row) => {
-        return <DirectoryNameColumn row={row} ctx={ctx} />;
+      cell: (row, { index: idx }) => {
+        return <DirectoryNameColumn row={row} ctx={ctx} idx={idx} />;
       },
     },
     {
@@ -152,9 +152,11 @@ export function createColumns(
 function DirectoryNameColumn({
   row,
   ctx,
+  idx,
 }: {
   row: GetFilesAndFoldersInDirectoryItem;
   ctx: ColumnsContext;
+  idx: number;
 }) {
   const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
   const tags = ctx.fileTags[fullPath];
@@ -174,7 +176,7 @@ function DirectoryNameColumn({
           className="block truncate"
           title={row.name}
           onClick={(e) => {
-            if (e.metaKey) {
+            if (e.metaKey || checkIfRowIsSelected(ctx, idx)) {
               e.preventDefault();
               setRenaming(true);
             }
@@ -194,6 +196,17 @@ function DirectoryNameColumn({
       )}
     </div>
   );
+}
+
+function checkIfRowIsSelected(ctx: ColumnsContext, idx: number) {
+  const snapshot = directoryStore.getSnapshot();
+  if (snapshot.context.activeDirectoryId !== ctx.directoryId) return false;
+
+  const lastSelected =
+    snapshot.context.directoriesById[ctx.directoryId]?.selection?.last;
+  if (lastSelected == null) return false;
+
+  return lastSelected === idx;
 }
 
 function RenameInput({
@@ -247,6 +260,7 @@ function RenameInput({
   return (
     <input
       ref={inputRef}
+      className="w-full"
       type="text"
       value={value}
       onChange={(e) => setValue(e.target.value)}
