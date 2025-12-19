@@ -1,5 +1,4 @@
 import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
-import { FolderBreadcrumb } from "./FolderBreadcrumb";
 import { useSelector } from "@xstate/store/react";
 import { useEffect, useRef } from "react";
 import {
@@ -53,9 +52,7 @@ export function FileBrowserNavigationAndInputSection({
         >
           {<ArrowUpIcon className={navigationButtonIconClassName} />}
         </button>
-        <div className="overflow-x-auto flex-1 flex ">
-          <FolderBreadcrumb />
-        </div>
+        <div className="flex-1"></div>
         <FuzzyInput />
       </div>
     </DirectoryContextProvider>
