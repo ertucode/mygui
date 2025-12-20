@@ -266,40 +266,55 @@ export const FlexLayoutManager: React.FC = () => {
 
     // Use your actual Button component with join-item styling
     renderValues.content = isDirectory ? (
-      <Button
-        icon={Icon}
+      <div
         className={clsx(
-          "btn-ghost btn-sm join-item rounded-none cursor-move",
-          isSelected && "btn-active",
+          "join-item cursor-move flex items-center gap-3 h-full p-2",
+          isSelected && "shadow-[inset_0_-3px_0_0_var(--color-primary)]",
+          "dir-marker",
         )}
       >
+        <Icon className="size-4" />
         <DirectoryTabLabel directoryId={config.directoryId} />
-      </Button>
-    ) : (
-      <Button
-        className={clsx(
-          "text-xs btn-ghost btn-xs cursor-move flex items-center gap-3 rounded-none px-1.5 p-3",
-          node.isSelected() && !noSiblings && "btn-active",
-        )}
-        icon={Icon}
-      >
-        {noSiblings && node.getName()}
-      </Button>
-    );
-
-    // Customize close button with our Button component
-    if (node.isEnableClose()) {
-      renderValues.buttons = [
-        <Button
+        <div
           key={`close-${node.getId()}`}
-          icon={XIcon}
-          className="btn-ghost btn-sm btn-square join-item rounded-none"
+          className="join-item cursor-pointer flex items-center gap-3 h-full"
           title="Close"
           onClick={(e) => {
             e.stopPropagation();
             layoutModel.doAction(Actions.deleteTab(node.getId()));
           }}
-        />,
+        >
+          <XIcon className="size-4" />
+        </div>
+      </div>
+    ) : (
+      <div
+        className={clsx(
+          "join-item cursor-move flex items-center gap-2 p-1 pl-2 h-full text-xs",
+          node.isSelected() &&
+            !noSiblings &&
+            "shadow-[inset_0_-3px_0_0_var(--color-primary)]",
+          !noSiblings && "px-2",
+        )}
+      >
+        <Icon className="size-4" />
+        {noSiblings && node.getName()}
+      </div>
+    );
+
+    // Customize close button with our Button component
+    if (node.isEnableClose()) {
+      renderValues.buttons = [
+        // <Button
+        //   key={`close-${node.getId()}`}
+        //   icon={XIcon}
+        //   className="btn-ghost btn-sm btn-square join-item rounded-none"
+        //   title="Close"
+        //   onClick={(e) => {
+        //     e.stopPropagation();
+        //     layoutModel.doAction(Actions.deleteTab(node.getId()));
+        //   }}
+        // />,
       ];
     }
   };
@@ -418,7 +433,7 @@ export const FlexLayoutManager: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col items-stretch h-full p-3 pb-16 overflow-hidden">
+    <div className="flex flex-col items-stretch h-full overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
       <div className="flex-1 min-w-0 min-h-0 relative">

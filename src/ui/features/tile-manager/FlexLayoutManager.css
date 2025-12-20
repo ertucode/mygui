@@ -37,6 +37,7 @@
 /* Tab button content container */
 .flexlayout__tab_button_content {
   padding: 0;
+  height: 100%;
 }
 
 /* Close button styling - hidden since we use custom Button component */
@@ -74,8 +75,11 @@
 
 /* Directory tabset styling - has the marker class */
 .flexlayout__tabset_tabbar_outer {
-  @apply bg-base-200 border-b border-base-300 rounded-sm;
+  @apply border-b border-base-300 h-10;
 }
+/* .flexlayout__tabset_tabbar_outer {
+  @apply bg-base-200 border-b border-base-300 rounded-sm;
+} */
 
 /* Drag and drop indicators with theme colors */
 .flexlayout__outline_rect {
@@ -257,6 +261,7 @@
   justify-content: center;
   touch-action: none;
   z-index: 10;
+  @apply bg-base-200;
 }
 @media (hover: hover) {
   .flexlayout__splitter:hover {
@@ -368,12 +373,6 @@
   display: flex;
   font-size: var(--font-size);
 }
-.flexlayout__tabset_tabbar_outer_top {
-  padding: 0px 2px 0px 2px;
-}
-.flexlayout__tabset_tabbar_outer_bottom {
-  padding: 0px 2px 0px 2px;
-}
 .flexlayout__tabset_tabbar_inner {
   position: relative;
   box-sizing: border-box;
@@ -390,8 +389,10 @@
   box-sizing: border-box;
   white-space: nowrap;
 }
+.flexlayout__tabset_tabbar_inner_tab_container:has(.dir-marker) {
+  /* @apply gap-2; */
+}
 .flexlayout__tabset_tabbar_inner_tab_container_top {
-  border-top: 2px solid transparent;
 }
 .flexlayout__tabset_tabbar_inner_tab_container_bottom {
   border-bottom: 2px solid transparent;
