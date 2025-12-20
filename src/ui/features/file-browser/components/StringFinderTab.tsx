@@ -15,6 +15,7 @@ import {
   directoryHelpers,
   selectDirectory,
 } from "../directory";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type StringFinderTabProps = {
   isOpen: boolean;
@@ -33,7 +34,8 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<StringSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
+  const isLoading = useDebounce(_isLoading, 100);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
