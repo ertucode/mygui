@@ -52,6 +52,8 @@ function createWindow(initialPath?: string) {
     height,
     x: 0,
     y: 0,
+    titleBarStyle: "hiddenInset",
+    trafficLightPosition: { x: 10, y: 16 },
     webPreferences: {
       preload: getPreloadPath(),
       webviewTag: true,
