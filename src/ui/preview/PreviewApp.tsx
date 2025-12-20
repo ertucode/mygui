@@ -10,6 +10,7 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
 import { isImageExtension, isVideoExtension } from "@common/file-category";
 import { ZipEntry } from "@common/Contracts";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 function expandHome(filePath: string): string {
   if (filePath.startsWith("~/")) {
@@ -41,7 +42,8 @@ export function PreviewApp() {
   const [content, setContent] = useState<string | null>(null);
   const [contentType, setContentType] = useState<ContentType>("text");
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
+  const loading = useDebounce(_loading, 100);
   const [copied, setCopied] = useState(false);
 
   // Listen for messages from parent window
