@@ -239,6 +239,55 @@ export const FlexLayoutManager: React.FC = () => {
     });
   }, []);
 
+  useEffect(() => {
+    const unsub = directoryStore.subscribe((s) => {
+      const directoryId = s.context.activeDirectoryId;
+      if (!directoryId) return;
+
+      let done = false;
+
+      layoutModel.visitNodes((node) => {
+        if (done) return;
+        if (
+          node instanceof TabNode &&
+          node.getComponent() === "directory" &&
+          node.getConfig()?.directoryId === directoryId
+        ) {
+          done = true;
+          const targetTab = node;
+
+          if (!targetTab) return;
+
+          const tabset = targetTab.getParent();
+          if (!tabset) return;
+
+          const activeTabset = layoutModel.getActiveTabset();
+          const activeTab = activeTabset?.getSelectedNode();
+
+          // Avoid loops / redundant work
+          if (
+            activeTabset?.getId() === tabset.getId() &&
+            activeTab?.getId() === targetTab.getId()
+          ) {
+            return;
+          }
+
+          // 1️⃣ Activate tabset
+          layoutModel.doAction(Actions.setActiveTabset(tabset.getId()));
+
+          const idx = tabset
+            .getChildren()
+            .findIndex((c) => c.getId() === targetTab?.getId());
+          if (idx !== -1) {
+            tabset.setSelected(idx);
+          }
+        }
+      });
+    });
+
+    return unsub.unsubscribe;
+  }, []);
+
   // Custom tab renderer - use actual Button component
   const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
     const component = node.getComponent();
