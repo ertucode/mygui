@@ -92,7 +92,7 @@ export const layoutJson = ((): IJsonModel => {
       tabSetEnableDivide: true,
       tabSetEnableClose: false,
       borderEnableDrop: true,
-      splitterSize: 4,
+      splitterSize: 2,
     },
     borders: [],
     layout: {
@@ -112,7 +112,7 @@ export const layoutJson = ((): IJsonModel => {
               children: [
                 {
                   type: "tab",
-                  name: "Favorites",
+                  name: "FAVORITES",
                   component: "favorites",
                   enableClose: false,
                 },
@@ -126,7 +126,7 @@ export const layoutJson = ((): IJsonModel => {
               children: [
                 {
                   type: "tab",
-                  name: "Recents",
+                  name: "RECENTS",
                   component: "recents",
                   enableClose: false,
                 },
@@ -140,7 +140,7 @@ export const layoutJson = ((): IJsonModel => {
               children: [
                 {
                   type: "tab",
-                  name: "Tags",
+                  name: "TAGS",
                   component: "tags",
                   enableClose: false,
                 },
@@ -153,20 +153,6 @@ export const layoutJson = ((): IJsonModel => {
           type: "row",
           weight: 80,
           children: [
-            {
-              type: "tabset",
-              weight: 4,
-              selected: 0,
-              enableTabStrip: false,
-              children: [
-                {
-                  type: "tab",
-                  name: "Options",
-                  component: "options",
-                  enableClose: false,
-                },
-              ],
-            },
             {
               type: "tabset",
               weight: 96,
@@ -194,7 +180,7 @@ export const layoutJson = ((): IJsonModel => {
           children: [
             {
               type: "tab",
-              name: "Preview",
+              name: "PREVIEW",
               component: "preview",
               enableClose: false,
             },
