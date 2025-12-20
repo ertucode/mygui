@@ -10,6 +10,7 @@ import {
   directoryHelpers,
   selectDirectory,
 } from "../directory";
+import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type FileFinderTabProps = {
   isOpen: boolean;
@@ -33,7 +34,8 @@ export function FileFinderTab({
   const [query, setQuery] = useState("");
   const [filteredFiles, setFilteredFiles] = useState<string[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
+  const isLoading = useDebounce(_isLoading, 100);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
