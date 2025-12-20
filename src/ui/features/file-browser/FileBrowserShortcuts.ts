@@ -203,6 +203,13 @@ export function FileBrowserShortcuts() {
           directoryStore.trigger.focusFuzzyInput({ e });
         },
       },
+      {
+        key: { key: "l", ctrlKey: true, metaKey: true },
+        handler: (e) => {
+          e.preventDefault();
+          directoryHelpers.loadDirectorySizes(directoryId);
+        },
+      },
       // Option+1 through Option+9 to open favorites
       ...Array.from({ length: 9 }, (_, i) => ({
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },

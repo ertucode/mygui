@@ -85,6 +85,26 @@ function checkShortcut(shortcut: ShortcutDefinition, e: KeyboardEvent) {
   return e.key === shortcut.key;
 }
 
+/**
+ * Calculate specificity of a shortcut definition
+ * More specific shortcuts have higher numbers
+ * Specificity is the number of boolean modifiers that are explicitly set
+ */
+function getShortcutSpecificity(shortcut: ShortcutDefinition): number {
+  if (typeof shortcut === "string") {
+    return 0; // No modifiers specified
+  }
+
+  let specificity = 0;
+  if (shortcut.metaKey !== undefined) specificity++;
+  if (shortcut.shiftKey !== undefined) specificity++;
+  if (shortcut.ctrlKey !== undefined) specificity++;
+  if (shortcut.altKey !== undefined) specificity++;
+  if (shortcut.isCode !== undefined) specificity++;
+
+  return specificity;
+}
+
 function checkEnabledIn(
   enabledIn:
     | RefObject<HTMLElement | null>
@@ -158,13 +178,19 @@ export function handleKeyDownWithShortcuts(
     }
   }
 
-  // Process regular shortcuts
+  // Process regular shortcuts - find all matching shortcuts and pick the most specific
+  const matchingShortcuts: Array<{
+    shortcut: ShortcutWithHandler;
+    specificity: number;
+  }> = [];
+
   shortcuts.forEach((shortcut) => {
     if (!shortcut || shortcut === true) return;
     if (isSequenceShortcut(shortcut)) return; // Already handled above
 
     if (!checkEnabledIn(shortcut.enabledIn, e)) return;
 
+    // Check if notKey excludes this shortcut
     if (shortcut.notKey) {
       if (Array.isArray(shortcut.notKey)) {
         if (shortcut.notKey.some((k) => checkShortcut(k, e))) {
@@ -177,14 +203,33 @@ export function handleKeyDownWithShortcuts(
       }
     }
 
+    // Check if this shortcut matches
+    let matchedDefinition: ShortcutDefinition | null = null;
     if (Array.isArray(shortcut.key)) {
-      if (shortcut.key.some((k) => checkShortcut(k, e))) {
-        shortcut.handler(e);
+      const matched = shortcut.key.find((k) => checkShortcut(k, e));
+      if (matched) {
+        matchedDefinition = matched;
       }
     } else {
       if (checkShortcut(shortcut.key, e)) {
-        shortcut.handler(e);
+        matchedDefinition = shortcut.key;
       }
     }
+
+    // If matched, calculate specificity and add to candidates
+    if (matchedDefinition) {
+      const specificity = getShortcutSpecificity(matchedDefinition);
+      matchingShortcuts.push({ shortcut, specificity });
+    }
   });
+
+  // If we have matching shortcuts, execute only the most specific one
+  if (matchingShortcuts.length > 0) {
+    // Sort by specificity (highest first)
+    matchingShortcuts.sort((a, b) => b.specificity - a.specificity);
+
+    // Execute only the most specific shortcut
+    const mostSpecific = matchingShortcuts[0];
+    mostSpecific.shortcut.handler(e);
+  }
 }

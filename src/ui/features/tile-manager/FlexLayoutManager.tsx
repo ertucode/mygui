@@ -49,6 +49,7 @@ import {
   ChevronDownIcon,
   Trash2Icon,
   SaveIcon,
+  LoaderIcon,
 } from "lucide-react";
 import { clsx } from "@/lib/functions/clsx";
 import { Button } from "@/lib/components/button";
@@ -61,6 +62,7 @@ import {
   saveLayout,
 } from "../file-browser/initializeDirectory";
 import { toast } from "@/lib/components/toast";
+import { useDirectoryLoading } from "../file-browser/directoryLoadingStore";
 
 // Component factory function
 function createFactory(isResizing: boolean) {
@@ -168,7 +170,11 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
     );
 
   return (
-    <span className="text-xs truncate max-w-[200px]">{directory.fullPath}</span>
+    <>
+      <span className="text-xs truncate max-w-[200px]">
+        {directory.fullPath}
+      </span>
+    </>
   );
 }
 
@@ -326,7 +332,7 @@ export const FlexLayoutManager: React.FC = () => {
           "dir-marker",
         )}
       >
-        <Icon className="size-4" />
+        <DirectoryIcon directoryId={config.directoryId} />
         <DirectoryTabLabel directoryId={config.directoryId} />
         <div
           key={`close-${node.getId()}`}
@@ -507,3 +513,12 @@ export const FlexLayoutManager: React.FC = () => {
     </div>
   );
 };
+
+function DirectoryIcon({ directoryId }: { directoryId: DirectoryId }) {
+  const isLoading = useDirectoryLoading(directoryId);
+  return isLoading ? (
+    <LoaderIcon className="size-4 animate-spin" />
+  ) : (
+    <FoldersIcon className="size-4" />
+  );
+}

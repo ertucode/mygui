@@ -50,6 +50,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
   unzipFile: (zipFilePath: string, destinationFolder: string) =>
     ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
+  getDirectorySizes: (parentPath: string, specificDirName?: string) =>
+    ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

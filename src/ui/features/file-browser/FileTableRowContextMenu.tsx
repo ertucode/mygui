@@ -20,6 +20,7 @@ import {
   ClipboardCopyIcon,
   FileArchiveIcon,
   FolderInputIcon,
+  HardDriveIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -263,6 +264,16 @@ export const FileTableRowContextMenu = ({
       view: <TextWithIcon icon={FolderPlusIcon}>Open in new tab</TextWithIcon>,
     };
 
+    const loadDirectorySize: ContextMenuItem = {
+      onClick: () => {
+        directoryHelpers.loadDirectorySizes(directoryId, item.name);
+        close();
+      },
+      view: (
+        <TextWithIcon icon={HardDriveIcon}>Calculate folder size</TextWithIcon>
+      ),
+    };
+
     return (
       <ContextMenuList
         items={[
@@ -288,6 +299,7 @@ export const FileTableRowContextMenu = ({
           renameItem,
           newFileItem,
           openDirectoryInNewTab,
+          loadDirectorySize,
           copyPathItem,
         ]}
       />

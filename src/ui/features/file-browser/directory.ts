@@ -29,6 +29,7 @@ import {
 import { scrollRowIntoViewIfNeeded } from "@/lib/libs/table/globalTableScroll";
 import { FileBrowserCache } from "./FileBrowserCache";
 import { ShortcutInput } from "@/lib/hooks/useShortcuts";
+import { directoryLoadingHelpers } from "./directoryLoadingStore";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -401,6 +402,7 @@ export const directoryStore = createStore({
 });
 
 const loadDirectoryPath = async (dir: string, directoryId: DirectoryId) => {
+  directoryLoadingHelpers.startLoading(directoryId);
   try {
     const result = await FileBrowserCache.load(dir);
 
@@ -423,6 +425,7 @@ const loadDirectoryPath = async (dir: string, directoryId: DirectoryId) => {
       severity: "error",
     });
   } finally {
+    directoryLoadingHelpers.endLoading(directoryId);
   }
 };
 
@@ -432,6 +435,7 @@ const loadTaggedFiles = async (color: TagColor, directoryId: DirectoryId) => {
       .filter(([_, tags]) => tags.includes(color))
       .map(([path]) => path);
 
+  directoryLoadingHelpers.startLoading(directoryId);
   try {
     const filePaths = getFilesWithTag(color);
     if (filePaths.length === 0) {
@@ -464,6 +468,7 @@ const loadTaggedFiles = async (color: TagColor, directoryId: DirectoryId) => {
       severity: "error",
     });
   } finally {
+    directoryLoadingHelpers.endLoading(directoryId);
   }
 };
 
@@ -1440,7 +1445,79 @@ export const directoryHelpers = {
       return GenericError.Message(errorMessage);
     }
   },
+
+  loadDirectorySizes: async (
+    directoryId: DirectoryId,
+    specificDirName?: string,
+  ): Promise<void> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
+      toast.show({
+        message: "Cannot load directory sizes in tags view",
+        severity: "error",
+      });
+      return;
+    }
+
+    directoryLoadingHelpers.startLoading(directoryId);
+    try {
+      const sizes = await getWindowElectron().getDirectorySizes(
+        context.directory.fullPath,
+        specificDirName,
+      );
+
+      // Update the directory data with the new sizes
+      const updatedData = context.directoryData.map((item) => {
+        if (item.type === "dir" && sizes[item.name] !== undefined) {
+          return {
+            ...item,
+            size: sizes[item.name],
+            sizeStr: formatBytes(sizes[item.name]),
+          };
+        }
+        return item;
+      });
+
+      directoryStore.send({
+        type: "setDirectoryData",
+        data: updatedData,
+        directoryId,
+      });
+
+      if (specificDirName) {
+        toast.show({
+          message: `Loaded size for ${specificDirName}`,
+          severity: "success",
+        });
+      } else {
+        toast.show({
+          message: `Loaded sizes for all directories`,
+          severity: "success",
+        });
+      }
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to load directory sizes";
+      toast.show({
+        message: errorMessage,
+        severity: "error",
+      });
+    } finally {
+      directoryLoadingHelpers.endLoading(directoryId);
+    }
+  },
 };
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+}
 
 // Selectors
 export const selectDirectory =

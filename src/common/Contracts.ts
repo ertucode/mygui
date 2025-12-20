@@ -86,6 +86,7 @@ export type EventResponseMapping = {
   readZipContents: Promise<GenericResult<ZipEntry[]>>;
   zipFiles: Promise<GenericResult<{ path: string }>>;
   unzipFile: Promise<GenericResult<{ path: string }>>;
+  getDirectorySizes: Promise<Record<string, number>>;
 };
 
 export type StringSearchOptions = {
@@ -134,6 +135,7 @@ export type EventRequestMapping = {
   readZipContents: string;
   zipFiles: { filePaths: string[]; destinationZipPath: string };
   unzipFile: { zipFilePath: string; destinationFolder: string };
+  getDirectorySizes: { parentPath: string; specificDirName?: string };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -218,4 +220,8 @@ export type WindowElectron = {
     zipFilePath: string,
     destinationFolder: string,
   ) => Promise<GenericResult<{ path: string }>>;
+  getDirectorySizes: (
+    parentPath: string,
+    specificDirName?: string,
+  ) => Promise<Record<string, number>>;
 };
