@@ -4,5 +4,4 @@
 
 # TODO
 
-- double click on zip file should open the unzip dialog (currently opens finder with unzipped files)
 - rar, 7z support

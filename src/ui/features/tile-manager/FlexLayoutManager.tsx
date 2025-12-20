@@ -247,7 +247,9 @@ export const FlexLayoutManager: React.FC = () => {
     // Check if this tab is selected - getSelected() returns index, need to get selected tab
     const parent = node.getParent();
     let isSelected = false;
+    let parentIsActive = false;
     if (parent && parent instanceof TabSetNode) {
+      parentIsActive = parent.isActive();
       const selectedIndex = parent.getSelected();
       const children = parent.getChildren();
       if (selectedIndex >= 0 && selectedIndex < children.length) {
@@ -271,6 +273,7 @@ export const FlexLayoutManager: React.FC = () => {
         className={clsx(
           "join-item cursor-move flex items-center gap-3 h-full p-2",
           isSelected && "shadow-[inset_0_-3px_0_0_var(--color-primary)]",
+          (!parentIsActive || !isSelected) && "opacity-60",
           "dir-marker",
         )}
       >

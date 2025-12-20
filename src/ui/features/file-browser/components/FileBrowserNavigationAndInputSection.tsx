@@ -1,5 +1,5 @@
 import { useSelector } from "@xstate/store/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   directoryStore,
   directoryHelpers,
@@ -7,36 +7,19 @@ import {
   directoryDerivedStores,
   DirectoryId,
 } from "../directory";
-import {
-  DirectoryContextProvider,
-  useDirectoryContext,
-} from "../DirectoryContext";
 
-export type FileBrowserNavigationAndInputSectionProps = {
+export type FuzzyInputProps = {
   directoryId: DirectoryId;
 };
 
-export function FileBrowserNavigationAndInputSection({
-  directoryId,
-}: FileBrowserNavigationAndInputSectionProps) {
-  return (
-    <DirectoryContextProvider directoryId={directoryId}>
-      <div className="join items-center w-full">
-        <div className="flex-1"></div>
-        <FuzzyInput />
-      </div>
-    </DirectoryContextProvider>
-  );
-}
-
-function FuzzyInput() {
-  const directoryId = useDirectoryContext().directoryId;
+export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
   const fuzzyQuery = useSelector(directoryStore, selectFuzzyQuery(directoryId));
   const filteredData = directoryDerivedStores
     .get(directoryId)!
     .useFilteredDirectoryData();
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
     return directoryStore.on("focusFuzzyInput", ({ e, directoryId: dId }) => {
@@ -55,19 +38,27 @@ function FuzzyInput() {
         }, 100);
       }
     }).unsubscribe;
-  }, []);
+  }, [directoryId]);
+
+  const isVisible = isFocused || fuzzyQuery.length > 0;
 
   return (
     <input
       id="fuzzy-finder-input"
       type="text"
       ref={inputRef}
-      className="input text-sm h-6 max-w-50 w-48 min-[1000px]:w-80 join-item"
+      className="input text-sm h-6 w-48 min-[1000px]:w-60 absolute top-2 right-2 z-10 transition-opacity duration-200 rounded-none"
+      style={{
+        opacity: isVisible ? 1 : 0,
+        pointerEvents: isVisible ? "auto" : "none",
+      }}
       placeholder="Search... (/)"
       value={fuzzyQuery}
       onChange={(e) => {
         directoryHelpers.setFuzzyQuery(e.target.value, directoryId);
       }}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
       onKeyDown={(e) => {
         if (e.key === "Escape") {
           directoryHelpers.clearFuzzyQuery(directoryId);

@@ -1,7 +1,7 @@
 import { DirectoryContextProvider } from "../DirectoryContext";
 import { FileBrowserTable } from "../FileBrowserTable";
 import { DirectoryId } from "../directory";
-import { FileBrowserNavigationAndInputSection } from "./FileBrowserNavigationAndInputSection";
+import { FuzzyInput } from "./FileBrowserNavigationAndInputSection";
 
 export function DirectoryTablePane({
   directoryId,
@@ -9,9 +9,9 @@ export function DirectoryTablePane({
   directoryId: DirectoryId;
 }) {
   return (
-    <div className="relative flex flex-col min-h-0 min-w-0 h-full gap-1 pt-1">
+    <div className="relative flex flex-col min-h-0 min-w-0 h-full">
+      <FuzzyInput directoryId={directoryId} />
       <DirectoryContextProvider directoryId={directoryId}>
-        <FileBrowserNavigationAndInputSection directoryId={directoryId} />
         <FileBrowserTable />
       </DirectoryContextProvider>
     </div>
