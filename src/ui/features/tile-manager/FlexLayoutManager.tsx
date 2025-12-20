@@ -25,6 +25,7 @@ import { DirectoryTablePane } from "../file-browser/components/DirectoryTablePan
 import { FilePreview } from "../file-browser/components/FilePreview";
 import { FileBrowserOptionsSection } from "../file-browser/components/FileBrowserOptionsSection";
 import { BottomToolbar } from "../file-browser/components/BottomToolbar";
+import { CustomTitleBar } from "../file-browser/components/CustomTitleBar";
 import {
   directoryStore,
   directoryHelpers,
@@ -436,6 +437,7 @@ export const FlexLayoutManager: React.FC = () => {
     <div className="flex flex-col items-stretch h-full overflow-hidden">
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
+      <CustomTitleBar />
       <div className="flex-1 min-w-0 min-h-0 relative">
         <Layout
           ref={layoutRef}

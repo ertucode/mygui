@@ -1,11 +1,8 @@
-import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "lucide-react";
 import { useSelector } from "@xstate/store/react";
 import { useEffect, useRef } from "react";
 import {
   directoryStore,
   directoryHelpers,
-  selectHasNext,
-  selectHasPrev,
   selectFuzzyQuery,
   directoryDerivedStores,
   DirectoryId,
@@ -22,36 +19,9 @@ export type FileBrowserNavigationAndInputSectionProps = {
 export function FileBrowserNavigationAndInputSection({
   directoryId,
 }: FileBrowserNavigationAndInputSectionProps) {
-  const navigationButtonClassName = "btn btn-xs btn-soft btn-info join-item";
-  const navigationButtonIconClassName = "size-4";
-  const hasNext = useSelector(directoryStore, selectHasNext(directoryId));
-  const hasPrev = useSelector(directoryStore, selectHasPrev(directoryId));
-
   return (
     <DirectoryContextProvider directoryId={directoryId}>
       <div className="join items-center w-full">
-        <button
-          className={navigationButtonClassName}
-          onClick={() => directoryHelpers.goPrev(directoryId)}
-          disabled={!hasPrev}
-        >
-          {<ArrowLeftIcon className={navigationButtonIconClassName} />}
-        </button>
-        <button
-          className={navigationButtonClassName}
-          onClick={() => directoryHelpers.goNext(directoryId)}
-          disabled={!hasNext}
-        >
-          {<ArrowRightIcon className={navigationButtonIconClassName} />}
-        </button>
-        <button
-          className={navigationButtonClassName}
-          onClick={() =>
-            directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId)
-          }
-        >
-          {<ArrowUpIcon className={navigationButtonIconClassName} />}
-        </button>
         <div className="flex-1"></div>
         <FuzzyInput />
       </div>
