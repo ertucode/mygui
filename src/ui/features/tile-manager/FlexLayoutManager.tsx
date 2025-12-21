@@ -3,7 +3,6 @@ import React, {
   useCallback,
   useMemo,
   useEffect,
-  useState,
   ComponentProps,
 } from "react";
 import {
@@ -17,19 +16,10 @@ import {
   IIcons,
   IJsonTabNode,
 } from "flexlayout-react";
-import { FavoritesList } from "../file-browser/components/FavoritesList";
-import { RecentsList } from "../file-browser/components/RecentsList";
-import { TagsList } from "../file-browser/components/TagsList";
-import { DirectoryTablePane } from "../file-browser/components/DirectoryTablePane";
-import { FilePreview } from "../file-browser/components/FilePreview";
-import { FileBrowserOptionsSection } from "../file-browser/components/FileBrowserOptionsSection";
 import { BottomToolbar } from "../file-browser/components/BottomToolbar";
 import { CustomTitleBar } from "../file-browser/components/CustomTitleBar";
 import {
   directoryStore,
-  directoryHelpers,
-  selectSelection,
-  directoryDerivedStores,
   DirectoryId,
   selectDirectory,
 } from "../file-browser/directory";
@@ -63,99 +53,9 @@ import {
 import { toast } from "@/lib/components/toast";
 import { useDirectoryLoading } from "../file-browser/directoryLoadingStore";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
+import { layoutFactory } from "./layoutFactory";
 
 // Component factory function
-function createFactory(isResizing: boolean) {
-  return (node: TabNode) => {
-    const component = node.getComponent();
-    const config = node.getConfig();
-
-    const paneClassName = "w-full h-full flex flex-col overflow-auto";
-
-    switch (component) {
-      case "favorites":
-        return (
-          <div className={paneClassName}>
-            <FavoritesList />
-          </div>
-        );
-      case "recents":
-        return (
-          <div className={paneClassName}>
-            <RecentsList />
-          </div>
-        );
-      case "tags":
-        return (
-          <div className={paneClassName}>
-            <TagsList />
-          </div>
-        );
-      case "options":
-        return (
-          <div className={paneClassName}>
-            <FileBrowserOptionsSection />
-          </div>
-        );
-      case "preview":
-        return (
-          <div className={paneClassName}>
-            <FileBrowserFilePreview isResizing={isResizing} />
-          </div>
-        );
-      case "directory":
-        return (
-          <div className={paneClassName}>
-            <DirectoryTablePane directoryId={config?.directoryId} />
-          </div>
-        );
-      case "placeholder":
-        return <div className={paneClassName}>Placeholder Pane</div>;
-      default:
-        return (
-          <div className={paneClassName}>Unknown Component: {component}</div>
-        );
-    }
-  };
-}
-
-function FileBrowserFilePreview({ isResizing }: { isResizing: boolean }) {
-  const activeDirectoryId = useSelector(
-    directoryStore,
-    (s) => s.context.activeDirectoryId,
-  );
-  const selection = useSelector(
-    directoryStore,
-    selectSelection(activeDirectoryId),
-  );
-  const filteredDirectoryData = directoryDerivedStores
-    .get(activeDirectoryId)
-    ?.useFilteredDirectoryData();
-
-  // Get selected file for preview (only if exactly one file is selected)
-  const selectedItem =
-    filteredDirectoryData &&
-    selection.indexes.size === 1 &&
-    selection.last != null
-      ? filteredDirectoryData[selection.last]
-      : null;
-  const previewFilePath =
-    selectedItem && selectedItem.type === "file"
-      ? (selectedItem.fullPath ??
-        directoryHelpers.getFullPath(selectedItem.name, activeDirectoryId))
-      : null;
-
-  return (
-    <FilePreview
-      filePath={previewFilePath}
-      isFile={selectedItem?.type === "file"}
-      fileSize={selectedItem?.size}
-      fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
-      isResizing={isResizing}
-    />
-  );
-}
-
 function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
   const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
@@ -181,7 +81,6 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
 export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null);
   const dialogs = useDialogStoreRenderer();
-  const [isResizing, setIsResizing] = useState(false);
   const isSyncingFromStore = useRef(false); // Prevent feedback loop
 
   // Icons for the layout
@@ -443,35 +342,6 @@ export const FlexLayoutManager: React.FC = () => {
     [],
   );
 
-  const factory = useMemo(() => createFactory(isResizing), [isResizing]);
-
-  // Detect when resizing/dragging is happening
-  useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      // Check if the mouse is on a splitter (drag bar between panes)
-      const target = e.target as HTMLElement;
-      if (
-        target.classList.contains("flexlayout__splitter") ||
-        target.classList.contains("flexlayout__splitter_drag") ||
-        target.closest(".flexlayout__splitter")
-      ) {
-        setIsResizing(true);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("mouseup", handleMouseUp);
-
-    return () => {
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, []);
-
   // Render drag preview when dragging tabs/panes
   const onRenderDragRect = useCallback(
     (content: React.ReactNode | undefined) => {
@@ -495,7 +365,7 @@ export const FlexLayoutManager: React.FC = () => {
         <Layout
           ref={layoutRef}
           model={layoutModel}
-          factory={factory}
+          factory={layoutFactory}
           onAction={onAction}
           icons={icons}
           onModelChange={handleModelChange}
