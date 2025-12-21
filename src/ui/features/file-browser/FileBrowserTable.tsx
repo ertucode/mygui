@@ -191,7 +191,10 @@ const TableRow = memo(function TableRow({
   // Subscribe only to drag state for this row
   const isDragOverThisRow = useSelector(
     fileDragDropStore,
-    (s) => s.context.dragOverRowIdx === index && item.type === "dir",
+    (s) =>
+      s.context.dragOverDirectoryId === directoryId &&
+      s.context.dragOverRowIdx === index &&
+      item.type === "dir",
   );
 
   return (
