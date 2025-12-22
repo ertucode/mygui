@@ -19,7 +19,7 @@ import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
 import { useDebounce } from "@/lib/hooks/useDebounce";
-import { fileDragDropStore, fileDragDropHandlers } from "./fileDragDrop";
+import { fileDragDropStore } from "./fileDragDrop";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
 import { FileGridView } from "./components/fileGridView/FileGridView";
