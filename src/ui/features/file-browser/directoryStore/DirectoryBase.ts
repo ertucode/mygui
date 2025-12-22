@@ -38,6 +38,7 @@ export type DirectoryContextDirectory = {
     last: number | undefined;
   };
   fuzzyQuery: string;
+  viewMode: "list" | "grid";
 };
 
 export type DirectoryContext = {

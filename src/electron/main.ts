@@ -61,6 +61,7 @@ function createWindow(initialPath?: string) {
       additionalArguments: initialPath
         ? [`--initial-path=${initialPath}`, ...basePaths]
         : basePaths,
+      webSecurity: false,
     },
   });
 

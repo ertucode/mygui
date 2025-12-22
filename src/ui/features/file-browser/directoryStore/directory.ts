@@ -70,6 +70,8 @@ export const directoryStore = createStore({
         },
         // Fuzzy finder state
         fuzzyQuery: "",
+        // View mode
+        viewMode: "list" as "list" | "grid",
       },
     },
     directoryOrder: [dummyDirectoryId],
@@ -214,6 +216,11 @@ export const directoryStore = createStore({
         ...d,
         fuzzyQuery: "",
       })),
+    toggleViewMode: (context, event: { directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        viewMode: d.viewMode === "list" ? "grid" : "list",
+      })),
     setActiveDirectoryId: (context, event: { directoryId: DirectoryId }) => {
       if (context.activeDirectoryId === event.directoryId) return context;
       return {
@@ -258,6 +265,8 @@ export const directoryStore = createStore({
             },
             // Fuzzy finder state
             fuzzyQuery: "",
+            // View mode
+            viewMode: "list" as "list" | "grid",
           },
         },
         directoryOrder: [...context.directoryOrder, directoryId],
@@ -326,6 +335,8 @@ export const directoryStore = createStore({
               },
               // Fuzzy finder state
               fuzzyQuery: "",
+              // View mode
+              viewMode: "list" as "list" | "grid",
             };
             return acc;
           },
@@ -478,3 +489,8 @@ export const selectFuzzyQuery =
   (directoryId: DirectoryId | undefined) =>
   (state: StoreSnapshot<DirectoryContext>) =>
     getActiveDirectory(state.context, directoryId).fuzzyQuery;
+
+export const selectViewMode =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).viewMode;

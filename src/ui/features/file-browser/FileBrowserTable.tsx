@@ -3,7 +3,7 @@ import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
 import { useTable } from "../../lib/libs/table/useTable";
 import { onSortKey } from "../../lib/libs/table/useTableSort";
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
@@ -11,11 +11,10 @@ import {
   directoryStore,
   selectLoading,
   selectDirectory,
+  selectViewMode,
 } from "@/features/file-browser/directoryStore/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
-import { getWindowElectron } from "@/getWindowElectron";
-import { captureDivAsBase64 } from "@/lib/functions/captureDiv";
 import { useDirectoryContext } from "@/features/file-browser/DirectoryContext";
 import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
@@ -23,7 +22,9 @@ import { useDebounce } from "@/lib/hooks/useDebounce";
 import { fileDragDropStore, fileDragDropHandlers } from "./fileDragDrop";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
-import { directorySelection } from "./directoryStore/directorySelection";
+import { FileGridView } from "./components/fileGridView/FileGridView";
+import { fileBrowserListItemProps } from "./fileBrowserListItemProps";
+import { fileBrowserListContainerProps } from "./fileBrowserListContainerProps";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -53,9 +54,6 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     data: filteredDirectoryData,
   });
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
-  const lastClickRef = useRef<{ index: number; timestamp: number } | null>(
-    null,
-  );
 
   const sortSettings = useSelector(
     fileBrowserSettingsStore,
@@ -68,6 +66,18 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     fileDragDropStore,
     (s) => s.context.dragOverDirectoryId === directoryId,
   );
+
+  const viewMode = useSelector(directoryStore, selectViewMode(directoryId));
+
+  // If grid view is selected, render the grid view component
+  if (viewMode === "grid") {
+    return (
+      <>
+        <LoadingOverlay />
+        <FileGridView />
+      </>
+    );
+  }
 
   return (
     <>
@@ -88,24 +98,10 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
           "relative h-full min-h-0 overflow-auto rounded-none border-none",
           isDragOver && "ring-2 ring-primary ring-inset",
         )}
-        onDragOver={(e) =>
-          fileDragDropHandlers.handleTableDragOver(e, directoryId)
-        }
-        onDragLeave={fileDragDropHandlers.handleTableDragLeave}
-        onDrop={(e) =>
-          fileDragDropHandlers.handleTableDrop(
-            e,
-            directoryId,
-            directory.type,
-            directory.type === "path" ? directory.fullPath : undefined,
-          )
-        }
+        {...fileBrowserListContainerProps({ directoryId, directory })}
       >
         <LoadingOverlay />
-        <table
-          data-table-id={context.directoryId}
-          className="w-full table table-zebra table-xs rounded-none overflow-hidden"
-        >
+        <table className="w-full table table-zebra table-xs rounded-none overflow-hidden">
           <thead>
             <tr>
               {table.headers.map((header) => {
@@ -128,7 +124,11 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
               })}
             </tr>
           </thead>
-          <tbody tabIndex={0} className="focus-visible:outline-none">
+          <tbody
+            data-list-id={context.directoryId}
+            tabIndex={0}
+            className="focus-visible:outline-none"
+          >
             {table.rows.map((row, idx) => {
               return (
                 <TableRow
@@ -137,7 +137,6 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
                   index={idx}
                   directoryId={directoryId}
                   item={table.data[idx]}
-                  lastClickRef={lastClickRef}
                   onContextMenu={contextMenu.onRightClick}
                 />
               );
@@ -161,10 +160,6 @@ type TableRowProps = {
   index: number;
   directoryId: DirectoryId;
   item: GetFilesAndFoldersInDirectoryItem;
-  lastClickRef: React.RefObject<{
-    index: number;
-    timestamp: number;
-  } | null>;
   onContextMenu: (
     e: React.MouseEvent,
     item: GetFilesAndFoldersInDirectoryItem,
@@ -181,7 +176,6 @@ const TableRow = memo(function TableRow({
   index,
   directoryId,
   item,
-  lastClickRef,
   onContextMenu,
 }: TableRowProps) {
   // Subscribe only to this row's selection state - not the entire selection Set
@@ -206,81 +200,13 @@ const TableRow = memo(function TableRow({
         isDragOverThisRow && "bg-primary/20 ring-1 ring-primary ring-inset",
         "select-none",
       )}
-      onClick={(e) => {
-        const now = Date.now();
-        const lastClick = lastClickRef.current;
-
-        // Check if this is a double-click (same row, within 500ms)
-        if (
-          lastClick &&
-          lastClick.index === index &&
-          now - lastClick.timestamp < 500
-        ) {
-          // This is a double-click
-          e.preventDefault();
-          e.stopPropagation();
-          directoryHelpers.openItem(item, directoryId);
-          lastClickRef.current = null;
-        } else {
-          // This is a single click
-          directorySelection.select(index, e, directoryId);
-          directoryStore.trigger.setActiveDirectoryId({
-            directoryId,
-          });
-          lastClickRef.current = { index: index, timestamp: now };
-        }
-      }}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        directoryStore.trigger.selectManually({ index, directoryId });
-        onContextMenu(e, item);
-      }}
-      onDragStart={async (e) => {
-        // Mark this as a file drag operation
-        e.dataTransfer.setData("application/x-mygui-file-drag", "true");
-
-        const items = directoryHelpers.getSelectedItemsOrCurrentItem(
-          index,
-          directoryId,
-        );
-        const filePaths = items.map((i) =>
-          directoryHelpers.getFullPathForItem(i, directoryId),
-        );
-
-        // Handle drag start
-        await fileDragDropHandlers.handleRowDragStart(items, directoryId);
-
-        const table = document.querySelector(
-          '[data-table-id="' + directoryId + '"]',
-        );
-        if (!table) return;
-
-        const tableBody = table.querySelector("tbody");
-
-        // Start the native drag
-        getWindowElectron().onDragStart({
-          files: filePaths,
-          image: await captureDivAsBase64(tableBody!),
-        });
-      }}
-      onPointerDown={(_) => {
-        if (item.type === "dir") {
-          directoryHelpers.preloadDirectory(
-            item.fullPath ??
-              directoryHelpers.getFullPath(item.name, directoryId),
-          );
-        }
-      }}
-      onDragOver={(e) => {
-        fileDragDropHandlers.handleRowDragOver(e, index, item.type === "dir");
-      }}
-      onDragLeave={(e) => {
-        fileDragDropHandlers.handleRowDragLeave(e, item.type === "dir");
-      }}
-      onDrop={async (e) => {
-        await fileDragDropHandlers.handleRowDrop(e, item, directoryId);
-      }}
-      draggable={true}
+      data-list-item
+      {...fileBrowserListItemProps({
+        item,
+        index,
+        directoryId,
+        onContextMenu,
+      })}
     >
       {row.cells.map((cell) => {
         return (

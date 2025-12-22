@@ -217,6 +217,14 @@ export function FileBrowserShortcuts() {
         label: "Paste items",
       },
       {
+        key: { key: "v", metaKey: true, ctrlKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          directoryStore.send({ type: "toggleViewMode", directoryId });
+        },
+        label: "Toggle view mode (list/grid)",
+      },
+      {
         key: { key: "0", ctrlKey: true },
         handler: (_) => {
           // @ts-ignore

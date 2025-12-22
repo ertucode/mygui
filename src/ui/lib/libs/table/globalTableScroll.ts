@@ -1,6 +1,6 @@
 /**
  * Global utility for scrolling table rows into view without needing refs.
- * Uses data-table-id attribute to identify tables in the DOM.
+ * Uses data-list-id attribute to identify tables in the DOM.
  */
 
 export function scrollRowIntoViewIfNeeded(
@@ -8,17 +8,17 @@ export function scrollRowIntoViewIfNeeded(
   rowIndex: number,
   block: ScrollLogicalPosition = "nearest",
 ) {
-  const table = document.querySelector(
-    `table[data-table-id="${tableId}"]`,
+  const tbody = document.querySelector(
+    `[data-list-id="${tableId}"]`,
   ) as HTMLTableElement | null;
 
-  if (!table) {
-    console.warn(`Table with id "${tableId}" not found`);
+  if (!tbody) {
+    console.warn(`Container with id "${tableId}" not found`);
     return;
   }
 
-  const row = table.querySelector(
-    `tbody tr:nth-child(${rowIndex + 1})`,
+  const row = tbody.querySelector(
+    `[data-list-item]:nth-child(${rowIndex + 1})`,
   ) as HTMLElement | null;
 
   if (!row) {
@@ -26,7 +26,7 @@ export function scrollRowIntoViewIfNeeded(
     return;
   }
 
-  const scrollContainer = table.closest(".overflow-auto") as HTMLElement | null;
+  const scrollContainer = tbody.closest(".overflow-auto") as HTMLElement | null;
 
   if (!scrollContainer) {
     console.warn(`Scroll container not found for table "${tableId}"`);
