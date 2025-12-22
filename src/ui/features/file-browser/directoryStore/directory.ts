@@ -48,6 +48,27 @@ function updateDirectory(
   };
 }
 
+export function createDirectoryContext(
+  directoryId: DirectoryId,
+  directory: DirectoryInfo,
+): DirectoryContextDirectory {
+  return {
+    directoryId,
+    directory,
+    loading: false,
+    directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
+    error: undefined as string | undefined,
+    historyStack: new HistoryStack<DirectoryInfo>([directory]),
+    pendingSelection: null as string | null,
+    selection: {
+      indexes: new Set<number>(),
+      last: undefined as number | undefined,
+    },
+    fuzzyQuery: "",
+    viewMode: "list",
+  };
+}
+
 const dummyDirectoryId = "dummmyy" as DirectoryId; // kimse dokunmadan initialize edilmeli zaten
 
 export const directoryStore = createStore({
@@ -106,7 +127,6 @@ export const directoryStore = createStore({
       updateDirectory(context, event.directoryId, (d) => ({
         ...d,
         directoryData: event.data,
-        error: undefined,
       })),
 
     setDirectory: (
@@ -250,24 +270,42 @@ export const directoryStore = createStore({
         ...context,
         directoriesById: {
           ...context.directoriesById,
-          [directoryId]: {
-            directoryId,
-            directory,
-            loading: false,
-            directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-            error: undefined as string | undefined,
-            historyStack: new HistoryStack<DirectoryInfo>([directory]),
-            pendingSelection: null as string | null,
-            // Selection state
-            selection: {
-              indexes: new Set<number>(),
-              last: undefined as number | undefined,
-            },
-            // Fuzzy finder state
-            fuzzyQuery: "",
-            // View mode
-            viewMode: "list" as "list" | "grid",
-          },
+          [directoryId]: createDirectoryContext(directoryId, directory),
+        },
+        directoryOrder: [...context.directoryOrder, directoryId],
+      };
+    },
+    createLoadedDirectory: (
+      context,
+      event: {
+        tabId?: string;
+        fullPath: string;
+        directoryData: GetFilesAndFoldersInDirectoryItem[];
+      },
+      enqueue,
+    ) => {
+      const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
+
+      enqueue.emit.directoryCreated({
+        directoryId,
+        tabId: event.tabId,
+      });
+
+      setupSubscriptions(directoryId);
+      const directory: DirectoryInfo = {
+        type: "path",
+        fullPath: event.fullPath,
+      };
+
+      const directoryContext = createDirectoryContext(directoryId, directory);
+      directoryContext.directoryData = event.directoryData;
+
+      return {
+        ...context,
+        activeDirectoryId: directoryId,
+        directoriesById: {
+          ...context.directoriesById,
+          [directoryId]: directoryContext,
         },
         directoryOrder: [...context.directoryOrder, directoryId],
       };
@@ -362,13 +400,6 @@ export const loadDirectoryPath = async (
   directoryLoadingHelpers.startLoading(directoryId);
   try {
     const result = await FileBrowserCache.load(dir);
-
-    result.sort((a, b) => {
-      if (a.type === "dir" && b.type === "dir") return 0;
-      if (a.type === "dir") return -1;
-      if (b.type === "dir") return 1;
-      return a.name.localeCompare(b.name);
-    });
 
     directoryStore.send({
       type: "setDirectoryData",

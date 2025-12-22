@@ -6,9 +6,9 @@ import {
   Actions,
 } from "flexlayout-react";
 import { PlusIcon, Maximize2Icon } from "lucide-react";
-import { directoryStore } from "../file-browser/directoryStore/directory";
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
+import { directoryHelpers } from "../file-browser/directoryStore/directoryHelpers";
 
 export const onRenderTabSet = (
   tabSetNode: TabSetNode | BorderNode,
@@ -25,7 +25,7 @@ export const onRenderTabSet = (
       className="btn-ghost btn-sm btn-square rounded-none directory-tabset-marker"
       title="Add New Directory"
       onClick={() => {
-        directoryStore.trigger.createDirectory({
+        directoryHelpers.createDirectory({
           tabId: tabSetNode.getId(),
         });
       }}
