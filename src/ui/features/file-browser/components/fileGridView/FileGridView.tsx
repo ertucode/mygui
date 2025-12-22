@@ -52,7 +52,7 @@ const GridItem = memo(function GridItem({
   return (
     <div
       className={clsx(
-        "group relative flex flex-col rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none overflow-hidden h-48",
+        "group relative flex flex-col rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none overflow-hidden h-36",
         isSelected && "bg-base-content/10 ring-2 ring-primary",
         isDragOverThisRow && "bg-primary/20 ring-2 ring-primary",
       )}
@@ -64,10 +64,10 @@ const GridItem = memo(function GridItem({
         onContextMenu,
       })}
     >
-      <div className="h-[85%] w-full">
+      <div className="h-[82%] w-full">
         <FileThumbnail item={item} fullPath={fullPath} />
       </div>
-      <div className="h-[15%] w-full flex flex-col items-center justify-center px-2 py-1">
+      <div className="h-[18%] w-full flex flex-col items-center justify-center px-2 py-1">
         <div className="text-xs text-center w-full truncate" title={item.name}>
           {item.name}
         </div>
@@ -157,7 +157,7 @@ export const FileGridView = memo(function FileGridView() {
         )}
         {...fileBrowserListContainerProps({ directoryId, directory })}
       >
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
           {filteredDirectoryData.map((item, idx) => (
             <GridItem
               key={idx}

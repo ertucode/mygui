@@ -26,6 +26,7 @@
     "@xstate/store": "^3.13.0",
     "adm-zip": "^0.5.16",
     "clipboardy": "^5.0.1",
+    "csv-parse": "^6.1.0",
     "daisyui": "^5.5.5",
     "docx-preview": "^0.3.7",
     "flexlayout-react": "^0.8.17",

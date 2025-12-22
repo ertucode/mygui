@@ -19,8 +19,11 @@ electron.contextBridge.exposeInMainWorld("electron", {
   captureRect: (rect) => ipcInvoke("captureRect", rect),
   getHomeDirectory: () => ipcInvoke("getHomeDirectory", undefined),
   homeDirectory: getArgv("--home-dir=")!,
-  readFilePreview: (filePath: string, allowBigSize?: boolean) =>
-    ipcInvoke("readFilePreview", { filePath, allowBigSize }),
+  readFilePreview: (
+    filePath: string,
+    allowBigSize?: boolean,
+    fullSize?: boolean,
+  ) => ipcInvoke("readFilePreview", { filePath, allowBigSize, fullSize }),
   deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
@@ -44,8 +47,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
   getFileInfoByPaths: (filePaths: string[]) =>
     ipcInvoke("getFileInfoByPaths", filePaths),
-  readZipContents: (filePath: string) =>
-    ipcInvoke("readZipContents", filePath),
+  readZipContents: (filePath: string) => ipcInvoke("readZipContents", filePath),
   zipFiles: (filePaths: string[], destinationZipPath: string) =>
     ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
   unzipFile: (zipFilePath: string, destinationFolder: string) =>

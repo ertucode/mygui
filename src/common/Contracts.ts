@@ -117,7 +117,11 @@ export type EventRequestMapping = {
     image: string;
   };
   captureRect: Rect;
-  readFilePreview: { filePath: string; allowBigSize?: boolean };
+  readFilePreview: {
+    filePath: string;
+    allowBigSize?: boolean;
+    fullSize?: boolean;
+  };
   deleteFiles: string[];
   createFileOrFolder: {
     parentDir: string;

@@ -29,6 +29,7 @@ import { zipFiles } from "./utils/zip-files.js";
 import { unzipFile } from "./utils/unzip-file.js";
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
+import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -162,8 +163,8 @@ app.on("ready", () => {
     return "/" + app.getPath("home");
   });
 
-  ipcHandle("readFilePreview", ({ filePath, allowBigSize }) => {
-    return getFileContent(filePath, allowBigSize);
+  ipcHandle("readFilePreview", ({ filePath, allowBigSize, fullSize }) => {
+    return getFileContent(filePath, allowBigSize, fullSize);
   });
   ipcHandle("deleteFiles", deleteFiles);
   ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
@@ -201,4 +202,9 @@ app.on("ready", () => {
   ipcHandle("generateVideoThumbnail", (filePath) =>
     generateVideoThumbnail(filePath),
   );
+});
+
+// Clean up worker pool when app is quitting
+app.on("before-quit", async () => {
+  await xlsxWorkerPool.terminate();
 });
