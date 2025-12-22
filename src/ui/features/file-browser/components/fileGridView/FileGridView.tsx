@@ -51,7 +51,7 @@ const GridItem = memo(function GridItem({
   return (
     <div
       className={clsx(
-        "group relative flex flex-col items-center p-3 rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none",
+        "group relative flex flex-col rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none overflow-hidden h-48",
         isSelected && "bg-base-content/10 ring-2 ring-primary",
         isDragOverThisRow && "bg-primary/20 ring-2 ring-primary",
       )}
@@ -63,16 +63,17 @@ const GridItem = memo(function GridItem({
         onContextMenu,
       })}
     >
-      <FileThumbnail item={item} fullPath={fullPath} />
-      <div
-        className="mt-2 text-xs text-center w-full truncate px-1"
-        title={item.name}
-      >
-        {item.name}
+      <div className="h-[85%] w-full">
+        <FileThumbnail item={item} fullPath={fullPath} />
       </div>
-      {item.sizeStr && item.type === "file" && (
-        <div className="text-[10px] text-base-content/60">{item.sizeStr}</div>
-      )}
+      <div className="h-[15%] w-full flex flex-col items-center justify-center px-2 py-1">
+        <div className="text-xs text-center w-full truncate" title={item.name}>
+          {item.name}
+        </div>
+        {/* {item.sizeStr && item.type === "file" && ( */}
+        {/*   <div className="text-[10px] text-base-content/60">{item.sizeStr}</div> */}
+        {/* )} */}
+      </div>
     </div>
   );
 });
@@ -86,7 +87,7 @@ function FileThumbnail({
 }) {
   if (item.type === "dir") {
     return (
-      <div className="w-16 h-16 flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center">
         <FolderIcon className="w-12 h-12 text-primary" />
       </div>
     );
