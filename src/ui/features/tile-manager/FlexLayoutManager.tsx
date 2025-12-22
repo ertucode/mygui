@@ -47,7 +47,10 @@ type LayoutActionFn = Exclude<
 >;
 const layoutActionFn: LayoutActionFn = (action) => {
   const directories = LayoutHelpers.getDirectoryIds();
-  if (directories.length === 1) {
+  if (
+    action.type === "FlexLayout_SetActiveTabset" &&
+    directories.length === 1
+  ) {
     return undefined;
   }
   return action;

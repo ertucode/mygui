@@ -254,7 +254,7 @@ export function FileBrowserShortcuts() {
           const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
           if (!activeTabSet) return;
 
-          directoryStore.trigger.createDirectory({
+          directoryHelpers.createDirectory({
             tabId: activeTabSet.getId(),
           });
         },
@@ -266,6 +266,10 @@ export function FileBrowserShortcuts() {
         key: { key: "w", metaKey: true },
         handler: (e) => {
           e?.preventDefault();
+          const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
+          if (!activeTabSet) return;
+
+          if (activeTabSet.getChildren().length === 1) return;
           const activeTab =
             LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
           if (!activeTab) return;

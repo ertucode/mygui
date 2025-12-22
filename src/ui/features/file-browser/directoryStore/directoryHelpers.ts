@@ -27,6 +27,7 @@ import {
   getActiveDirectory,
   directoryInfoEquals,
 } from "./DirectoryBase";
+import { initialDirectoryInfo } from "../defaultPath";
 
 export const cd = async (
   newDirectory: DirectoryInfo,
@@ -576,47 +577,6 @@ export const directoryHelpers = {
       : [item];
   },
 
-  openInNewTab: (
-    item: GetFilesAndFoldersInDirectoryItem,
-    currentDirectoryId: DirectoryId,
-  ) => {
-    // Create a new directory tab
-    // We'll emit an event that FlexLayoutManager can listen to
-    directoryStore.trigger.createDirectory({ tabId: "DIRECTORY_TABSET" });
-
-    // Wait a bit for the new directory to be created
-    setTimeout(() => {
-      const newSnapshot = directoryStore.getSnapshot();
-      const newDirectoryIds = newSnapshot.context.directoryOrder;
-      const newDirectoryId = newDirectoryIds[newDirectoryIds.length - 1];
-
-      if (item.type === "dir") {
-        // Open the folder in the new tab
-        const fullPath =
-          item.fullPath ?? getFullPath(item.name, currentDirectoryId);
-        directoryHelpers.cdFull(fullPath, newDirectoryId);
-      } else {
-        // For files, open the containing folder in the new tab
-        const fullPath =
-          item.fullPath ?? getFullPath(item.name, currentDirectoryId);
-        const containingFolder = PathHelpers.resolveUpDirectory(
-          getWindowElectron().homeDirectory,
-          fullPath,
-        );
-        directoryHelpers.cdFull(containingFolder, newDirectoryId);
-
-        // Select the file in the new tab
-        setTimeout(() => {
-          directoryStore.send({
-            type: "setPendingSelection",
-            name: item.name,
-            directoryId: newDirectoryId,
-          });
-        }, 100);
-      }
-    }, 50);
-  },
-
   isDirectoryId: (id: $Maybe<string>) => {
     return id && id.startsWith("dir-");
   },
@@ -628,7 +588,7 @@ export const directoryHelpers = {
     if (item.type !== "dir") return;
 
     const fullPath = getFullPath(item.name, directoryId);
-    directoryStore.trigger.createDirectory({
+    directoryHelpers.createDirectory({
       fullPath: fullPath,
     });
   },
@@ -637,7 +597,7 @@ export const directoryHelpers = {
     directoryId: DirectoryId,
   ) => {
     const fullPath = getFullPath(item.name, directoryId);
-    directoryStore.trigger.createDirectory({
+    directoryHelpers.createDirectory({
       fullPath: PathHelpers.resolveUpDirectory(
         getWindowElectron().homeDirectory,
         PathHelpers.getParentFolder(fullPath).path,
@@ -781,5 +741,18 @@ export const directoryHelpers = {
     } finally {
       directoryLoadingHelpers.endLoading(directoryId);
     }
+  },
+  createDirectory: (opts: { tabId?: string; fullPath?: string }) => {
+    const directory: Extract<DirectoryInfo, { type: "path" }> = opts.fullPath
+      ? { type: "path", fullPath: opts.fullPath }
+      : initialDirectoryInfo;
+
+    FileBrowserCache.load(directory.fullPath).then((directoryData) => {
+      directoryStore.trigger.createLoadedDirectory({
+        fullPath: directory.fullPath,
+        directoryData,
+        tabId: opts.tabId,
+      });
+    });
   },
 };

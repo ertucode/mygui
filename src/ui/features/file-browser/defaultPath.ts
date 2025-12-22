@@ -13,7 +13,9 @@ const defaultPathPersistence = createLocalStoragePersistence(
 export let defaultPath =
   startingDirectory ?? defaultPathPersistence.load("~/dev/");
 
-function getDirectoryInfo(dir: string): DirectoryInfo {
+function getDirectoryInfo(
+  dir: string,
+): Extract<DirectoryInfo, { type: "path" }> {
   const idx = dir.indexOf("/");
   if (idx === -1) throw new Error("Invalid directory name");
   return { type: "path", fullPath: dir };
