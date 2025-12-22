@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
-import { directoryHelpers, directoryStore } from "./directory";
+import { directoryHelpers, directoryStore } from "./directoryStore/directory";
 import { selectIsFavorite, favoritesStore } from "./favorites";
 import {
   tagsStore,
@@ -211,7 +211,8 @@ export const FileTableRowContextMenu = ({
     ? {
         onClick: () => {
           const zipFilePath =
-            item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId);
+            item.fullPath ??
+            directoryHelpers.getFullPath(item.name, directoryId);
           const suggestedName = item.name.replace(/\.zip$/i, "");
           dialogActions.open("unzip", { zipFilePath, suggestedName });
           close();

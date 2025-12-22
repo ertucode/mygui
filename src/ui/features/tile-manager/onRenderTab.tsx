@@ -12,13 +12,13 @@ import {
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { useSelector } from "@xstate/store/react";
 import {
-  DirectoryId,
   directoryStore,
   selectDirectory,
-} from "../file-browser/directory";
-import { useDirectoryLoading } from "../file-browser/directoryLoadingStore";
+} from "../file-browser/directoryStore/directory";
+import { useDirectoryLoading } from "../file-browser/directoryStore/directoryLoadingStore";
 import { TAG_COLOR_CLASSES } from "../file-browser/tags";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
+import { DirectoryId } from "../file-browser/directoryStore/DirectoryBase";
 
 export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const component = node.getComponent();

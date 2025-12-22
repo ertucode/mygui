@@ -2,7 +2,7 @@ import { createFormDialog } from "@/lib/libs/form/createFormDialog";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FilePlusIcon } from "lucide-react";
 import z from "zod";
-import { directoryHelpers, directoryStore } from "../directory";
+import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 
 export const NewItemDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,

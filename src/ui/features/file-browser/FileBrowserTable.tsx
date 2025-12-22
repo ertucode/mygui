@@ -7,13 +7,11 @@ import { memo, useMemo, useRef } from "react";
 import { useSelector } from "@xstate/store/react";
 import { fileBrowserSettingsStore } from "@/features/file-browser/settings";
 import {
-  directoryDerivedStores,
   directoryHelpers,
   directoryStore,
   selectLoading,
   selectDirectory,
-  DirectoryId,
-} from "@/features/file-browser/directory";
+} from "@/features/file-browser/directoryStore/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
 import { getWindowElectron } from "@/getWindowElectron";
@@ -23,6 +21,9 @@ import { createColumns } from "./config/columns";
 import { tagsStore, selectFileTags } from "./tags";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 import { fileDragDropStore, fileDragDropHandlers } from "./fileDragDrop";
+import { DirectoryId } from "./directoryStore/DirectoryBase";
+import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
+import { directorySelection } from "./directoryStore/directorySelection";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -222,7 +223,7 @@ const TableRow = memo(function TableRow({
           lastClickRef.current = null;
         } else {
           // This is a single click
-          directoryHelpers.select(index, e, directoryId);
+          directorySelection.select(index, e, directoryId);
           directoryStore.trigger.setActiveDirectoryId({
             directoryId,
           });

@@ -1,6 +1,6 @@
 import { Node, TabNode, TabSetNode } from "flexlayout-react";
 import { layoutModel } from "../initializeDirectory";
-import { DirectoryId } from "../directory";
+import { DirectoryId } from "../directoryStore/DirectoryBase";
 
 export namespace LayoutHelpers {
   export function getActiveTabsetThatHasDirectory() {

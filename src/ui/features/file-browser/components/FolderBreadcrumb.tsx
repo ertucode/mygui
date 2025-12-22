@@ -10,7 +10,7 @@ import {
   directoryStore,
   directoryHelpers,
   selectDirectory,
-} from "../directory";
+} from "../directoryStore/directory";
 import { setDefaultPath } from "../defaultPath";
 import { useDirectoryContext } from "../DirectoryContext";
 import { ChevronRightIcon } from "lucide-react";

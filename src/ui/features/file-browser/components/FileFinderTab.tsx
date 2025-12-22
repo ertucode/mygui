@@ -9,7 +9,7 @@ import {
   directoryStore,
   directoryHelpers,
   selectDirectory,
-} from "../directory";
+} from "../directoryStore/directory";
 import { useDebounce } from "@/lib/hooks/useDebounce";
 
 type FileFinderTabProps = {

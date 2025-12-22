@@ -13,7 +13,7 @@ import {
   directoryStore,
   directoryHelpers,
   selectDirectory,
-} from "../directory";
+} from "../directoryStore/directory";
 
 interface TagsListProps {
   className?: string;

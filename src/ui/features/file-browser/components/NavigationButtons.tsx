@@ -5,7 +5,7 @@ import {
   directoryHelpers,
   selectHasNext,
   selectHasPrev,
-} from "../directory";
+} from "../directoryStore/directory";
 
 export function NavigationButtons() {
   const activeDirectoryId = useSelector(
@@ -37,7 +37,10 @@ export function NavigationButtons() {
       <button
         className={navigationButtonClassName}
         onClick={() =>
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, activeDirectoryId)
+          directoryHelpers.onGoUpOrPrev(
+            directoryHelpers.goUp,
+            activeDirectoryId,
+          )
         }
       >
         <ArrowUpIcon className={navigationButtonIconClassName} />

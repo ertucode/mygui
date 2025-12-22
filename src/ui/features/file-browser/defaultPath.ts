@@ -1,7 +1,7 @@
 import { getWindowElectron } from "@/getWindowElectron";
 import z from "zod";
 import { createLocalStoragePersistence } from "./utils/localStorage";
-import type { DirectoryInfo } from "./directory";
+import { DirectoryInfo } from "./directoryStore/DirectoryBase";
 
 const startingDirectory = getWindowElectron().getStartingDirectory();
 

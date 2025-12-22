@@ -1,5 +1,5 @@
 import { useSelector } from "@xstate/store/react";
-import { directoryStore } from "../directory";
+import { directoryStore } from "../directoryStore/directory";
 import { DirectoryContextProvider } from "../DirectoryContext";
 import { FolderBreadcrumb } from "./FolderBreadcrumb";
 import { FileBrowserOptionsSection } from "./FileBrowserOptionsSection";

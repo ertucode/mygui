@@ -11,7 +11,7 @@ import {
   directoryHelpers,
   directoryStore,
   selectDirectory,
-} from "../directory";
+} from "../directoryStore/directory";
 import { setDefaultPath } from "../defaultPath";
 
 interface FavoritesListProps {

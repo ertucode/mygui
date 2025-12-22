@@ -4,9 +4,10 @@ import {
   directoryStore,
   directoryHelpers,
   selectFuzzyQuery,
-  directoryDerivedStores,
-  DirectoryId,
-} from "../directory";
+} from "../directoryStore/directory";
+import { DirectoryId } from "../directoryStore/DirectoryBase";
+import { directoryDerivedStores } from "../directoryStore/directorySubscriptions";
+import { directorySelection } from "../directoryStore/directorySelection";
 
 export type FuzzyInputProps = {
   directoryId: DirectoryId;
@@ -65,12 +66,15 @@ export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
           e.currentTarget.blur();
         }
         if (e.key === "j" && e.ctrlKey)
-          directoryHelpers.setSelection(
+          directorySelection.setSelection(
             (h) => Math.min(h + 1, filteredData.length - 1),
             directoryId,
           );
         if (e.key === "k" && e.ctrlKey)
-          directoryHelpers.setSelection((h) => Math.max(h - 1, 0), directoryId);
+          directorySelection.setSelection(
+            (h) => Math.max(h - 1, 0),
+            directoryId,
+          );
 
         if (e.key === "Enter") {
           directoryHelpers.openSelectedItem(

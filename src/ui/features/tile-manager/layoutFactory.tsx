@@ -9,9 +9,9 @@ import { FilePreview } from "../file-browser/components/FilePreview";
 import {
   directoryStore,
   selectSelection,
-  directoryDerivedStores,
   directoryHelpers,
-} from "../file-browser/directory";
+} from "../file-browser/directoryStore/directory";
+import { directoryDerivedStores } from "../file-browser/directoryStore/directorySubscriptions";
 
 export const layoutFactory = (node: TabNode) => {
   const component = node.getComponent();

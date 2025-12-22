@@ -1,8 +1,9 @@
 import { IJsonModel, Model } from "flexlayout-react";
-import { DirectoryId, directoryStore } from "./directory";
 import z from "zod";
 import { TAG_COLORS } from "./tags";
 import { defaultPath } from "./defaultPath";
+import { directoryStore } from "./directoryStore/directory";
+import { DirectoryId } from "./directoryStore/DirectoryBase";
 
 const layoutStorageSchema = z.object({
   layout: z.any(),

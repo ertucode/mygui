@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import { DirectoryId } from "./directory";
+import { DirectoryId } from "./directoryStore/DirectoryBase";
 
 export function DirectoryContextProvider({
   children,

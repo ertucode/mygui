@@ -1,6 +1,6 @@
 import { DirectoryContextProvider } from "../DirectoryContext";
+import { DirectoryId } from "../directoryStore/DirectoryBase";
 import { FileBrowserTable } from "../FileBrowserTable";
-import { DirectoryId } from "../directory";
 import { FuzzyInput } from "./FileBrowserNavigationAndInputSection";
 
 export function DirectoryTablePane({

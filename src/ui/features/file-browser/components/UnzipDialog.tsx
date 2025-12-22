@@ -1,7 +1,7 @@
 import { createFormDialog } from "@/lib/libs/form/createFormDialog";
 import { FolderInputIcon } from "lucide-react";
 import z from "zod";
-import { directoryHelpers, directoryStore } from "../directory";
+import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { GenericError } from "@common/GenericError";
 
 type UnzipDialogItem = { zipFilePath: string; suggestedName: string };

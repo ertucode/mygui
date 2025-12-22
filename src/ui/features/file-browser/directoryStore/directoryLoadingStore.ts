@@ -1,6 +1,6 @@
 import { createStore, StoreSnapshot } from "@xstate/store";
-import { DirectoryId } from "./directory";
 import { useSelector } from "@xstate/store/react";
+import { DirectoryId } from "./DirectoryBase";
 
 type DirectoryLoadingContext = {
   loadingCounts: Map<DirectoryId, number>;
@@ -24,13 +24,13 @@ export const directoryLoadingStore = createStore({
       const newCounts = new Map(context.loadingCounts);
       const currentCount = newCounts.get(event.directoryId) ?? 0;
       const newCount = Math.max(0, currentCount - 1);
-      
+
       if (newCount === 0) {
         newCounts.delete(event.directoryId);
       } else {
         newCounts.set(event.directoryId, newCount);
       }
-      
+
       return {
         ...context,
         loadingCounts: newCounts,
@@ -51,12 +51,16 @@ export const directoryLoadingHelpers = {
 
 // Selector
 export const selectIsDirectoryLoading =
-  (directoryId: DirectoryId) => (state: StoreSnapshot<DirectoryLoadingContext>) => {
+  (directoryId: DirectoryId) =>
+  (state: StoreSnapshot<DirectoryLoadingContext>) => {
     const count = state.context.loadingCounts.get(directoryId);
     return count !== undefined && count > 0;
   };
 
 // Hook
 export function useDirectoryLoading(directoryId: DirectoryId): boolean {
-  return useSelector(directoryLoadingStore, selectIsDirectoryLoading(directoryId));
+  return useSelector(
+    directoryLoadingStore,
+    selectIsDirectoryLoading(directoryId),
+  );
 }

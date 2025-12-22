@@ -6,7 +6,7 @@ import {
   Actions,
 } from "flexlayout-react";
 import { PlusIcon, Maximize2Icon } from "lucide-react";
-import { directoryStore } from "../file-browser/directory";
+import { directoryStore } from "../file-browser/directoryStore/directory";
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
 

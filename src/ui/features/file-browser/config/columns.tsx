@@ -19,7 +19,8 @@ import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { useEffect, useRef, useState } from "react";
-import { directoryHelpers, DirectoryId, directoryStore } from "../directory";
+import { directoryHelpers, directoryStore } from "../directoryStore/directory";
+import { DirectoryId } from "../directoryStore/DirectoryBase";
 
 /**
  * Icon and color mapping for file categories

@@ -1,6 +1,6 @@
 import React, { useRef, useCallback, useEffect } from "react";
 import { Layout, Actions, IJsonTabNode } from "flexlayout-react";
-import { directoryStore } from "../file-browser/directory";
+import { directoryStore } from "../file-browser/directoryStore/directory";
 import "./FlexLayoutManager.css";
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";

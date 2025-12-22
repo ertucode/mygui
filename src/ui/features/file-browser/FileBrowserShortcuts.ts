@@ -3,16 +3,17 @@ import { useSelector } from "@xstate/store/react";
 import { dialogActions, useIsDialogOpen } from "./dialogStore";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import {
-  directoryDerivedStores,
   directoryHelpers,
-  DirectoryId,
   directoryStore,
   selectSelection,
-} from "./directory";
+} from "./directoryStore/directory";
 import { favoritesStore } from "./favorites";
 import { layoutModel } from "./initializeDirectory";
 import { Actions, TabNode } from "flexlayout-react";
 import { LayoutHelpers } from "./utils/LayoutHelpers";
+import { DirectoryId } from "./directoryStore/DirectoryBase";
+import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
+import { directorySelection } from "./directoryStore/directorySelection";
 
 function getData(activeDirectoryId: DirectoryId) {
   return directoryDerivedStores
@@ -51,9 +52,9 @@ export function FileBrowserShortcuts() {
         lastSelected: newState.lastSelected,
       } as any);
     },
-    select: directoryHelpers.select,
-    reset: directoryHelpers.resetSelection,
-    isSelected: directoryHelpers.isSelected,
+    select: directorySelection.select,
+    reset: directorySelection.resetSelection,
+    isSelected: directorySelection.isSelected,
   };
 
   useShortcuts(
@@ -118,7 +119,7 @@ export function FileBrowserShortcuts() {
         key: " ",
         handler: (_) => {
           if (s.state.last == null) {
-            directoryHelpers.selectManually(0, directoryId);
+            directorySelection.selectManually(0, directoryId);
           }
         },
         label: "Select first item",
@@ -281,7 +282,7 @@ export function FileBrowserShortcuts() {
         },
         label: `Open favorite ${i + 1}`,
       })),
-      ...directoryHelpers.getSelectionShortcuts(dataCount, directoryId),
+      ...directorySelection.getSelectionShortcuts(dataCount, directoryId),
       ...directories.map((_, i) => ({
         key: { key: (i + 1).toString(), metaKey: true },
         handler: (e: KeyboardEvent | undefined) => {
