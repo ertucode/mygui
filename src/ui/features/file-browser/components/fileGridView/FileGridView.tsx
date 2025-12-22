@@ -17,6 +17,7 @@ import { PDFThumbnail } from "./PDFThumbnail";
 import { ImageThumbnail } from "./ImageThumbnail";
 import { BaseThumbnail } from "./BaseThumbnail";
 import { fileBrowserListContainerProps } from "../../fileBrowserListContainerProps";
+import { VideoThumbnail } from "./VideoThumbnail";
 
 type GridItemProps = {
   item: GetFilesAndFoldersInDirectoryItem;
@@ -95,6 +96,10 @@ function FileThumbnail({
 
   if (item.category === "image") {
     return <ImageThumbnail item={item} fullPath={fullPath} />;
+  }
+
+  if (item.category === "video") {
+    return <VideoThumbnail item={item} fullPath={fullPath} />;
   }
 
   if (item.ext === ".pdf") {

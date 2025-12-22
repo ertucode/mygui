@@ -6,7 +6,8 @@
     "dist-electron/electron/preload-preview.cjs",
     "vendor-bin/rg",
     "vendor-bin/fd",
-    "vendor-bin/fzy/fzy"
+    "vendor-bin/fzy/fzy",
+    "vendor-bin/ffmpeg"
   ],
   "mac": {
     "target": ["dmg"]

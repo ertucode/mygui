@@ -52,6 +52,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
   getDirectorySizes: (parentPath: string, specificDirName?: string) =>
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
+  generateVideoThumbnail: (filePath: string) =>
+    ipcInvoke("generateVideoThumbnail", filePath),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

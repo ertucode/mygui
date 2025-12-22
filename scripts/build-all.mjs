@@ -21,7 +21,10 @@ const fzy = run("build-fzy.mjs");
 console.log("=== Building fd ===");
 const fd = run("build-fd.mjs");
 
-Promise.all([rg, fzy, fd])
+console.log("=== Building ffmpeg ===");
+const ffmpeg = run("build-ffmpeg.mjs");
+
+Promise.all([rg, fzy, fd, ffmpeg])
   .then(() => console.log("✔ All vendors built"))
   .catch((err) => {
     console.error(err);
