@@ -8,7 +8,7 @@ export function PDFThumbnail({ fullPath }: { fullPath: string }) {
   );
 
   return (
-    <div className="w-16 h-16 flex items-center justify-center overflow-hidden rounded bg-white border border-base-300">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-white">
       <iframe
         src={`file://${expandedPath}#page=1&view=FitH&toolbar=0&navpanes=0`}
         className="w-full h-full pointer-events-none scale-[2] origin-center"

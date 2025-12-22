@@ -41,31 +41,31 @@ export function SpreadsheetThumbnail({ fullPath }: { fullPath: string }) {
 
   if (loading) {
     return (
-      <div className="w-16 h-16 flex items-center justify-center">
-        <FileSpreadsheetIcon className="w-10 h-10 text-base-content/60 animate-pulse" />
+      <div className="w-full h-full flex items-center justify-center">
+        <FileSpreadsheetIcon className="w-12 h-12 text-base-content/60 animate-pulse" />
       </div>
     );
   }
 
   if (!previewData || previewData.length === 0) {
     return (
-      <div className="w-16 h-16 flex items-center justify-center">
-        <FileSpreadsheetIcon className="w-10 h-10 text-base-content/60" />
+      <div className="w-full h-full flex items-center justify-center">
+        <FileSpreadsheetIcon className="w-12 h-12 text-base-content/60" />
       </div>
     );
   }
 
   return (
-    <div className="w-16 h-16 flex items-center justify-center overflow-hidden rounded bg-white border border-base-300 p-0.5">
+    <div className="w-full h-full flex items-center justify-center overflow-hidden bg-base-200 p-1">
       <div className="w-full h-full overflow-hidden">
-        <table className="w-full text-[4px] leading-none border-collapse">
+        <table className="w-full text-[6px] leading-tight border-collapse">
           <tbody>
             {previewData.slice(0, 8).map((row, rowIdx) => (
               <tr key={rowIdx}>
                 {row.slice(0, 4).map((cell, colIdx) => (
                   <td
                     key={colIdx}
-                    className="border border-base-300 px-0.5 truncate max-w-[16px]"
+                    className="border border-base-300 px-0.5 truncate"
                   >
                     {cell}
                   </td>
