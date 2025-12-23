@@ -50,7 +50,9 @@ export function Dialog({
       >
         {title && <h3 className="font-bold text-lg flex-shrink-0">{title}</h3>}
         <div className="flex-1 min-h-0">{children}</div>
-        <div className="self-end flex-shrink-0">{footer && footer}</div>
+        <div className="self-end flex-shrink-0 flex gap-3 items-center">
+          {footer && footer}
+        </div>
       </div>
     </dialog>
   );
