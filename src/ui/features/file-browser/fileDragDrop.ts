@@ -9,6 +9,9 @@ import { DirectoryId } from "./directoryStore/DirectoryBase";
 type FileDragDropContext = {
   dragOverDirectoryId: DirectoryId | null;
   dragOverRowIdx: number | null;
+  isDragToSelect: boolean;
+  dragToSelectStartIdx: number | null;
+  dragToSelectDirectoryId: DirectoryId | null;
 };
 
 // Create the store
@@ -16,6 +19,9 @@ export const fileDragDropStore = createStore({
   context: {
     dragOverDirectoryId: null,
     dragOverRowIdx: null,
+    isDragToSelect: false,
+    dragToSelectStartIdx: null,
+    dragToSelectDirectoryId: null,
   } as FileDragDropContext,
   on: {
     setDragOverDirectory: (
@@ -29,9 +35,27 @@ export const fileDragDropStore = createStore({
       ...context,
       dragOverRowIdx: event.value,
     }),
+    startDragToSelect: (
+      context,
+      event: { startIdx: number; directoryId: DirectoryId },
+    ) => ({
+      ...context,
+      isDragToSelect: true,
+      dragToSelectStartIdx: event.startIdx,
+      dragToSelectDirectoryId: event.directoryId,
+    }),
+    endDragToSelect: (context) => ({
+      ...context,
+      isDragToSelect: false,
+      dragToSelectStartIdx: null,
+      dragToSelectDirectoryId: null,
+    }),
     reset: () => ({
       dragOverDirectoryId: null,
       dragOverRowIdx: null,
+      isDragToSelect: false,
+      dragToSelectStartIdx: null,
+      dragToSelectDirectoryId: null,
     }),
   },
 });
@@ -53,8 +77,34 @@ const isFileDrag = (e: React.DragEvent): boolean => {
   return e.dataTransfer.types.includes("application/x-mygui-file-drag");
 };
 
+// Global mouse up handler for drag-to-select
+const handleGlobalMouseUp = () => {
+  const dragState = fileDragDropStore.getSnapshot();
+  if (dragState.context.isDragToSelect) {
+    fileDragDropStore.send({ type: "endDragToSelect" });
+    document.body.removeEventListener("mouseup", handleGlobalMouseUp);
+  }
+};
+
 // Handler functions
 export const fileDragDropHandlers = {
+  // Start drag-to-select mode
+  startDragToSelect: (startIdx: number, directoryId: DirectoryId) => {
+    fileDragDropStore.send({
+      type: "startDragToSelect",
+      startIdx,
+      directoryId,
+    });
+    // Add global mouseup listener to handle release anywhere
+    document.body.addEventListener("mouseup", handleGlobalMouseUp);
+  },
+
+  // End drag-to-select mode
+  endDragToSelect: () => {
+    fileDragDropStore.send({ type: "endDragToSelect" });
+    document.body.removeEventListener("mouseup", handleGlobalMouseUp);
+  },
+
   // Handle drag start on table rows
   handleRowDragStart: async (
     items: GetFilesAndFoldersInDirectoryItem[],
