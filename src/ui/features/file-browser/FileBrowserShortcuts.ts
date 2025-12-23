@@ -291,6 +291,13 @@ export function FileBrowserShortcuts() {
         },
         label: "Close tab",
       },
+      {
+        key: "Escape",
+        handler: () => {
+          directorySelection.resetSelection(directoryId);
+        },
+        label: "Reset selection",
+      },
       // Option+1 through Option+9 to open favorites
       ...Array.from({ length: 9 }, (_, i) => ({
         key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
