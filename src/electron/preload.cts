@@ -56,6 +56,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
   generateVideoThumbnail: (filePath: string) =>
     ipcInvoke("generateVideoThumbnail", filePath),
+  batchRenameFiles: (
+    items: Array<{
+      fullPath: string;
+      newName: string;
+    }>,
+  ) => ipcInvoke("batchRenameFiles", items),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

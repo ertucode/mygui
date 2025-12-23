@@ -76,6 +76,7 @@ export type EventResponseMapping = {
   deleteFiles: Promise<GenericResult<void>>;
   createFileOrFolder: Promise<GenericResult<{ path: string }>>;
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>;
+  batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>;
   getPreviewPreloadPath: string;
   copyFiles: Promise<GenericResult<void>>;
   setClipboardCutMode: Promise<void>;
@@ -131,6 +132,10 @@ export type EventRequestMapping = {
     fullPath: string;
     newName: string;
   };
+  batchRenameFiles: Array<{
+    fullPath: string;
+    newName: string;
+  }>;
   copyFiles: { filePaths: string[]; cut: boolean };
   setClipboardCutMode: { cut: boolean };
   pasteFiles: { destinationDir: string };
@@ -193,6 +198,9 @@ export type WindowElectron = {
     fullPath: string,
     newName: string,
   ) => Promise<GenericResult<{ newPath: string }>>;
+  batchRenameFiles: (
+    items: Array<{ fullPath: string; newName: string }>,
+  ) => Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>;
   getPreviewPreloadPath: () => Promise<string>;
   getStartingDirectory: () => string | undefined | null;
   copyFiles: (

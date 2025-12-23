@@ -160,6 +160,18 @@ export function FileBrowserShortcuts() {
         label: "Reload directory",
       },
       {
+        key: { key: "r", metaKey: true, shiftKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          if (s.state.indexes.size < 2) return;
+          const data = getData(directoryId);
+          const itemsToRename = [...s.state.indexes].map((i) => data[i]);
+          dialogActions.open("batchRename", itemsToRename);
+        },
+        enabledIn: () => true,
+        label: "Batch rename selected items",
+      },
+      {
         key: { key: "c", metaKey: true },
         handler: (e) => {
           // Check if user is selecting text

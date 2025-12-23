@@ -1,6 +1,7 @@
 import { createStore } from "@xstate/store";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { RenameDialog } from "./components/RenameDialog";
+import { BatchRenameDialog } from "./components/BatchRenameDialog";
 import { NewItemDialog } from "./components/NewItemDialog";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
@@ -8,7 +9,7 @@ import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { ZipDialog } from "./components/ZipDialog";
 import { UnzipDialog } from "./components/UnzipDialog";
 import { CommandPalette } from "./components/CommandPalette";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon } from "lucide-react";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -16,6 +17,7 @@ import { useSelector } from "@xstate/store/react";
 // Define the dialog types that can be opened
 export type DialogType =
   | "rename"
+  | "batchRename"
   | "newItem"
   | "assignTags"
   | "multiFileTags"
@@ -27,6 +29,7 @@ export type DialogType =
 // Define the metadata each dialog requires
 export type DialogMetadata = {
   rename: GetFilesAndFoldersInDirectoryItem;
+  batchRename: GetFilesAndFoldersInDirectoryItem[];
   newItem: GetFilesAndFoldersInDirectoryItem | {};
   assignTags: string;
   multiFileTags: string[];
@@ -96,6 +99,12 @@ const dialogDefinitions = [
     component: RenameDialog,
     icon: PencilIcon,
     title: "Rename",
+  },
+  {
+    type: "batchRename" as const,
+    component: BatchRenameDialog,
+    icon: PencilLineIcon,
+    title: "Batch Rename",
   },
   {
     type: "newItem" as const,
