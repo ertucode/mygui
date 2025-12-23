@@ -5,6 +5,7 @@ import { TagColor } from "../tags";
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
   | { type: "tags"; color: TagColor };
+export type DirectoryType = DirectoryInfo["type"];
 
 export function directoryInfoEquals(
   a: DirectoryInfo,

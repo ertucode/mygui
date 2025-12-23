@@ -43,6 +43,13 @@ export namespace PathHelpers {
     return filePath;
   }
 
+  export function revertExpandedHome(home: string, filePath: string): string {
+    if (filePath.startsWith(home)) {
+      return "~/" + filePath.slice(home.length);
+    }
+    return filePath;
+  }
+
   export function resolveUpDirectory(homeDirectory: string, input: string) {
     let parts = getFolderNameParts(input);
     if (parts.length === 1) {

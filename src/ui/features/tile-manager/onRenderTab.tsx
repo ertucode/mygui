@@ -8,6 +8,9 @@ import {
   EyeIcon,
   XIcon,
   LoaderIcon,
+  StarIcon,
+  StarOffIcon,
+  FolderCogIcon,
 } from "lucide-react";
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { useSelector } from "@xstate/store/react";
@@ -19,6 +22,19 @@ import { useDirectoryLoading } from "../file-browser/directoryStore/directoryLoa
 import { TAG_COLOR_CLASSES } from "../file-browser/tags";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
 import { DirectoryId } from "../file-browser/directoryStore/DirectoryBase";
+import {
+  ContextMenu,
+  ContextMenuItem,
+  ContextMenuList,
+  useContextMenu,
+} from "@/lib/components/context-menu";
+import { TextWithIcon } from "@/lib/components/text-with-icon";
+import {
+  favoritesStore,
+  selectIsFavorite,
+} from "../file-browser/favorites";
+import { setDefaultPath } from "../file-browser/defaultPath";
+import { dialogActions } from "../file-browser/dialogStore";
 
 export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const component = node.getComponent();
@@ -32,28 +48,12 @@ export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   const parentIsActive = LayoutHelpers.parentIsActive(node);
 
   renderValues.content = isDirectory ? (
-    <div
-      className={clsx(
-        "cursor-move flex items-center gap-3 h-full p-2",
-        isSelected && "shadow-[inset_0_-3px_0_0_var(--color-primary)]",
-        (!parentIsActive || !isSelected) && "opacity-60",
-        "dir-marker",
-      )}
-    >
-      <DirectoryIcon directoryId={config.directoryId} />
-      <DirectoryTabLabel directoryId={config.directoryId} />
-      <div
-        key={`close-${node.getId()}`}
-        className="cursor-pointer flex items-center gap-3 h-full"
-        title="Close"
-        onClick={(e) => {
-          e.stopPropagation();
-          layoutModel.doAction(Actions.deleteTab(node.getId()));
-        }}
-      >
-        <XIcon className="size-4" />
-      </div>
-    </div>
+    <DirectoryTabContent
+      node={node}
+      directoryId={config.directoryId}
+      isSelected={isSelected}
+      parentIsActive={parentIsActive}
+    />
   ) : (
     <div
       className={clsx(
@@ -75,6 +75,56 @@ export const onRenderTab = (node: TabNode, renderValues: ITabRenderValues) => {
   }
 };
 
+function DirectoryTabContent({
+  node,
+  directoryId,
+  isSelected,
+  parentIsActive,
+}: {
+  node: TabNode;
+  directoryId: DirectoryId;
+  isSelected: boolean;
+  parentIsActive: boolean;
+}) {
+  const contextMenu = useContextMenu<DirectoryId>();
+
+  return (
+    <>
+      <div
+        className={clsx(
+          "cursor-move flex items-center gap-3 h-full p-2",
+          isSelected && "shadow-[inset_0_-3px_0_0_var(--color-primary)]",
+          (!parentIsActive || !isSelected) && "opacity-60",
+          "dir-marker",
+        )}
+        onContextMenu={(e) => contextMenu.onRightClick(e, directoryId)}
+      >
+        <DirectoryIcon directoryId={directoryId} />
+        <DirectoryTabLabel directoryId={directoryId} />
+        <div
+          key={`close-${node.getId()}`}
+          className="cursor-pointer flex items-center gap-3 h-full"
+          title="Close"
+          onClick={(e) => {
+            e.stopPropagation();
+            layoutModel.doAction(Actions.deleteTab(node.getId()));
+          }}
+        >
+          <XIcon className="size-4" />
+        </div>
+      </div>
+      {contextMenu.isOpen && contextMenu.item && (
+        <ContextMenu menu={contextMenu}>
+          <DirectoryTabContextMenu
+            directoryId={contextMenu.item}
+            close={contextMenu.close}
+          />
+        </ContextMenu>
+      )}
+    </>
+  );
+}
+
 function DirectoryIcon({ directoryId }: { directoryId: DirectoryId }) {
   const isLoading = useDirectoryLoading(directoryId);
   return isLoading ? (
@@ -83,6 +133,7 @@ function DirectoryIcon({ directoryId }: { directoryId: DirectoryId }) {
     <FoldersIcon className="size-4" />
   );
 }
+
 function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
   const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
@@ -111,4 +162,70 @@ function getIconForComponent(component: string | undefined) {
   else if (component === "tags") return TagIcon;
   else if (component === "preview") return EyeIcon;
   return FoldersIcon;
+}
+
+function DirectoryTabContextMenu({
+  directoryId,
+  close,
+}: {
+  directoryId: DirectoryId;
+  close: () => void;
+}) {
+  const directory = useSelector(directoryStore, selectDirectory(directoryId));
+
+  // Only show context menu for path-type directories
+  if (directory.type !== "path") {
+    return null;
+  }
+
+  const fullPath = directory.fullPath;
+  const isFavorite = selectIsFavorite(fullPath)(favoritesStore.get());
+
+  const favoriteItem: ContextMenuItem = isFavorite
+    ? {
+        onClick: () => {
+          favoritesStore.send({ type: "removeFavorite", fullPath });
+          close();
+        },
+        view: (
+          <TextWithIcon icon={StarOffIcon}>Remove from favorites</TextWithIcon>
+        ),
+      }
+    : {
+        onClick: () => {
+          favoritesStore.send({
+            type: "addFavorite",
+            item: {
+              fullPath,
+              type: "dir",
+            },
+          });
+          close();
+        },
+        view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
+      };
+
+  const assignTagsItem: ContextMenuItem = {
+    onClick: () => {
+      dialogActions.open("assignTags", fullPath);
+      close();
+    },
+    view: <TextWithIcon icon={TagIcon}>Assign Tags...</TextWithIcon>,
+  };
+
+  const setDefaultPathItem: ContextMenuItem = {
+    onClick: () => {
+      setDefaultPath(fullPath);
+      close();
+    },
+    view: (
+      <TextWithIcon icon={FolderCogIcon}>Set as default path</TextWithIcon>
+    ),
+  };
+
+  return (
+    <ContextMenuList
+      items={[setDefaultPathItem, favoriteItem, assignTagsItem]}
+    />
+  );
 }

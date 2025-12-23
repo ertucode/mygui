@@ -38,6 +38,10 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
   const filteredDirectoryData = directoryDerivedStores
     .get(context.directoryId)!
     .useFilteredDirectoryData();
+  const directoryType = useSelector(
+    directoryStore,
+    (d) => d.context.directoriesById[directoryId].directory.type,
+  );
 
   const fileTags = useSelector(tagsStore, selectFileTags);
 
@@ -46,6 +50,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
       fileTags,
       getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
       directoryId: context.directoryId,
+      directoryType,
     });
   }, [fileTags]);
 

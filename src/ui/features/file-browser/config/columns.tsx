@@ -6,7 +6,7 @@ import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
 import { PathHelpers } from "@common/PathHelpers";
 import { useEffect, useRef, useState } from "react";
 import { directoryHelpers, directoryStore } from "../directoryStore/directory";
-import { DirectoryId } from "../directoryStore/DirectoryBase";
+import { DirectoryId, DirectoryType } from "../directoryStore/DirectoryBase";
 import { CategoryHelpers } from "../CategoryHelpers";
 
 function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
@@ -40,6 +40,7 @@ export interface ColumnsContext {
   fileTags: FileTags;
   getFullPath: (name: string) => string;
   directoryId: DirectoryId;
+  directoryType: DirectoryType;
 }
 
 export function createColumns(
@@ -145,7 +146,7 @@ function DirectoryNameColumn({
         </span>
       )}
       {tags && <TagCircles tags={tags} />}
-      {parentFolder && parentFolder.name && (
+      {parentFolder && parentFolder.name && ctx.directoryType === "tags" && (
         <span
           className="text-gray-400 text-xs truncate flex-shrink-0"
           title={parentFolder.path}
