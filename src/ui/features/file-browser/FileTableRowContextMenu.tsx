@@ -13,6 +13,7 @@ import {
   ClipboardPasteIcon,
   Trash2Icon,
   PencilIcon,
+  PencilLineIcon,
   FilePlusIcon,
   TagIcon,
   FolderCogIcon,
@@ -144,6 +145,21 @@ export const FileTableRowContextMenu = ({
     },
     view: <TextWithIcon icon={PencilIcon}>Rename</TextWithIcon>,
   };
+
+  const batchRenameItem: ContextMenuItem | null =
+    isSelected && selectionIndexes.size > 1
+      ? {
+          onClick: () => {
+            dialogActions.open("batchRename", selectedItems);
+            close();
+          },
+          view: (
+            <TextWithIcon icon={PencilLineIcon}>
+              Batch Rename ({selectionIndexes.size} items)
+            </TextWithIcon>
+          ),
+        }
+      : null;
 
   const newFileItem: ContextMenuItem = {
     onClick: () => {
@@ -298,6 +314,7 @@ export const FileTableRowContextMenu = ({
           zipItem,
           deleteItem,
           renameItem,
+          batchRenameItem,
           newFileItem,
           openDirectoryInNewTab,
           loadDirectorySize,
@@ -320,6 +337,7 @@ export const FileTableRowContextMenu = ({
         unzipItem,
         deleteItem,
         renameItem,
+        batchRenameItem,
         newFileItem,
         copyPathItem,
       ]}

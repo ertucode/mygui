@@ -19,6 +19,7 @@ import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
 import { createFileOrFolder } from "./utils/create-file-or-folder.js";
 import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
+import { batchRenameFiles } from "./utils/batch-rename-files.js";
 import { copyFiles, setClipboardCutMode } from "./utils/copy-files.js";
 import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
@@ -173,6 +174,7 @@ app.on("ready", () => {
   ipcHandle("renameFileOrFolder", ({ fullPath, newName }) =>
     renameFileOrFolder(fullPath, newName),
   );
+  ipcHandle("batchRenameFiles", (items) => batchRenameFiles(items));
   ipcHandle("getPreviewPreloadPath", () => getPreviewPreloadPath());
   ipcHandle("copyFiles", ({ filePaths, cut }) => copyFiles(filePaths, cut));
   ipcHandle("setClipboardCutMode", async ({ cut }) => {
