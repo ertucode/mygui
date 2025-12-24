@@ -168,9 +168,11 @@ export function FileBrowserShortcuts() {
         key: { key: "r", metaKey: true, shiftKey: true },
         handler: (e) => {
           e?.preventDefault();
-          if (s.state.indexes.size < 2) return;
           const data = getData(directoryId);
-          const itemsToRename = [...s.state.indexes].map((i) => data[i]);
+          const itemsToRename =
+            s.state.indexes.size < 1
+              ? data
+              : [...s.state.indexes].map((i) => data[i]);
           dialogActions.open("batchRename", itemsToRename);
         },
         enabledIn: () => true,
@@ -318,7 +320,11 @@ export function FileBrowserShortcuts() {
         },
         label: `Open favorite ${i + 1}`,
       })),
-      ...directorySelection.getSelectionShortcuts(dataCount, directoryId, viewMode),
+      ...directorySelection.getSelectionShortcuts(
+        dataCount,
+        directoryId,
+        viewMode,
+      ),
       ...directories.map((_, i) => ({
         key: { key: (i + 1).toString(), metaKey: true },
         handler: (e: KeyboardEvent | undefined) => {
