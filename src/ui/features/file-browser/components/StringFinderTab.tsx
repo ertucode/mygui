@@ -91,8 +91,16 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
           searchHidden,
         });
         if (result.success) {
-          setSearchResults(result.data);
-          setSelectedIndex(0);
+          result.data.sort(
+            (a, b) =>
+              a.filePath.localeCompare(b.filePath) ||
+              a.matchContent.localeCompare(b.matchContent) ||
+              a.matchLineNumber - b.matchLineNumber,
+          );
+          if (JSON.stringify(result.data) !== JSON.stringify(searchResults)) {
+            setSearchResults(result.data);
+            setSelectedIndex(0);
+          }
         } else {
           setError(errorResponseToMessage(result.error) || "Failed to search");
         }
@@ -264,6 +272,7 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                   type="text"
                   value={cwd}
                   onChange={(e) => setCwd(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="e.g., src/components or ~/projects or /absolute/path"
                   className="input input-bordered input-sm w-full bg-base-100"
                 />
@@ -281,6 +290,7 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                   type="text"
                   value={includePatterns}
                   onChange={(e) => setIncludePatterns(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="e.g., *.ts, *.tsx, src/**/*.js"
                   className="input input-bordered input-sm w-full bg-base-100"
                 />
@@ -298,6 +308,7 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                   type="text"
                   value={excludePatterns}
                   onChange={(e) => setExcludePatterns(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   placeholder="e.g., node_modules/**, *.min.js, dist/**"
                   className="input input-bordered input-sm w-full bg-base-100"
                 />
