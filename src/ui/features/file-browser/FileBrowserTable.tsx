@@ -25,6 +25,11 @@ import { directoryDerivedStores } from "./directoryStore/directorySubscriptions"
 import { FileGridView } from "./components/fileGridView/FileGridView";
 import { fileBrowserListItemProps } from "./fileBrowserListItemProps";
 import { fileBrowserListContainerProps } from "./fileBrowserListContainerProps";
+import { ColumnHeaderContextMenu } from "./components/ColumnHeaderContextMenu";
+import {
+  columnPreferencesStore,
+  selectEffectivePreferences,
+} from "./columnPreferences";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -45,7 +50,17 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
   const fileTags = useSelector(tagsStore, selectFileTags);
 
-  const columns = useMemo(() => {
+  const directory = useSelector(directoryStore, selectDirectory(directoryId));
+
+  const directoryPath =
+    directory?.type === "path" ? directory.fullPath : "";
+
+  const columnPreferences = useSelector(
+    columnPreferencesStore,
+    selectEffectivePreferences(directoryPath),
+  );
+
+  const allColumns = useMemo(() => {
     return createColumns({
       fileTags,
       getFullPath: (n) => directoryHelpers.getFullPath(n, context.directoryId),
@@ -54,18 +69,49 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     });
   }, [fileTags]);
 
+  // Apply column preferences: reorder and filter columns
+  const columns = useMemo(() => {
+    if (!columnPreferences || columnPreferences.length === 0) {
+      return allColumns;
+    }
+
+    const prefMap = new Map(columnPreferences.map((p) => [p.id, p]));
+    const columnIds = allColumns.map((col) => col.id?.toString() || col.accessorKey);
+
+    // Create ordered list based on preferences
+    const ordered: typeof allColumns = [];
+    
+    // First, add columns in preference order
+    columnPreferences.forEach((pref) => {
+      if (!pref.visible) return; // Skip hidden columns
+      const colIndex = columnIds.indexOf(pref.id);
+      if (colIndex !== -1) {
+        ordered.push(allColumns[colIndex]);
+      }
+    });
+
+    // Then add any new columns not in preferences
+    allColumns.forEach((col) => {
+      const id = col.id?.toString() || col.accessorKey;
+      if (!prefMap.has(id)) {
+        ordered.push(col);
+      }
+    });
+
+    return ordered;
+  }, [allColumns, columnPreferences]);
+
   const table = useTable({
     columns,
     data: filteredDirectoryData,
   });
   const contextMenu = useContextMenu<GetFilesAndFoldersInDirectoryItem>();
+  const headerContextMenu = useContextMenu<null>();
 
   const sortSettings = useSelector(
     fileBrowserSettingsStore,
     (s) => s.context.settings.sort,
   );
-
-  const directory = useSelector(directoryStore, selectDirectory(directoryId));
 
   const isDragOver = useSelector(
     fileDragDropStore,
@@ -97,6 +143,17 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
           }
         </ContextMenu>
       )}
+      
+      {headerContextMenu.isOpen && (
+        <ContextMenu menu={headerContextMenu}>
+          <ColumnHeaderContextMenu
+            columns={allColumns}
+            directoryPath={
+              directory?.type === "path" ? directory.fullPath : ""
+            }
+          />
+        </ContextMenu>
+      )}
 
       <div
         className={clsx(
@@ -111,7 +168,14 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
             <tr>
               {table.headers.map((header) => {
                 return (
-                  <th key={header.id} onClick={() => onSortKey(header.sortKey)}>
+                  <th 
+                    key={header.id} 
+                    onClick={() => onSortKey(header.sortKey)}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      headerContextMenu.onRightClick(e, null);
+                    }}
+                  >
                     <div className="flex items-center gap-1">
                       <span className="whitespace-nowrap overflow-hidden text-ellipsis max-w-full">
                         {header.value}
