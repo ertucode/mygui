@@ -12,6 +12,7 @@ type FileDragDropContext = {
   isDragToSelect: boolean;
   dragToSelectStartIdx: number | null;
   dragToSelectDirectoryId: DirectoryId | null;
+  dragToSelectWithMetaKey: boolean;
 };
 
 // Create the store
@@ -22,6 +23,7 @@ export const fileDragDropStore = createStore({
     isDragToSelect: false,
     dragToSelectStartIdx: null,
     dragToSelectDirectoryId: null,
+    dragToSelectWithMetaKey: false,
   } as FileDragDropContext,
   on: {
     setDragOverDirectory: (
@@ -37,18 +39,20 @@ export const fileDragDropStore = createStore({
     }),
     startDragToSelect: (
       context,
-      event: { startIdx: number; directoryId: DirectoryId },
+      event: { startIdx: number; directoryId: DirectoryId; withMetaKey: boolean },
     ) => ({
       ...context,
       isDragToSelect: true,
       dragToSelectStartIdx: event.startIdx,
       dragToSelectDirectoryId: event.directoryId,
+      dragToSelectWithMetaKey: event.withMetaKey,
     }),
     endDragToSelect: (context) => ({
       ...context,
       isDragToSelect: false,
       dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
+      dragToSelectWithMetaKey: false,
     }),
     reset: () => ({
       dragOverDirectoryId: null,
@@ -56,6 +60,7 @@ export const fileDragDropStore = createStore({
       isDragToSelect: false,
       dragToSelectStartIdx: null,
       dragToSelectDirectoryId: null,
+      dragToSelectWithMetaKey: false,
     }),
   },
 });
@@ -89,11 +94,12 @@ const handleGlobalMouseUp = () => {
 // Handler functions
 export const fileDragDropHandlers = {
   // Start drag-to-select mode
-  startDragToSelect: (startIdx: number, directoryId: DirectoryId) => {
+  startDragToSelect: (startIdx: number, directoryId: DirectoryId, withMetaKey: boolean = false) => {
     fileDragDropStore.send({
       type: "startDragToSelect",
       startIdx,
       directoryId,
+      withMetaKey,
     });
     // Add global mouseup listener to handle release anywhere
     document.body.addEventListener("mouseup", handleGlobalMouseUp);

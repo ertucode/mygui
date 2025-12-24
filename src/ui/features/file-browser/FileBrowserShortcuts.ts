@@ -40,6 +40,11 @@ export function FileBrowserShortcuts() {
     (s) => s.context.directoryOrder,
   );
 
+  const viewMode = useSelector(
+    directoryStore,
+    (s) => s.context.directoriesById[directoryId]?.viewMode ?? "list",
+  );
+
   // Create a selection object compatible with the old API
   const s = {
     state: selection,
@@ -313,7 +318,7 @@ export function FileBrowserShortcuts() {
         },
         label: `Open favorite ${i + 1}`,
       })),
-      ...directorySelection.getSelectionShortcuts(dataCount, directoryId),
+      ...directorySelection.getSelectionShortcuts(dataCount, directoryId, viewMode),
       ...directories.map((_, i) => ({
         key: { key: (i + 1).toString(), metaKey: true },
         handler: (e: KeyboardEvent | undefined) => {

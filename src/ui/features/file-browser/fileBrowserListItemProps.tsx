@@ -33,7 +33,7 @@ export function fileBrowserListItemProps({
 
       // If item is not selected, start drag-to-select mode
       if (!isItemSelected) {
-        fileDragDropHandlers.startDragToSelect(index, directoryId);
+        fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey);
       }
     },
     onMouseEnter: () => {
@@ -47,12 +47,77 @@ export function fileBrowserListItemProps({
         const startIdx = dragState.context.dragToSelectStartIdx!;
         const currentIdx = index;
 
+        const state = directoryStore.getSnapshot();
+        const directory = state.context.directoriesById[directoryId];
+        const viewMode = directory?.viewMode ?? "list";
+        const withMetaKey = dragState.context.dragToSelectWithMetaKey;
+
         // Create selection range from start to current
         const minIdx = Math.min(startIdx, currentIdx);
         const maxIdx = Math.max(startIdx, currentIdx);
         const newIndexes = new Set<number>();
-        for (let i = minIdx; i <= maxIdx; i++) {
-          newIndexes.add(i);
+
+        // If metaKey is pressed, use linear selection regardless of view mode
+        if (viewMode === "grid" && !withMetaKey) {
+          // In grid mode, select items in a rectangular area
+          // First, calculate columns per row
+          const gridContainer = document.querySelector(
+            `[data-list-id="${directoryId}"] > div`,
+          ) as HTMLElement;
+          
+          if (gridContainer) {
+            const gridItems = gridContainer.querySelectorAll('[data-list-item]');
+            let cols = 1;
+            
+            if (gridItems.length >= 2) {
+              const firstRect = (gridItems[0] as HTMLElement).getBoundingClientRect();
+              const secondRect = (gridItems[1] as HTMLElement).getBoundingClientRect();
+              
+              // If second item is on same row, count columns
+              if (Math.abs(firstRect.top - secondRect.top) < 10) {
+                for (let i = 1; i < gridItems.length; i++) {
+                  const itemRect = (gridItems[i] as HTMLElement).getBoundingClientRect();
+                  if (Math.abs(itemRect.top - firstRect.top) < 10) {
+                    cols++;
+                  } else {
+                    break;
+                  }
+                }
+              }
+            }
+
+            // Calculate row and column for start and current
+            const startRow = Math.floor(startIdx / cols);
+            const startCol = startIdx % cols;
+            const currentRow = Math.floor(currentIdx / cols);
+            const currentCol = currentIdx % cols;
+
+            const minRow = Math.min(startRow, currentRow);
+            const maxRow = Math.max(startRow, currentRow);
+            const minCol = Math.min(startCol, currentCol);
+            const maxCol = Math.max(startCol, currentCol);
+
+            // Select all items in the rectangular area
+            const totalItems = directory.directoryData.length;
+            for (let row = minRow; row <= maxRow; row++) {
+              for (let col = minCol; col <= maxCol; col++) {
+                const idx = row * cols + col;
+                if (idx < totalItems) {
+                  newIndexes.add(idx);
+                }
+              }
+            }
+          } else {
+            // Fallback to linear selection if grid container not found
+            for (let i = minIdx; i <= maxIdx; i++) {
+              newIndexes.add(i);
+            }
+          }
+        } else {
+          // In list mode, select all items between start and current
+          for (let i = minIdx; i <= maxIdx; i++) {
+            newIndexes.add(i);
+          }
         }
 
         directoryStore.send({

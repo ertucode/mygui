@@ -107,7 +107,48 @@ export const directorySelection = {
   getSelectionShortcuts: (
     count: number,
     directoryId: DirectoryId,
-  ): ShortcutInput[] => [
+    viewMode?: "list" | "grid",
+  ): ShortcutInput[] => {
+    // Helper function to calculate columns in grid view
+    const getColumnsPerRow = (): number => {
+      if (viewMode !== "grid") return 1;
+      
+      // Find the grid container
+      const gridContainer = document.querySelector(
+        `[data-list-id="${directoryId}"] > div`,
+      ) as HTMLElement;
+      if (!gridContainer) return 1;
+      
+      // Get all grid items
+      const gridItems = gridContainer.querySelectorAll('[data-list-item]');
+      if (gridItems.length < 2) return 1;
+      
+      // Calculate columns based on the position of first two items
+      const firstItem = gridItems[0] as HTMLElement;
+      const secondItem = gridItems[1] as HTMLElement;
+      
+      const firstRect = firstItem.getBoundingClientRect();
+      const secondRect = secondItem.getBoundingClientRect();
+      
+      // If the second item is on the same row (y position is similar)
+      if (Math.abs(firstRect.top - secondRect.top) < 10) {
+        // Count how many items are on the first row
+        let cols = 1;
+        for (let i = 1; i < gridItems.length; i++) {
+          const itemRect = (gridItems[i] as HTMLElement).getBoundingClientRect();
+          if (Math.abs(itemRect.top - firstRect.top) < 10) {
+            cols++;
+          } else {
+            break;
+          }
+        }
+        return cols;
+      }
+      
+      return 1;
+    };
+
+    return [
     {
       key: [{ key: "a", metaKey: true }],
       handler: (e) => {
@@ -129,20 +170,56 @@ export const directorySelection = {
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
-        if (state.selection.indexes.has(lastSelected - 1)) {
+        const cols = getColumnsPerRow();
+        const offset = viewMode === "grid" ? cols : 1;
+        const targetIndex = lastSelected - offset;
+        
+        // In grid mode with offset > 1, we need special handling for shift
+        const isShiftEvent = e && e.shiftKey && (!("key" in e) || (e.key !== "G" && e.key !== "g"));
+        const isGridJump = viewMode === "grid" && offset > 1;
+        
+        if (state.selection.indexes.has(targetIndex)) {
           const newSet = new Set(state.selection.indexes);
           newSet.delete(lastSelected);
           directoryStore.send({
             type: "setSelection",
             indexes: newSet,
-            last: lastSelected - 1,
+            last: targetIndex,
             directoryId,
           });
         } else {
-          if (lastSelected - 1 < 0) {
-            directorySelection.select(count - 1, e, directoryId);
+          let finalTarget = targetIndex < 0 ? count - 1 : targetIndex;
+          
+          if (isShiftEvent && isGridJump && state.selection.last != null) {
+            // In grid mode with shift, select items in a visual column pattern
+            const indexes = new Set(state.selection.indexes);
+            const current = state.selection.last;
+            
+            // Move up by cols each time
+            let pos = current;
+            while (pos > finalTarget && pos >= 0) {
+              indexes.add(pos);
+              pos -= cols;
+            }
+            if (pos >= 0) indexes.add(pos);
+            
+            directoryStore.send({
+              type: "setSelection",
+              indexes,
+              last: finalTarget,
+              directoryId,
+            });
+          } else if (isShiftEvent) {
+            // Normal shift behavior for list mode
+            directorySelection.select(finalTarget, e, directoryId);
           } else {
-            directorySelection.select(lastSelected - 1, e, directoryId);
+            // No shift - just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId,
+            });
           }
         }
         e?.preventDefault();
@@ -157,20 +234,56 @@ export const directorySelection = {
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
-        if (state.selection.indexes.has(lastSelected + 1)) {
+        const cols = getColumnsPerRow();
+        const offset = viewMode === "grid" ? cols : 1;
+        const targetIndex = lastSelected + offset;
+        
+        // In grid mode with offset > 1, we need special handling for shift
+        const isShiftEvent = e && e.shiftKey && (!("key" in e) || (e.key !== "G" && e.key !== "g"));
+        const isGridJump = viewMode === "grid" && offset > 1;
+        
+        if (state.selection.indexes.has(targetIndex)) {
           const newSet = new Set(state.selection.indexes);
           newSet.delete(lastSelected);
           directoryStore.send({
             type: "setSelection",
             indexes: newSet,
-            last: lastSelected + 1,
+            last: targetIndex,
             directoryId,
           });
         } else {
-          if (lastSelected + 1 === count) {
-            directorySelection.select(0, e, directoryId);
+          let finalTarget = targetIndex >= count ? 0 : targetIndex;
+          
+          if (isShiftEvent && isGridJump && state.selection.last != null) {
+            // In grid mode with shift, select items in a visual column pattern
+            const indexes = new Set(state.selection.indexes);
+            const current = state.selection.last;
+            
+            // Move down by cols each time
+            let pos = current;
+            while (pos < finalTarget && pos < count) {
+              indexes.add(pos);
+              pos += cols;
+            }
+            if (pos < count) indexes.add(pos);
+            
+            directoryStore.send({
+              type: "setSelection",
+              indexes,
+              last: finalTarget,
+              directoryId,
+            });
+          } else if (isShiftEvent) {
+            // Normal shift behavior for list mode
+            directorySelection.select(finalTarget, e, directoryId);
           } else {
-            directorySelection.select(lastSelected + 1, e, directoryId);
+            // No shift - just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId,
+            });
           }
         }
         e?.preventDefault();
@@ -185,10 +298,43 @@ export const directorySelection = {
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
-        directorySelection.select(lastSelected - 10, e, directoryId);
+        
+        if (viewMode === "grid") {
+          // In grid mode, move left by 1
+          const targetIndex = lastSelected - 1;
+          const finalTarget = targetIndex < 0 ? count - 1 : targetIndex;
+          
+          const isShiftEvent = e && e.shiftKey;
+          if (isShiftEvent && state.selection.last != null) {
+            // Add/remove from selection
+            const indexes = new Set(state.selection.indexes);
+            if (indexes.has(finalTarget)) {
+              indexes.delete(state.selection.last);
+            } else {
+              indexes.add(finalTarget);
+            }
+            directoryStore.send({
+              type: "setSelection",
+              indexes,
+              last: finalTarget,
+              directoryId,
+            });
+          } else {
+            // Just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId,
+            });
+          }
+        } else {
+          // In list mode, jump 10 items up (use original behavior)
+          directorySelection.select(lastSelected - 10, e, directoryId);
+        }
         e?.preventDefault();
       },
-      label: "Jump 10 items up",
+      label: viewMode === "grid" ? "Move left" : "Jump 10 items up",
     },
     {
       key: "ArrowRight",
@@ -198,10 +344,43 @@ export const directorySelection = {
           directoryId,
         );
         const lastSelected = state.selection.last ?? 0;
-        directorySelection.select(lastSelected + 10, e, directoryId);
+        
+        if (viewMode === "grid") {
+          // In grid mode, move right by 1
+          const targetIndex = lastSelected + 1;
+          const finalTarget = targetIndex >= count ? 0 : targetIndex;
+          
+          const isShiftEvent = e && e.shiftKey;
+          if (isShiftEvent && state.selection.last != null) {
+            // Add/remove from selection
+            const indexes = new Set(state.selection.indexes);
+            if (indexes.has(finalTarget)) {
+              indexes.delete(state.selection.last);
+            } else {
+              indexes.add(finalTarget);
+            }
+            directoryStore.send({
+              type: "setSelection",
+              indexes,
+              last: finalTarget,
+              directoryId,
+            });
+          } else {
+            // Just move selection
+            directoryStore.send({
+              type: "setSelection",
+              indexes: new Set([finalTarget]),
+              last: finalTarget,
+              directoryId,
+            });
+          }
+        } else {
+          // In list mode, jump 10 items down (use original behavior)
+          directorySelection.select(lastSelected + 10, e, directoryId);
+        }
         e?.preventDefault();
       },
-      label: "Jump 10 items down",
+      label: viewMode === "grid" ? "Move right" : "Jump 10 items down",
     },
     {
       key: "G",
@@ -255,7 +434,8 @@ export const directorySelection = {
       },
       label: "Page up",
     },
-  ],
+  ];
+  },
 
   resetSelection: (directoryId: DirectoryId) => {
     directoryStore.send({ type: "resetSelection", directoryId });
