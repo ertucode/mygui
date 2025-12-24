@@ -22,6 +22,7 @@ import {
   FolderOpenIcon,
   PlayIcon,
   RotateCcwIcon,
+  HistoryIcon,
 } from "lucide-react";
 import { getWindowElectron } from "@/getWindowElectron";
 
@@ -52,6 +53,99 @@ const undoHistorySchema = z.array(
     }),
   ),
 );
+
+type UndoHistoryItem = {
+  oldPath: string;
+  newPath: string;
+};
+
+const HistoryDialog = ({
+  open,
+  onClose,
+  undoHistory,
+  onUndo,
+}: {
+  open: boolean;
+  onClose: () => void;
+  undoHistory: UndoHistoryItem[][];
+  onUndo: () => void;
+}) => {
+  if (!open) return null;
+
+  return (
+    <Dialog
+      onClose={onClose}
+      title="Batch Rename History"
+      style={{ width: "800px", maxWidth: "90vw" }}
+      footer={
+        undoHistory.length > 0 ? (
+          <Button onClick={onUndo} icon={RotateCcwIcon}>
+            Undo Last Operation
+          </Button>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="text-sm opacity-70">
+          Showing the last {undoHistory.length} batch rename operations (most
+          recent first). You can undo the latest operation from the main dialog.
+        </div>
+        <div className="overflow-y-auto max-h-96 space-y-3">
+          {[...undoHistory].reverse().map((operation, opIdx) => {
+            const actualIdx = undoHistory.length - 1 - opIdx;
+            return (
+              <div key={actualIdx} className="border rounded-lg p-3 bg-base-200">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-semibold">
+                    Operation #{actualIdx + 1}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs opacity-60">
+                      {operation.length} file{operation.length !== 1 ? "s" : ""}
+                    </span>
+                    {actualIdx === undoHistory.length - 1 && (
+                      <span className="badge badge-primary badge-sm">
+                        Latest - Can Undo
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="overflow-x-auto border rounded-lg">
+                  <table className="table table-zebra table-xs">
+                    <thead>
+                      <tr>
+                        <th className="w-8">#</th>
+                        <th>Original Name</th>
+                        <th>Renamed To</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {operation.map((rename, idx) => {
+                        const oldName = rename.oldPath.substring(
+                          rename.oldPath.lastIndexOf("/") + 1,
+                        );
+                        const newName = rename.newPath.substring(
+                          rename.newPath.lastIndexOf("/") + 1,
+                        );
+                        return (
+                          <tr key={idx}>
+                            <td className="opacity-50">{idx + 1}</td>
+                            <td className="font-mono text-xs">{oldName}</td>
+                            <td className="font-mono text-xs">{newName}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Dialog>
+  );
+};
 
 export const BatchRenameDialog = ({
   ref,
@@ -89,6 +183,7 @@ export const BatchRenameDialog = ({
 
   const [templateName, setTemplateName] = useState("");
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   const maskInputRef = useRef<HTMLInputElement>(null);
 
@@ -283,16 +378,34 @@ export const BatchRenameDialog = ({
   if (!dialogOpen) return null;
 
   return (
-    <Dialog
+    <>
+      <HistoryDialog
+        open={showHistory}
+        onClose={() => setShowHistory(false)}
+        undoHistory={undoHistory}
+        onUndo={async () => {
+          await handleUndo();
+          setShowHistory(false);
+        }}
+      />
+      <Dialog
       onClose={onClose}
       title="Batch Rename"
       style={{ width: "900px", maxWidth: "90vw" }}
       footer={
         <>
           {undoHistory.length > 0 && (
-            <Button onClick={handleUndo} icon={RotateCcwIcon}>
-              Undo Last Operation
-            </Button>
+            <>
+              <Button
+                onClick={() => setShowHistory(true)}
+                icon={HistoryIcon}
+              >
+                View History
+              </Button>
+              <Button onClick={handleUndo} icon={RotateCcwIcon}>
+                Undo Last Operation
+              </Button>
+            </>
           )}
           <Button
             onClick={handleRename}
@@ -620,5 +733,6 @@ export const BatchRenameDialog = ({
         </div>
       </div>
     </Dialog>
+    </>
   );
 };
