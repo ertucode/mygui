@@ -14,14 +14,14 @@ const globalPersistence = createLocalStoragePersistence(
   preferencesWithSortSchema,
 );
 
-const localPersistence = createLocalStoragePersistence(
+const pathPersistence = createLocalStoragePersistence(
   "file-browser-column-preferences-local",
   perDirectoryPreferencesSchema,
 );
 
 const initialStore: ColumnPreferenceStore = {
   global: globalPersistence.load({ columns: [], sort: undefined }),
-  local: localPersistence.load({}),
+  path: pathPersistence.load({}),
 };
 
 // Create the store
@@ -39,15 +39,15 @@ export const columnPreferencesStore = createStore({
       },
     }),
 
-    setLocalPreferences: (
+    setPathPreferences: (
       context,
       event: { directoryPath: string; preferences: ColumnPreference[] },
     ) => ({
       ...context,
-      local: {
-        ...context.local,
+      path: {
+        ...context.path,
         [event.directoryPath]: {
-          ...context.local[event.directoryPath],
+          ...context.path[event.directoryPath],
           columns: event.preferences,
         },
       },
@@ -61,15 +61,15 @@ export const columnPreferencesStore = createStore({
       },
     }),
 
-    setLocalSort: (
+    setPathSort: (
       context,
       event: { directoryPath: string; sort: SortState },
     ) => ({
       ...context,
-      local: {
-        ...context.local,
+      path: {
+        ...context.path,
         [event.directoryPath]: {
-          columns: context.local[event.directoryPath]?.columns || [],
+          columns: context.path[event.directoryPath]?.columns || [],
           sort: event.sort,
         },
       },
@@ -80,18 +80,18 @@ export const columnPreferencesStore = createStore({
       global: { columns: [], sort: undefined },
     }),
 
-    clearLocalPreferences: (context, event: { directoryPath: string }) => {
-      const newLocal = { ...context.local };
-      delete newLocal[event.directoryPath];
+    clearPathPreferences: (context, event: { directoryPath: string }) => {
+      const newPath = { ...context.path };
+      delete newPath[event.directoryPath];
       return {
         ...context,
-        local: newLocal,
+        path: newPath,
       };
     },
 
-    clearAllLocalPreferences: (context) => ({
+    clearAllPathPreferences: (context) => ({
       ...context,
-      local: {},
+      path: {},
     }),
   },
 });
@@ -99,7 +99,7 @@ export const columnPreferencesStore = createStore({
 // Subscribe to store changes for persistence
 columnPreferencesStore.subscribe((state) => {
   globalPersistence.save(state.context.global);
-  localPersistence.save(state.context.local);
+  pathPersistence.save(state.context.path);
 });
 
 // Selector functions
@@ -107,18 +107,17 @@ export const selectGlobalPreferences = (
   state: ReturnType<typeof columnPreferencesStore.get>,
 ) => state.context.global.columns;
 
-export const selectLocalPreferences =
+export const selectPathPreferences =
   (directoryPath: string) =>
   (state: ReturnType<typeof columnPreferencesStore.get>) =>
-    state.context.local[directoryPath]?.columns || null;
+    state.context.path[directoryPath]?.columns || null;
 
 export const selectEffectivePreferences =
   (directoryPath: string) =>
   (state: ReturnType<typeof columnPreferencesStore.get>) => {
     // Local preferences override global
     return (
-      state.context.local[directoryPath]?.columns ||
-      state.context.global.columns
+      state.context.path[directoryPath]?.columns || state.context.global.columns
     );
   };
 
@@ -126,22 +125,20 @@ export const selectGlobalSort = (
   state: ReturnType<typeof columnPreferencesStore.get>,
 ) => state.context.global.sort;
 
-export const selectLocalSort =
+export const selectPathSort =
   (directoryPath: string) =>
   (state: ReturnType<typeof columnPreferencesStore.get>) =>
-    state.context.local[directoryPath]?.sort || null;
+    state.context.path[directoryPath]?.sort || null;
 
 export const selectEffectiveSort =
   (directoryPath: string) =>
   (state: ReturnType<typeof columnPreferencesStore.get>) => {
     // Local sort state overrides global
-    return (
-      state.context.local[directoryPath]?.sort || state.context.global.sort
-    );
+    return state.context.path[directoryPath]?.sort || state.context.global.sort;
   };
 
-export function resolveGlobalOrLocalSort(directoryPath: string) {
+export function resolveGlobalOrPathSort(directoryPath: string) {
   const c = columnPreferencesStore.getSnapshot().context;
   if (directoryPath === "") return c.global.sort;
-  return c.local[directoryPath]?.sort || c.global.sort;
+  return c.path[directoryPath]?.sort || c.global.sort;
 }

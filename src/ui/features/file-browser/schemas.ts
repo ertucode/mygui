@@ -46,7 +46,7 @@ export function resolveSortFromStores(
     global: columnPrefs.global.sort,
     local:
       dir.directory.type === "path"
-        ? columnPrefs?.local[dir.directory.fullPath]?.sort
+        ? columnPrefs?.path[dir.directory.fullPath]?.sort
         : undefined,
   });
 }
@@ -67,5 +67,5 @@ export const perDirectoryPreferencesSchema = z.record(
 
 export type ColumnPreferenceStore = {
   global: z.infer<typeof preferencesWithSortSchema>;
-  local: z.infer<typeof perDirectoryPreferencesSchema>;
+  path: z.infer<typeof perDirectoryPreferencesSchema>;
 };

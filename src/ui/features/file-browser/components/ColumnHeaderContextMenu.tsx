@@ -3,9 +3,9 @@ import { useSelector } from "@xstate/store/react";
 import {
   columnPreferencesStore,
   selectGlobalPreferences,
-  selectLocalPreferences,
+  selectPathPreferences,
   selectGlobalSort,
-  selectLocalSort,
+  selectPathSort,
 } from "../columnPreferences";
 import { ColumnDef } from "@/lib/libs/table/table-types";
 import {
@@ -15,7 +15,8 @@ import {
   ArrowUpAZIcon,
   ArrowDownAZIcon,
 } from "lucide-react";
-import { sortNames, SortState } from "../schemas";
+import { sortNames } from "../schemas";
+import type { SortState } from "../schemas";
 import { columnSortKey } from "@/lib/libs/table/useTable";
 
 type ColumnHeaderContextMenuProps = {
@@ -27,32 +28,26 @@ export function ColumnHeaderContextMenu({
   columns,
   directoryPath,
 }: ColumnHeaderContextMenuProps) {
-  const [activeTab, setActiveTab] = useState<"local" | "global">("local");
-
   const globalPrefs = useSelector(
     columnPreferencesStore,
     selectGlobalPreferences,
   );
-  const localPrefs = useSelector(
+  const pathPrefs = useSelector(
     columnPreferencesStore,
-    selectLocalPreferences(directoryPath),
+    selectPathPreferences(directoryPath),
   );
   const globalSort = useSelector(columnPreferencesStore, selectGlobalSort);
-  const localSort = useSelector(
+  const pathSort = useSelector(
     columnPreferencesStore,
-    selectLocalSort(directoryPath),
+    selectPathSort(directoryPath),
   );
 
   // Create column IDs from columns
   const columnIds = columns.map((col) => col.id?.toString() || col.accessorKey);
 
-  // Get current preferences and sort for the active tab
-  const currentPrefs = activeTab === "local" ? localPrefs : globalPrefs;
-  const currentSort = activeTab === "local" ? localSort : globalSort;
-
   // Merge columns with preferences, maintaining order
-  const getOrderedColumns = () => {
-    if (!currentPrefs || currentPrefs.length === 0) {
+  const getOrderedColumns = (prefs: typeof pathPrefs | typeof globalPrefs) => {
+    if (!prefs || prefs.length === 0) {
       // No preferences, use default column order
       return columnIds.map((id, index) => ({
         id,
@@ -63,10 +58,10 @@ export function ColumnHeaderContextMenu({
     }
 
     // Create a map of existing preferences
-    const prefMap = new Map(currentPrefs.map((p) => [p.id, p]));
+    const prefMap = new Map(prefs.map((p) => [p.id, p]));
 
     // Start with preferences order
-    const ordered: ColumnRowProps["column"][] = [...currentPrefs]
+    const ordered: ColumnRowProps["column"][] = [...prefs]
       .filter((p) => columnIds.includes(p.id))
       .map((p) => {
         const col = columns.find(
@@ -96,31 +91,36 @@ export function ColumnHeaderContextMenu({
     return ordered;
   };
 
-  const orderedColumns = getOrderedColumns();
+  const pathOrderedColumns = getOrderedColumns(pathPrefs);
+  const globalOrderedColumns = getOrderedColumns(globalPrefs);
 
-  const toggleVisibility = (id: string) => {
-    const newPrefs = orderedColumns.map((col) =>
-      col.id === id
-        ? { id: col.id, visible: !col.visible }
-        : { id: col.id, visible: col.visible },
-    );
+  const togglePathVisibility = (id: string) => {
+    const newPrefs = pathOrderedColumns.map((col) => ({
+      id: col.id,
+      visible: col.id === id ? !col.visible : col.visible,
+    }));
 
-    if (activeTab === "local") {
-      columnPreferencesStore.send({
-        type: "setLocalPreferences",
-        directoryPath,
-        preferences: newPrefs,
-      });
-    } else {
-      columnPreferencesStore.send({
-        type: "setGlobalPreferences",
-        preferences: newPrefs,
-      });
-    }
+    columnPreferencesStore.send({
+      type: "setPathPreferences",
+      directoryPath,
+      preferences: newPrefs,
+    });
   };
 
-  const moveColumn = (fromIndex: number, toIndex: number) => {
-    const newOrder = [...orderedColumns];
+  const toggleGlobalVisibility = (id: string) => {
+    const newPrefs = globalOrderedColumns.map((col) => ({
+      id: col.id,
+      visible: col.id === id ? !col.visible : col.visible,
+    }));
+
+    columnPreferencesStore.send({
+      type: "setGlobalPreferences",
+      preferences: newPrefs,
+    });
+  };
+
+  const movePathColumn = (fromIndex: number, toIndex: number) => {
+    const newOrder = [...pathOrderedColumns];
     const [moved] = newOrder.splice(fromIndex, 1);
     newOrder.splice(toIndex, 0, moved);
 
@@ -129,21 +129,30 @@ export function ColumnHeaderContextMenu({
       visible: col.visible,
     }));
 
-    if (activeTab === "local") {
-      columnPreferencesStore.send({
-        type: "setLocalPreferences",
-        directoryPath,
-        preferences: newPrefs,
-      });
-    } else {
-      columnPreferencesStore.send({
-        type: "setGlobalPreferences",
-        preferences: newPrefs,
-      });
-    }
+    columnPreferencesStore.send({
+      type: "setPathPreferences",
+      directoryPath,
+      preferences: newPrefs,
+    });
   };
 
-  const toggleSort = (sortKey: string | number | undefined) => {
+  const moveGlobalColumn = (fromIndex: number, toIndex: number) => {
+    const newOrder = [...globalOrderedColumns];
+    const [moved] = newOrder.splice(fromIndex, 1);
+    newOrder.splice(toIndex, 0, moved);
+
+    const newPrefs = newOrder.map((col) => ({
+      id: col.id,
+      visible: col.visible,
+    }));
+
+    columnPreferencesStore.send({
+      type: "setGlobalPreferences",
+      preferences: newPrefs,
+    });
+  };
+
+  const togglePathSort = (sortKey: string | number | undefined) => {
     if (sortKey == null) return;
 
     const p = sortNames.safeParse(sortKey);
@@ -152,88 +161,128 @@ export function ColumnHeaderContextMenu({
     const newSort: SortState = {
       by: p.data,
       order:
-        currentSort?.by === p.data
-          ? currentSort.order === "asc"
+        pathSort?.by === p.data
+          ? pathSort.order === "asc"
             ? "desc"
             : "asc"
           : "asc",
     };
 
-    if (activeTab === "local") {
-      columnPreferencesStore.send({
-        type: "setLocalSort",
-        directoryPath,
-        sort: newSort,
-      });
-    } else {
-      columnPreferencesStore.send({
-        type: "setGlobalSort",
-        sort: newSort,
-      });
-    }
+    columnPreferencesStore.send({
+      type: "setPathSort",
+      directoryPath,
+      sort: newSort,
+    });
   };
 
-  const clearPreferences = () => {
-    if (activeTab === "local") {
-      columnPreferencesStore.send({
-        type: "clearLocalPreferences",
-        directoryPath,
-      });
-    } else {
-      columnPreferencesStore.send({
-        type: "clearGlobalPreferences",
-      });
-    }
+  const toggleGlobalSort = (sortKey: string | number | undefined) => {
+    if (sortKey == null) return;
+
+    const p = sortNames.safeParse(sortKey);
+    if (!p.success) return;
+
+    const newSort: SortState = {
+      by: p.data,
+      order:
+        globalSort?.by === p.data
+          ? globalSort.order === "asc"
+            ? "desc"
+            : "asc"
+          : "asc",
+    };
+
+    columnPreferencesStore.send({
+      type: "setGlobalSort",
+      sort: newSort,
+    });
   };
 
-  const isRefreshEnabled =
-    (currentPrefs && currentPrefs.length > 0) || !!currentSort;
+  const clearPathPreferences = () => {
+    columnPreferencesStore.send({
+      type: "clearPathPreferences",
+      directoryPath,
+    });
+  };
+
+  const clearGlobalPreferences = () => {
+    columnPreferencesStore.send({
+      type: "clearGlobalPreferences",
+    });
+  };
+
+  const isPathRefreshEnabled =
+    (pathPrefs && pathPrefs.length > 0) || !!pathSort;
+  const isGlobalRefreshEnabled =
+    (globalPrefs && globalPrefs.length > 0) || !!globalSort;
 
   return (
-    <div className="bg-base-200 rounded-box w-64 shadow-xl text-xs">
-      {/* Tabs */}
-      <div role="tablist" className="tabs tabs-lift flex">
-        <a
-          role="tab"
-          className={`tab tab-xs text-xs flex-grow-1 ${activeTab === "local" ? "tab-active" : ""}`}
-          onClick={() => setActiveTab("local")}
-        >
-          Current Directory
-        </a>
-        <a
-          role="tab"
-          className={`tab tab-xs text-xs flex-grow-1 ${activeTab === "global" ? "tab-active" : ""}`}
-          onClick={() => setActiveTab("global")}
-        >
-          Global
-        </a>
-      </div>
+    <div className="bg-base-200 rounded-xl shadow-4xl w-80 overflow-hidden">
+      <h2 className="flex items-center justify-center p-2 bg-base-300">
+        Column Preferences
+      </h2>
+      <div className="flex text-xs">
+        {/* Path Preferences */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="text-xs font-semibold border-b border-base-300 p-3 pl-3.5">
+            For Directory Path
+          </div>
+          <div className="space-y-0.5 max-h-96 overflow-y-auto flex-1">
+            {pathOrderedColumns.map((col, index) => (
+              <ColumnRow
+                key={col.id}
+                column={col}
+                index={index}
+                onToggle={() => togglePathVisibility(col.id)}
+                onMove={movePathColumn}
+                onSort={() => togglePathSort(col.sortKey)}
+                currentSort={pathSort}
+              />
+            ))}
+          </div>
+          <div className="flex justify-stretch items-stretch border-t border-base-300">
+            <button
+              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none"
+              onClick={clearPathPreferences}
+              disabled={!isPathRefreshEnabled}
+            >
+              <RefreshCcwIcon className="size-3" />
+              Reset
+            </button>
+          </div>
+        </div>
 
-      {/* Column list */}
-      <div className="space-y-0.5 max-h-96 overflow-y-auto">
-        {orderedColumns.map((col, index) => (
-          <ColumnRow
-            key={col.id}
-            column={col}
-            index={index}
-            onToggle={() => toggleVisibility(col.id)}
-            onMove={moveColumn}
-            onSort={() => toggleSort(col.sortKey)}
-            currentSort={currentSort}
-          />
-        ))}
-      </div>
+        {/* Divider */}
+        <div className="w-px bg-base-300" />
 
-      {/* Clear button */}
-      <div className="flex justify-between items-center border-t border-base-300">
-        <button
-          className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full"
-          onClick={clearPreferences}
-          disabled={!isRefreshEnabled}
-        >
-          <RefreshCcwIcon className="size-3" />
-          Reset
-        </button>
+        {/* Global Preferences */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="text-xs font-semibold border-b border-base-300 p-3 pl-3.5">
+            Global
+          </div>
+          <div className="space-y-0.5 max-h-96 overflow-y-auto flex-1">
+            {globalOrderedColumns.map((col, index) => (
+              <ColumnRow
+                key={col.id}
+                column={col}
+                index={index}
+                onToggle={() => toggleGlobalVisibility(col.id)}
+                onMove={moveGlobalColumn}
+                onSort={() => toggleGlobalSort(col.sortKey)}
+                currentSort={globalSort}
+              />
+            ))}
+          </div>
+          <div className="flex justify-stretch items-stretch border-t border-base-300">
+            <button
+              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none"
+              onClick={clearGlobalPreferences}
+              disabled={!isGlobalRefreshEnabled}
+            >
+              <RefreshCcwIcon className="size-3" />
+              Reset
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

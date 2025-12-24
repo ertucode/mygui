@@ -26,7 +26,7 @@ import { fileBrowserListContainerProps } from "./fileBrowserListContainerProps";
 import { ColumnHeaderContextMenu } from "./components/ColumnHeaderContextMenu";
 import {
   columnPreferencesStore,
-  resolveGlobalOrLocalSort,
+  resolveGlobalOrPathSort,
   selectEffectivePreferences,
 } from "./columnPreferences";
 import { sortNames } from "./schemas";
@@ -164,7 +164,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
             <tr>
               {table.headers.map((header) => {
                 const handleHeaderClick = () => {
-                  const basedOn = resolveGlobalOrLocalSort(directoryPath);
+                  const basedOn = resolveGlobalOrPathSort(directoryPath);
                   if (header.sortKey == null) {
                     directoryStore.send({
                       type: "setLocalSort",
