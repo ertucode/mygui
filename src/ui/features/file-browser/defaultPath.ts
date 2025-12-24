@@ -10,8 +10,7 @@ const defaultPathPersistence = createLocalStoragePersistence(
   z.string(),
 );
 
-export let defaultPath =
-  startingDirectory ?? defaultPathPersistence.load("~/dev/");
+export let defaultPath = startingDirectory ?? defaultPathPersistence.load("~/");
 
 function getDirectoryInfo(
   dir: string,
