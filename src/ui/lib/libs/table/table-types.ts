@@ -7,4 +7,5 @@ export type ColumnDef<T> = {
   header: ReactNode;
   cell?: (item: T, data: { index: number }) => ReactNode;
   size?: number;
+  headerConfigView?: ReactNode;
 };

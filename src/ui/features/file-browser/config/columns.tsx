@@ -54,6 +54,7 @@ export function createColumns(
         return <CategoryIcon category={row.category} />;
       },
       size: 24,
+      headerConfigView: "Icon",
     },
     {
       accessorKey: "name",
@@ -65,13 +66,10 @@ export function createColumns(
     {
       accessorKey: "ext",
       header: "Ext",
-      size: 24,
+      headerConfigView: "Extension",
+      size: 6,
       cell: (row) => (
-        <span
-          className="block truncate"
-          style={{ maxWidth: 24 }}
-          title={row.ext ?? undefined}
-        >
+        <span className="block truncate" title={row.ext ?? undefined}>
           {row.ext}
         </span>
       ),

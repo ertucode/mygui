@@ -40,6 +40,8 @@ export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
 
     if (x !== menu.position.x || y !== menu.position.y) {
       setPosition((prev) => (prev ? { ...prev, x, y } : { x, y }));
+    } else {
+      setPosition(menu.position);
     }
   }, [menu.position]);
 
