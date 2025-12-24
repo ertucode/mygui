@@ -17,11 +17,11 @@ import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { Result } from "@common/Result";
 import { GenericError } from "@common/GenericError";
 import z from "zod";
-import { 
-  SaveIcon, 
+import {
+  SaveIcon,
   FolderOpenIcon,
   PlayIcon,
-  RotateCcwIcon 
+  RotateCcwIcon,
 } from "lucide-react";
 import { getWindowElectron } from "@/getWindowElectron";
 
@@ -167,10 +167,7 @@ export const BatchRenameDialog = ({
         }));
 
       if (itemsToRename.length === 0) {
-        onResult(
-          GenericError.Message("No changes to apply"),
-          {}
-        );
+        onResult(GenericError.Message("No changes to apply"), {});
         return;
       }
 
@@ -315,7 +312,7 @@ export const BatchRenameDialog = ({
               Rename Mask
             </span>
             <span className="label-text-alt text-xs opacity-60">
-              Use \[N\] for literal "[N]"
+              Use \[N\] for literal "[N]". Can't be used with regex.
             </span>
           </label>
           <div className="flex gap-2">
@@ -442,7 +439,7 @@ export const BatchRenameDialog = ({
         <div className="form-control">
           <label className="label py-1">
             <span className="label-text text-xs font-semibold">
-              Find & Replace
+              {'Find & Replace (Ex: Find: "(.*)-.*" -> Replace: $1-newsuffix'}
             </span>
           </label>
           <div className="grid grid-cols-2 gap-2">
