@@ -1,4 +1,5 @@
 import { type GenericResult } from "./GenericError.js";
+import { TaskEvents } from "./Tasks.js";
 
 export type ContextLine = {
   lineNumber: number;
@@ -76,7 +77,9 @@ export type EventResponseMapping = {
   deleteFiles: Promise<GenericResult<void>>;
   createFileOrFolder: Promise<GenericResult<{ path: string }>>;
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>;
-  batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>;
+  batchRenameFiles: Promise<
+    GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>
+  >;
   getPreviewPreloadPath: string;
   copyFiles: Promise<GenericResult<void>>;
   setClipboardCutMode: Promise<void>;
@@ -89,6 +92,7 @@ export type EventResponseMapping = {
   unzipFile: Promise<GenericResult<{ path: string }>>;
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
+  "task:event": TaskEvents;
 };
 
 export type StringSearchOptions = {
@@ -200,7 +204,9 @@ export type WindowElectron = {
   ) => Promise<GenericResult<{ newPath: string }>>;
   batchRenameFiles: (
     items: Array<{ fullPath: string; newName: string }>,
-  ) => Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>;
+  ) => Promise<
+    GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>
+  >;
   getPreviewPreloadPath: () => Promise<string>;
   getStartingDirectory: () => string | undefined | null;
   copyFiles: (
@@ -239,4 +245,5 @@ export type WindowElectron = {
     specificDirName?: string,
   ) => Promise<Record<string, number>>;
   generateVideoThumbnail: (filePath: string) => Promise<string>;
+  onTaskEvent: (cb: (e: TaskEvents) => void) => void;
 };

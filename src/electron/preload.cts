@@ -5,6 +5,7 @@ import {
   StringSearchOptions,
   WindowElectron,
 } from "../common/Contracts";
+import { TaskEvents } from "../common/Tasks";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
@@ -62,6 +63,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
       newName: string;
     }>,
   ) => ipcInvoke("batchRenameFiles", items),
+  onTaskEvent: (cb: (e: TaskEvents) => void) => {
+    const off = ipcOn("task:event", (e: TaskEvents) => cb(e));
+    return () => {
+      off();
+    };
+  },
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

@@ -1,9 +1,13 @@
 import { ArchiveTypes } from "./ArchiveTypes";
+import { GenericResult } from "./GenericError";
 
-export type Task = Tasks.Base & (Tasks.Archive | Tasks.Unarchive);
+export type TaskDefinition = Tasks.Base & (Tasks.Archive | Tasks.Unarchive);
+
+export type TaskDefinitionWithoutId = Omit<TaskDefinition, "id">;
 
 export namespace Tasks {
   export type Base = {
+    id: string;
     progress: number;
   };
 
@@ -23,3 +27,19 @@ export namespace Tasks {
     result?: ArchiveTypes.UnarchiveResult;
   };
 }
+
+export type TaskEvents =
+  | {
+      type: "create";
+      task: TaskDefinition;
+    }
+  | {
+      type: "progress";
+      id: string;
+      progress: number;
+    }
+  | {
+      type: "result";
+      id: string;
+      result: GenericResult<unknown>;
+    };

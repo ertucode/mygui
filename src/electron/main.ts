@@ -31,6 +31,7 @@ import { unzipFile } from "./utils/unzip-file.js";
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
 import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
+import { TaskManager } from "./TaskManager.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -204,6 +205,15 @@ app.on("ready", () => {
   ipcHandle("generateVideoThumbnail", (filePath) =>
     generateVideoThumbnail(filePath),
   );
+
+  TaskManager.addListener((e) => {
+    const windows = BrowserWindow.getAllWindows();
+    if (windows.length === 0) return;
+
+    for (const win of windows) {
+      win.webContents.send("task:event", e);
+    }
+  });
 });
 
 // Clean up worker pool when app is quitting
