@@ -3,10 +3,23 @@ import { Dialog } from "@/lib/components/dialog";
 import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useDialogStoreDialog } from "../dialogStore";
 import { useSelector } from "@xstate/store/react";
-import { layoutStore, layoutStoreHelpers, selectLayouts, CustomLayout } from "../layoutStore";
+import {
+  layoutStore,
+  layoutStoreHelpers,
+  selectLayouts,
+  CustomLayout,
+} from "../layoutStore";
 import { LayoutPreview } from "./LayoutPreview";
 import { Button } from "@/lib/components/button";
-import { TrashIcon, StarIcon, GripVerticalIcon, SaveIcon, PencilIcon, CheckIcon, XIcon } from "lucide-react";
+import {
+  TrashIcon,
+  StarIcon,
+  GripVerticalIcon,
+  SaveIcon,
+  PencilIcon,
+  CheckIcon,
+  XIcon,
+} from "lucide-react";
 import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { toast } from "@/lib/components/toast";
 import { IJsonModel } from "flexlayout-react";
@@ -96,7 +109,9 @@ function LayoutCard({
     }
   };
 
-  const displayLayoutJson = isCurrentLayout ? currentLayoutJson : layout?.layoutJson;
+  const displayLayoutJson = isCurrentLayout
+    ? currentLayoutJson
+    : layout?.layoutJson;
 
   return (
     <div
@@ -116,8 +131,10 @@ function LayoutCard({
     >
       {/* Header */}
       <div className="flex items-center gap-2">
-        {!isCurrentLayout && <GripVerticalIcon className="w-4 h-4 text-base-content/30 flex-shrink-0" />}
-        
+        {!isCurrentLayout && (
+          <GripVerticalIcon className="w-4 h-4 text-base-content/30 flex-shrink-0" />
+        )}
+
         {isCurrentLayout ? (
           // Current layout - always shows input
           <div className="flex-1 flex gap-2 items-center">
@@ -232,7 +249,8 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
     const layouts = useSelector(layoutStore, selectLayouts);
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
-    const [currentLayoutJson, setCurrentLayoutJson] = useState<IJsonModel | null>(null);
+    const [currentLayoutJson, setCurrentLayoutJson] =
+      useState<IJsonModel | null>(null);
     const { confirm } = useConfirmation();
 
     useEffect(() => {
@@ -353,19 +371,22 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
               directories: layout.directories,
               activeDirectoryId: layout.activeDirectoryId,
             };
-            localStorage.setItem("mygui-flexlayout-model", JSON.stringify(storage));
-            
+            localStorage.setItem(
+              "mygui-flexlayout-model",
+              JSON.stringify(storage),
+            );
+
             toast.show({
               title: "Reloading...",
               message: "Reloading to apply layout.",
               severity: "info",
-              timeout: 1000,
+              timeout: 100,
             });
 
             // Reload the page after a short delay
             setTimeout(() => {
               window.location.reload();
-            }, 1000);
+            }, 100);
           } catch (error) {
             console.error("Failed to apply layout:", error);
             toast.show({
@@ -379,22 +400,22 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
     };
 
     // All layouts including current at the top
-    type LayoutItem = 
+    type LayoutItem =
       | { isCurrentLayout: true; currentLayoutJson: IJsonModel | null }
       | { layout: CustomLayout; actualIndex: number };
-    
+
     const allLayouts: LayoutItem[] = [
       { isCurrentLayout: true, currentLayoutJson },
-      ...layouts.map((layout, index) => ({ 
-        layout, 
-        actualIndex: index 
-      }))
+      ...layouts.map((layout, index) => ({
+        layout,
+        actualIndex: index,
+      })),
     ];
 
     // Distribute items into 3 columns (column by column, not row by row)
     const columnsCount = 3;
     const columns: LayoutItem[][] = [[], [], []];
-    
+
     allLayouts.forEach((item, index) => {
       const columnIndex = index % columnsCount;
       columns[columnIndex].push(item);
@@ -412,7 +433,7 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
             {columns.map((column, colIndex) => (
               <div key={colIndex} className="flex-1 flex flex-col gap-3">
                 {column.map((item) => {
-                  if ('isCurrentLayout' in item && item.isCurrentLayout) {
+                  if ("isCurrentLayout" in item && item.isCurrentLayout) {
                     return (
                       <LayoutCard
                         key="current-layout"
@@ -423,7 +444,10 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
                     );
                   }
 
-                  const { layout, actualIndex } = item as { layout: CustomLayout; actualIndex: number };
+                  const { layout, actualIndex } = item as {
+                    layout: CustomLayout;
+                    actualIndex: number;
+                  };
                   const isDragging = draggedIndex === actualIndex;
                   const isOver = dragOverIndex === actualIndex;
 
@@ -450,5 +474,5 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
         </div>
       </Dialog>
     );
-  }
+  },
 );

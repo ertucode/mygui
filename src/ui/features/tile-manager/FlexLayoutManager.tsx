@@ -10,7 +10,6 @@ import { layoutFactory } from "./layoutFactory";
 import { onRenderTab } from "./onRenderTab";
 import { onRenderTabSet } from "./onRenderTabSetFn";
 import { useSyncDirectoryStoreAndLayout } from "./useSyncDirectoryStoreAndLayout";
-import { LayoutShortcuts } from "./LayoutShortcuts";
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
 
 export const FlexLayoutManager: React.FC = () => {
@@ -21,7 +20,6 @@ export const FlexLayoutManager: React.FC = () => {
 
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
-      <LayoutShortcuts />
       {dialogs.RenderOutside}
       <FileBrowserShortcuts />
       <CustomTitleBar />

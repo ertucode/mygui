@@ -1,55 +1,25 @@
 import { IJsonModel, Model } from "flexlayout-react";
-import z from "zod";
-import { TAG_COLORS } from "./tags";
 import { defaultPath } from "./defaultPath";
 import { directoryStore } from "./directoryStore/directory";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
-
-const layoutStorageSchema = z.object({
-  layout: z.any(),
-  directories: z.array(
-    z
-      .object({
-        id: z.string(),
-      })
-      .and(
-        z
-          .object({
-            fullPath: z.string(),
-            type: z.literal("path"),
-          })
-          .or(
-            z.object({
-              type: z.literal("tags"),
-              color: z.enum(TAG_COLORS),
-            }),
-          ),
-      ),
-  ),
-  activeDirectoryId: z.string(),
-});
-type LayoutStorage = z.infer<typeof layoutStorageSchema>;
-const LOCAL_STORAGE_KEY = "mygui-flexlayout-model";
+import { layoutStore, selectDefaultLayout } from "./layoutStore";
 
 export const layoutJson = ((): IJsonModel => {
-  const savedModel = localStorage.getItem(LOCAL_STORAGE_KEY);
+  const layoutStoreState = layoutStore.get();
+  const defaultLayout = selectDefaultLayout(layoutStoreState);
+  const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0];
 
-  // If we have a saved model with directories, use it
-  if (savedModel) {
-    try {
-      const parsed = JSON.parse(savedModel);
-      const storage = layoutStorageSchema.parse(parsed);
+  // If we have a saved layout with directories, use it
+  if (layoutToUse) {
+    directoryStore.trigger.initDirectories({
+      directories: layoutToUse.directories,
+      activeDirectoryId: layoutToUse.activeDirectoryId,
+    });
 
-      directoryStore.trigger.initDirectories({
-        directories: storage.directories,
-        activeDirectoryId: storage.activeDirectoryId,
-      });
-
-      return storage.layout;
-    } catch (e) {
-      console.error("Failed to load saved layout:", e);
-    }
+    return layoutToUse.layoutJson;
   }
+
+  // Otherwise, create default directories and layout
   const directoriesToInit: Parameters<
     typeof directoryStore.trigger.initDirectories
   >[0]["directories"] = [
@@ -191,26 +161,5 @@ export const layoutJson = ((): IJsonModel => {
     },
   };
 })();
-
-export function saveLayout() {
-  const snapshot = directoryStore.getSnapshot();
-  const storage: LayoutStorage = {
-    layout: layoutModel.toJson(),
-    directories: snapshot.context.directoryOrder.map((id) => {
-      const directory = snapshot.context.directoriesById[id];
-      return {
-        id,
-        ...directory.directory,
-      };
-    }),
-    activeDirectoryId: snapshot.context.activeDirectoryId,
-  };
-  console.log(storage);
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(storage));
-}
-
-export function clearLayout() {
-  localStorage.removeItem(LOCAL_STORAGE_KEY);
-}
 
 export const layoutModel = Model.fromJson(layoutJson);
