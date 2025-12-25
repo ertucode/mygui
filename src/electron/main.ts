@@ -28,9 +28,12 @@ import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 import { readZipContents } from "./utils/read-zip-contents.js";
 import { zipFiles } from "./utils/zip-files.js";
 import { unzipFile } from "./utils/unzip-file.js";
+import { readArchiveContents, extractArchive, createArchive } from "./utils/archive-handler.js";
+import { extractArchiveWithProgress, createArchiveWithProgress, readArchiveContentsWithProgress } from "./utils/archive-handler-with-progress.js";
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
 import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
+import { taskManager } from "./utils/task-manager.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -73,6 +76,11 @@ function createWindow(initialPath?: string) {
   } else {
     mainWindow.loadFile(getUIPath());
   }
+
+  // Register window with task manager for task updates
+  taskManager.registerWindow(mainWindow);
+
+  return mainWindow;
 }
 
 app.on("ready", () => {
@@ -192,11 +200,18 @@ app.on("ready", () => {
   );
   ipcHandle("getFileInfoByPaths", getFileInfoByPaths);
   ipcHandle("readZipContents", (filePath) => readZipContents(filePath));
+  ipcHandle("readArchiveContents", (filePath) => readArchiveContents(filePath));
   ipcHandle("zipFiles", ({ filePaths, destinationZipPath }) =>
     zipFiles(filePaths, destinationZipPath),
   );
   ipcHandle("unzipFile", ({ zipFilePath, destinationFolder }) =>
     unzipFile(zipFilePath, destinationFolder),
+  );
+  ipcHandle("extractArchive", ({ archivePath, destinationFolder }) =>
+    extractArchiveWithProgress(archivePath, destinationFolder),
+  );
+  ipcHandle("createArchive", ({ filePaths, destinationArchivePath, format }) =>
+    createArchiveWithProgress(filePaths, destinationArchivePath, format),
   );
   ipcHandle("getDirectorySizes", ({ parentPath, specificDirName }) =>
     getDirectorySizes(parentPath, specificDirName),
@@ -204,6 +219,11 @@ app.on("ready", () => {
   ipcHandle("generateVideoThumbnail", (filePath) =>
     generateVideoThumbnail(filePath),
   );
+  ipcHandle("getTasks", () => Promise.resolve(taskManager.getTasks()));
+  ipcHandle("cancelTask", (taskId) => {
+    taskManager.cancelTask(taskId);
+    return Promise.resolve();
+  });
 });
 
 // Clean up worker pool when app is quitting

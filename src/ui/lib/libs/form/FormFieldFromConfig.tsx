@@ -56,6 +56,28 @@ function Inside({
     );
   }
 
+  if (config.type === "select") {
+    const className = clsx(
+      "select select-ghost w-full",
+      config.props?.className,
+    );
+    return (
+      <select
+        id={config.field}
+        name={config.field}
+        {...contextValue?.register?.(config.field)}
+        {...config.props}
+        className={className}
+      >
+        {config.options?.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   // @ts-expect-error
   return `Unknown type: ${config.type}`;
 }
@@ -107,7 +129,7 @@ function getKey(config: FormFieldConfig) {
 }
 
 namespace FormFieldFromConfigProps {
-  export type SingleFieldAll = Input | TextArea;
+  export type SingleFieldAll = Input | TextArea | Select;
   export type All<TKey extends string> = ({
     field: TKey;
   } & SingleFieldAll) & {
@@ -124,5 +146,10 @@ namespace FormFieldFromConfigProps {
   export type TextArea = {
     type: "textarea";
     props?: React.ComponentProps<"textarea">;
+  };
+  export type Select = {
+    type: "select";
+    options?: Array<{ value: string; label: string }>;
+    props?: React.ComponentProps<"select">;
   };
 }

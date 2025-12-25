@@ -5,6 +5,7 @@ import {
   StringSearchOptions,
   WindowElectron,
 } from "../common/Contracts";
+import { ArchiveFormat } from "../common/archive-types";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
@@ -48,10 +49,15 @@ electron.contextBridge.exposeInMainWorld("electron", {
   getFileInfoByPaths: (filePaths: string[]) =>
     ipcInvoke("getFileInfoByPaths", filePaths),
   readZipContents: (filePath: string) => ipcInvoke("readZipContents", filePath),
+  readArchiveContents: (filePath: string) => ipcInvoke("readArchiveContents", filePath),
   zipFiles: (filePaths: string[], destinationZipPath: string) =>
     ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
   unzipFile: (zipFilePath: string, destinationFolder: string) =>
     ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
+  extractArchive: (archivePath: string, destinationFolder: string) =>
+    ipcInvoke("extractArchive", { archivePath, destinationFolder }),
+  createArchive: (filePaths: string[], destinationArchivePath: string, format: ArchiveFormat) =>
+    ipcInvoke("createArchive", { filePaths, destinationArchivePath, format }),
   getDirectorySizes: (parentPath: string, specificDirName?: string) =>
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
   generateVideoThumbnail: (filePath: string) =>
@@ -62,6 +68,13 @@ electron.contextBridge.exposeInMainWorld("electron", {
       newName: string;
     }>,
   ) => ipcInvoke("batchRenameFiles", items),
+  getTasks: () => ipcInvoke("getTasks", undefined),
+  cancelTask: (taskId: string) => ipcInvoke("cancelTask", taskId),
+  onTaskUpdate: (callback) => {
+    const cb = (_: Electron.IpcRendererEvent, update: any) => callback(update);
+    electron.ipcRenderer.on("taskUpdate", cb);
+    return () => electron.ipcRenderer.off("taskUpdate", cb);
+  },
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

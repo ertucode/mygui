@@ -24,7 +24,13 @@ const fd = run("build-fd.mjs");
 console.log("=== Building ffmpeg ===");
 const ffmpeg = run("build-ffmpeg.mjs");
 
-Promise.all([rg, fzy, fd, ffmpeg])
+console.log("=== Building 7z ===");
+const sevenZ = run("build-7z.mjs");
+
+console.log("=== Building unrar ===");
+const unrar = run("build-unrar.mjs");
+
+Promise.all([rg, fzy, fd, ffmpeg, sevenZ, unrar])
   .then(() => console.log("✔ All vendors built"))
   .catch((err) => {
     console.error(err);

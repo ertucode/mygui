@@ -237,6 +237,52 @@ export const FileTableRowContextMenu = ({
       }
     : null;
 
+  // Extract archive (for all archive types except .zip which has unzipItem)
+  const isArchiveFile = item.type === "file" && item.category === "archive" && !isZipFile;
+  const extractArchiveItem: ContextMenuItem | null = isArchiveFile
+    ? {
+        onClick: () => {
+          const archivePath =
+            item.fullPath ??
+            directoryHelpers.getFullPath(item.name, directoryId);
+          const suggestedName = item.name.replace(/\.(7z|rar|tar|gz|bz2|xz|tgz|tbz2|txz|tar\.gz|tar\.bz2|tar\.xz)$/i, "");
+          dialogActions.open("extract", { archivePath, suggestedName });
+          close();
+        },
+        view: <TextWithIcon icon={FolderInputIcon}>Extract Here</TextWithIcon>,
+      }
+    : null;
+
+  // Create Archive (for selected files/folders) - alternative to zip
+  const createArchiveItem: ContextMenuItem = {
+    onClick: () => {
+      const filePaths = selectedItems.map(
+        (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name, directoryId),
+      );
+      let suggestedName: string | undefined;
+      if (selectedItems.length === 1) {
+        const singleItem = selectedItems[0];
+        if (singleItem.type === "file") {
+          suggestedName = singleItem.name.replace(/\.[^.]+$/, "") + ".zip";
+        } else {
+          suggestedName = singleItem.name + ".zip";
+        }
+      } else {
+        suggestedName = "archive.zip";
+      }
+      dialogActions.open("createArchive", { filePaths, suggestedName });
+      close();
+    },
+    view: (
+      <TextWithIcon icon={FileArchiveIcon}>
+        Create Archive...
+        {isSelected && selectionIndexes.size > 1
+          ? ` (${selectionIndexes.size} items)`
+          : ""}
+      </TextWithIcon>
+    ),
+  };
+
   // Last used tag quick-add item
   const lastUsedTag = useSelector(tagsStore, selectLastUsedTag);
   const hasLastUsedTag = lastUsedTag
@@ -312,6 +358,7 @@ export const FileTableRowContextMenu = ({
           cutItem,
           pasteItem,
           zipItem,
+          createArchiveItem,
           deleteItem,
           renameItem,
           batchRenameItem,
@@ -334,7 +381,9 @@ export const FileTableRowContextMenu = ({
         cutItem,
         pasteItem,
         zipItem,
+        createArchiveItem,
         unzipItem,
+        extractArchiveItem,
         deleteItem,
         renameItem,
         batchRenameItem,

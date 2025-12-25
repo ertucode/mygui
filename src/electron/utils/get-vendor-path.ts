@@ -16,3 +16,5 @@ export const rgPath = path.join(base, "rg");
 export const fzyPath = path.join(base, "fzy", "fzy");
 export const fdPath = path.join(base, "fd");
 export const ffmpegPath = path.join(base, "ffmpeg");
+export const sevenZPath = path.join(base, "7z");
+export const unrarPath = path.join(base, "unrar");

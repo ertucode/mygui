@@ -322,10 +322,12 @@ export const directoryHelpers = {
     } else {
       const fullPath = item.fullPath || getFullPath(item.name, directoryId);
 
-      // Check if it's a zip file - if so, open the unzip dialog instead
-      if (item.ext === ".zip") {
-        const suggestedName = item.name.replace(/\.zip$/i, "");
-        dialogActions.open("unzip", { zipFilePath: fullPath, suggestedName });
+      // Check if it's an archive file - if so, open the extract dialog instead
+      if (item.category === "archive") {
+        // Extract base name without extension(s)
+        const suggestedName = item.name
+          .replace(/\.(zip|7z|rar|tar|gz|bz2|xz|tgz|tbz2|txz|tar\.gz|tar\.bz2|tar\.xz)$/i, "");
+        dialogActions.open("extract", { archivePath: fullPath, suggestedName });
         return;
       }
 
@@ -663,6 +665,79 @@ export const directoryHelpers = {
         await directoryHelpers.reload(directoryId);
         // Select the newly created folder
         directoryHelpers.setPendingSelection(folderName, directoryId);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      return GenericError.Message(errorMessage);
+    }
+  },
+
+  extractArchive: async (
+    archivePath: string,
+    folderName: string,
+    directoryId: DirectoryId,
+  ): Promise<ResultHandlerResult> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
+      return GenericError.Message("Cannot extract archive in tags view");
+    }
+
+    try {
+      const destinationFolder = mergeMaybeSlashed(
+        context.directory.fullPath,
+        folderName,
+      );
+      const result = await getWindowElectron().extractArchive(
+        archivePath,
+        destinationFolder,
+      );
+      if (result.success) {
+        await directoryHelpers.reload(directoryId);
+        // Select the newly created folder
+        directoryHelpers.setPendingSelection(folderName, directoryId);
+      }
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "An unexpected error occurred";
+      return GenericError.Message(errorMessage);
+    }
+  },
+
+  createArchive: async (
+    filePaths: string[],
+    archiveName: string,
+    format: import("@common/archive-types").ArchiveFormat,
+    directoryId: DirectoryId,
+  ): Promise<ResultHandlerResult> => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type !== "path") {
+      return GenericError.Message("Cannot create archive in tags view");
+    }
+
+    try {
+      const destinationArchivePath = mergeMaybeSlashed(
+        context.directory.fullPath,
+        archiveName,
+      );
+      const result = await getWindowElectron().createArchive(
+        filePaths,
+        destinationArchivePath,
+        format,
+      );
+      if (result.success) {
+        await directoryHelpers.reload(directoryId);
+        // Select the newly created archive file
+        const archiveFileName = PathHelpers.getLastPathPart(result.data!.path);
+        directoryHelpers.setPendingSelection(archiveFileName, directoryId);
       }
       return result;
     } catch (err) {

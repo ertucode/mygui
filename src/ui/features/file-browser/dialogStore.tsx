@@ -8,9 +8,11 @@ import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { ZipDialog } from "./components/ZipDialog";
 import { UnzipDialog } from "./components/UnzipDialog";
+import { ExtractArchiveDialog } from "./components/ExtractArchiveDialog";
+import { CreateArchiveDialog } from "./components/CreateArchiveDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon } from "lucide-react";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon, PackageIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -25,6 +27,8 @@ export type DialogType =
   | "finder"
   | "zip"
   | "unzip"
+  | "extract"
+  | "createArchive"
   | "commandPalette"
   | "customLayouts";
 
@@ -38,6 +42,8 @@ export type DialogMetadata = {
   finder: { initialTab?: FinderTab };
   zip: { filePaths: string[]; suggestedName?: string };
   unzip: { zipFilePath: string; suggestedName: string };
+  extract: { archivePath: string; suggestedName: string };
+  createArchive: { filePaths: string[]; suggestedName?: string };
   commandPalette: {};
   customLayouts: {};
 };
@@ -144,6 +150,18 @@ const dialogDefinitions = [
     component: UnzipDialog,
     icon: FolderInputIcon,
     title: "Extract Zip Archive",
+  },
+  {
+    type: "extract" as const,
+    component: ExtractArchiveDialog,
+    icon: FolderInputIcon,
+    title: "Extract Archive",
+  },
+  {
+    type: "createArchive" as const,
+    component: CreateArchiveDialog,
+    icon: PackageIcon,
+    title: "Create Archive",
   },
   {
     type: "commandPalette" as const,

@@ -9,7 +9,9 @@
     "vendor-bin/rg",
     "vendor-bin/fd",
     "vendor-bin/fzy/fzy",
-    "vendor-bin/ffmpeg"
+    "vendor-bin/ffmpeg",
+    "vendor-bin/7z",
+    "vendor-bin/unrar"
   ],
   "mac": {
     "target": ["dmg"],

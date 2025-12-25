@@ -1,4 +1,6 @@
 import { type GenericResult } from "./GenericError.js";
+import { ArchiveEntry, ArchiveFormat } from "./archive-types.js";
+import { Task, TaskUpdate } from "./task-types.js";
 
 export type ContextLine = {
   lineNumber: number;
@@ -13,6 +15,7 @@ export type StringSearchResult = {
   contextLines: ContextLine[];
 };
 
+// Legacy type - use ArchiveEntry instead
 export type ZipEntry = {
   name: string;
   isDirectory: boolean;
@@ -85,10 +88,16 @@ export type EventResponseMapping = {
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
   readZipContents: Promise<GenericResult<ZipEntry[]>>;
+  readArchiveContents: Promise<GenericResult<ArchiveEntry[]>>;
   zipFiles: Promise<GenericResult<{ path: string }>>;
   unzipFile: Promise<GenericResult<{ path: string }>>;
+  extractArchive: Promise<GenericResult<{ path: string }>>;
+  createArchive: Promise<GenericResult<{ path: string }>>;
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
+  getTasks: Promise<Task[]>;
+  cancelTask: Promise<void>;
+  subscribeToTaskUpdates: void;
 };
 
 export type StringSearchOptions = {
@@ -143,10 +152,17 @@ export type EventRequestMapping = {
   searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
   readZipContents: string;
+  readArchiveContents: string;
   zipFiles: { filePaths: string[]; destinationZipPath: string };
   unzipFile: { zipFilePath: string; destinationFolder: string };
+  extractArchive: { archivePath: string; destinationFolder: string };
+  createArchive: { filePaths: string[]; destinationArchivePath: string; format: ArchiveFormat };
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
+  getTasks: void;
+  cancelTask: string;
+  subscribeToTaskUpdates: void;
+  taskUpdate: TaskUpdate;
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -226,6 +242,7 @@ export type WindowElectron = {
     filePaths: string[],
   ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
   readZipContents: (filePath: string) => Promise<GenericResult<ZipEntry[]>>;
+  readArchiveContents: (filePath: string) => Promise<GenericResult<ArchiveEntry[]>>;
   zipFiles: (
     filePaths: string[],
     destinationZipPath: string,
@@ -234,9 +251,21 @@ export type WindowElectron = {
     zipFilePath: string,
     destinationFolder: string,
   ) => Promise<GenericResult<{ path: string }>>;
+  extractArchive: (
+    archivePath: string,
+    destinationFolder: string,
+  ) => Promise<GenericResult<{ path: string }>>;
+  createArchive: (
+    filePaths: string[],
+    destinationArchivePath: string,
+    format: ArchiveFormat,
+  ) => Promise<GenericResult<{ path: string }>>;
   getDirectorySizes: (
     parentPath: string,
     specificDirName?: string,
   ) => Promise<Record<string, number>>;
   generateVideoThumbnail: (filePath: string) => Promise<string>;
+  getTasks: () => Promise<Task[]>;
+  cancelTask: (taskId: string) => Promise<void>;
+  onTaskUpdate: (callback: (update: TaskUpdate) => void) => UnsubscribeFunction;
 };
