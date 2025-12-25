@@ -1,3 +1,5 @@
+import { GenericResult } from "./GenericError";
+
 export namespace ArchiveTypes {
   export const Types = [
     // ZIP
@@ -27,4 +29,17 @@ export namespace ArchiveTypes {
   ] as const;
 
   export type ArchiveType = (typeof Types)[number]["extension"];
+
+  export type ArchiveOpts = {
+    source: string;
+    destination: string;
+    progressCallback: (progress: number) => void;
+    abortSignal: AbortSignal;
+  };
+
+  export type ArchiveResult = GenericResult<void>;
+
+  export type UnarchiveOpts = ArchiveOpts;
+
+  export type UnarchiveResult = GenericResult<void>;
 }

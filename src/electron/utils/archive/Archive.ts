@@ -1,5 +1,4 @@
 import { ArchiveTypes } from "../../../common/ArchiveTypes.js";
-import { GenericResult } from "../../../common/GenericError.js";
 import { SevenZip } from "./7z.js";
 import { Bzip2 } from "./bzip2.js";
 import { Gzip } from "./gzip.js";
@@ -7,18 +6,13 @@ import { Tar, TarGz, Tgz, TarBz2, Tbz2, TarXz, Txz } from "./tar.js";
 import { Zip } from "./zip.js";
 
 export namespace Archive {
-  export type ArchiveOpts = {
-    source: string;
-    destination: string;
-    progressCallback: (progress: number) => void;
-    abortSignal: AbortSignal;
-  };
+  export type ArchiveOpts = ArchiveTypes.ArchiveOpts;
 
-  export type ArchiveResult = GenericResult<void>;
+  export type ArchiveResult = ArchiveTypes.ArchiveResult;
 
-  export type UnarchiveOpts = ArchiveOpts;
+  export type UnarchiveOpts = ArchiveTypes.UnarchiveOpts;
 
-  export type UnarchiveResult = GenericResult<void>;
+  export type UnarchiveResult = ArchiveTypes.UnarchiveResult;
 
   function getNamespace(type: ArchiveTypes.ArchiveType): typeof SevenZip {
     switch (type) {
