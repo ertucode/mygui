@@ -3,24 +3,33 @@ import { Dialog } from "@/lib/components/dialog";
 import { DialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useDialogStoreDialog } from "../dialogStore";
 import { shortcutRegistryAPI } from "@/lib/hooks/shortcutRegistry";
-import { KeyboardIcon } from "lucide-react";
+import { KeyboardIcon, Edit2Icon, XIcon, RotateCcwIcon } from "lucide-react";
 import { Button } from "@/lib/components/button";
 import {
   ShortcutDefinition,
-  ShortcutWithHandler,
-  SequenceShortcut,
   isSequenceShortcut,
   useShortcuts,
 } from "@/lib/hooks/useShortcuts";
 import { clsx } from "@/lib/functions/clsx";
 import Fuse from "fuse.js";
+import {
+  shortcutCustomizationHelpers,
+  shortcutCustomizationStore,
+} from "@/lib/hooks/shortcutCustomization";
+import { useSelector } from "@xstate/store/react";
 
 export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
   function CommandPalette(_props, ref) {
     const { dialogOpen, onClose } = useDialogStoreDialog<{}>(ref);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const [searchQuery, setSearchQuery] = useState("");
+    const [editingLabel, setEditingLabel] = useState<string | null>(null);
+    const [recordedKeys, setRecordedKeys] = useState<KeyboardEvent | null>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
+    const customShortcuts = useSelector(
+      shortcutCustomizationStore,
+      (state) => state.context.customShortcuts,
+    );
 
     const shortcuts = useMemo(() => {
       if (!dialogOpen) return [];
@@ -107,6 +116,8 @@ export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
       if (dialogOpen) {
         setSearchQuery("");
         setSelectedIndex(0);
+        setEditingLabel(null);
+        setRecordedKeys(null);
         // Focus the search input when dialog opens
         setTimeout(() => {
           searchInputRef.current?.focus();
@@ -118,6 +129,40 @@ export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
       // Reset selected index when search results change
       setSelectedIndex(0);
     }, [searchQuery]);
+
+    // Keyboard recording handler for editing shortcuts
+    useEffect(() => {
+      if (!editingLabel) return;
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // Ignore modifier-only keys
+        if (["Control", "Meta", "Alt", "Shift"].includes(e.key)) return;
+        
+        setRecordedKeys(e);
+      };
+
+      window.addEventListener("keydown", handleKeyDown, true);
+      return () => window.removeEventListener("keydown", handleKeyDown, true);
+    }, [editingLabel]);
+
+    const handleSaveShortcut = (label: string) => {
+      if (!recordedKeys) return;
+
+      const shortcut: ShortcutDefinition = {
+        key: recordedKeys.key,
+        metaKey: recordedKeys.metaKey || undefined,
+        ctrlKey: recordedKeys.ctrlKey || undefined,
+        altKey: recordedKeys.altKey || undefined,
+        shiftKey: recordedKeys.shiftKey || undefined,
+      };
+
+      shortcutCustomizationHelpers.setCustomShortcut(label, shortcut);
+      setEditingLabel(null);
+      setRecordedKeys(null);
+    };
 
     if (!dialogOpen) return null;
 
@@ -152,24 +197,113 @@ export const CommandPalette = forwardRef<DialogForItem<{}>, {}>(
                   : "No shortcuts registered"}
               </div>
             ) : (
-              filteredShortcuts.map((shortcut, index) => (
-                <div
-                  key={shortcut.label}
-                  className={clsx(
-                    "flex items-center justify-between py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 command-palette-item cursor-pointer",
-                    index === selectedIndex ? "bg-base-content/10" : "",
-                  )}
-                  onClick={() => {
-                    onClose();
-                    shortcut.shortcut.handler(undefined);
-                  }}
-                >
-                  <span className="text-sm">{shortcut.label}</span>
-                  <kbd className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 border border-gray-200 rounded dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600">
-                    {shortcutInputToString(shortcut.shortcut)}
-                  </kbd>
-                </div>
-              ))
+              filteredShortcuts.map((shortcut, index) => {
+                const isEditing = editingLabel === shortcut.label;
+                const hasCustom =
+                  shortcutCustomizationHelpers.hasCustomShortcut(
+                    shortcut.label,
+                  );
+                const displayShortcut = hasCustom
+                  ? customShortcuts[shortcut.label]
+                  : isSequenceShortcut(shortcut.shortcut)
+                    ? { sequence: shortcut.shortcut.sequence }
+                    : shortcut.shortcut.key;
+
+                return (
+                  <div
+                    key={shortcut.label}
+                    className={clsx(
+                      "flex items-center justify-between py-2 px-3 rounded hover:bg-gray-100 dark:hover:bg-gray-800 command-palette-item group",
+                      index === selectedIndex ? "bg-base-content/10" : "",
+                      !isEditing && "cursor-pointer",
+                    )}
+                    onClick={() => {
+                      if (!isEditing) {
+                        onClose();
+                        shortcut.shortcut.handler(undefined);
+                      }
+                    }}
+                  >
+                    <span className="text-sm flex-1">{shortcut.label}</span>
+                    <div className="flex items-center gap-2">
+                      {isEditing ? (
+                        <>
+                          <kbd className="px-2 py-1 text-xs font-semibold text-blue-800 bg-blue-100 border border-blue-200 rounded dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700">
+                            {recordedKeys
+                              ? shortcutToString({
+                                  key: recordedKeys.key,
+                                  metaKey: recordedKeys.metaKey || undefined,
+                                  ctrlKey: recordedKeys.ctrlKey || undefined,
+                                  altKey: recordedKeys.altKey || undefined,
+                                  shiftKey: recordedKeys.shiftKey || undefined,
+                                })
+                              : "Press a key..."}
+                          </kbd>
+                          <Button
+                            onClick={() => handleSaveShortcut(shortcut.label)}
+                            disabled={!recordedKeys}
+                            className="text-xs px-2 py-1"
+                          >
+                            Save
+                          </Button>
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingLabel(null);
+                              setRecordedKeys(null);
+                            }}
+                            className="text-xs px-2 py-1"
+                          >
+                            <XIcon className="w-3 h-3" />
+                          </Button>
+                        </>
+                      ) : (
+                        <div className="relative flex items-center gap-2 group">
+                          {hasCustom && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                shortcutCustomizationHelpers.removeCustomShortcut(
+                                  shortcut.label,
+                                );
+                              }}
+                              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                              title="Reset to default"
+                            >
+                              <RotateCcwIcon className="w-3 h-3 text-gray-500" />
+                            </button>
+                          )}
+                          <div
+                            className="flex items-center gap-2 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingLabel(shortcut.label);
+                              setRecordedKeys(null);
+                            }}
+                          >
+                            <Edit2Icon className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500" />
+                            <kbd
+                              className={clsx(
+                                "px-2 py-1 text-xs font-semibold border rounded hover:opacity-80",
+                                hasCustom
+                                  ? "text-blue-800 bg-blue-100 border-blue-200 dark:bg-blue-900 dark:text-blue-100 dark:border-blue-700"
+                                  : "text-gray-800 bg-gray-100 border-gray-200 dark:bg-gray-700 dark:text-gray-100 dark:border-gray-600",
+                              )}
+                            >
+                              {typeof displayShortcut === "object" &&
+                              "sequence" in displayShortcut
+                                ? displayShortcut.sequence.join(" ")
+                                : Array.isArray(displayShortcut)
+                                  ? displayShortcut.map(shortcutToString).join(" or ")
+                                  : shortcutToString(displayShortcut)}
+                            </kbd>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
@@ -198,19 +332,4 @@ function shortcutToString(shortcut: ShortcutDefinition): string {
   return parts.join("+");
 }
 
-function shortcutInputToString(
-  shortcut: ShortcutWithHandler | SequenceShortcut,
-): string {
-  let keysString: string;
-  if (isSequenceShortcut(shortcut)) {
-    keysString = shortcut.sequence.join(" ");
-  } else {
-    if (Array.isArray(shortcut.key)) {
-      keysString = shortcut.key.map(shortcutToString).join(" or ");
-    } else {
-      keysString = shortcutToString(shortcut.key);
-    }
-  }
 
-  return keysString;
-}

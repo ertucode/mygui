@@ -1,5 +1,6 @@
 import { RefObject, useEffect, useRef } from "react";
 import { shortcutRegistryAPI } from "./shortcutRegistry";
+import { shortcutCustomizationStore } from "./shortcutCustomization";
 
 export type ShortcutDefinition =
   | string
@@ -47,6 +48,36 @@ export function isSequenceShortcut(
   return "sequence" in shortcut;
 }
 
+// Helper to apply custom shortcuts to a shortcut definition
+function applyCustomShortcut(
+  shortcut: DefinedShortcutInput,
+  customShortcuts: Record<string, any>,
+): DefinedShortcutInput {
+  const customKey = customShortcuts[shortcut.label];
+  
+  if (!customKey) {
+    return shortcut;
+  }
+
+  const customizedShortcut = { ...shortcut };
+  
+  if (isSequenceShortcut(customizedShortcut)) {
+    // Handle sequence shortcuts
+    if (typeof customKey === "object" && "sequence" in customKey) {
+      customizedShortcut.sequence = customKey.sequence;
+    }
+  } else {
+    // Handle regular shortcuts
+    if (Array.isArray(customKey)) {
+      customizedShortcut.key = customKey as ShortcutDefinition[];
+    } else {
+      customizedShortcut.key = customKey as ShortcutDefinition;
+    }
+  }
+
+  return customizedShortcut;
+}
+
 // Helper to convert ShortcutDefinition to human-readable string
 export function useShortcuts(
   shortcuts: ShortcutInput[],
@@ -60,7 +91,15 @@ export function useShortcuts(
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (opts?.isDisabled) return;
-      handleKeyDownWithShortcuts(e, shortcuts, sequenceBufferRef.current, opts);
+      
+      // Apply custom shortcuts
+      const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts;
+      const customizedShortcuts = shortcuts.map((s) => {
+        if (!s || s === true) return s;
+        return applyCustomShortcut(s, customShortcuts);
+      });
+      
+      handleKeyDownWithShortcuts(e, customizedShortcuts, sequenceBufferRef.current, opts);
     };
 
     window.addEventListener("keydown", handleKeyDown);
