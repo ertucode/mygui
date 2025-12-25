@@ -1,13 +1,6 @@
 import { Node, TabNode, TabSetNode } from "flexlayout-react";
 import { layoutModel } from "../initializeDirectory";
 import { DirectoryId } from "../directoryStore/DirectoryBase";
-import {
-  HeartIcon,
-  ClockIcon,
-  TagIcon,
-  EyeIcon,
-  FoldersIcon,
-} from "lucide-react";
 
 export namespace LayoutHelpers {
   export function getActiveTabsetThatHasDirectory() {
