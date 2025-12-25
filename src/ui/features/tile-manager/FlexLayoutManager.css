@@ -700,3 +700,43 @@
 }
 
 /* ======================== End of Base Classes =========================== */
+
+/* Layout Preview Styling */
+.layout-preview-container {
+  position: relative;
+}
+
+.layout-preview-container .flexlayout__layout {
+  font-size: 8px;
+}
+
+.layout-preview-container .flexlayout__tabset_tabbar_outer {
+  height: 16px;
+  min-height: 16px;
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+}
+
+.layout-preview-container .flexlayout__tab_button {
+  padding: 2px 4px;
+  font-size: 8px;
+}
+
+.layout-preview-container .flexlayout__splitter {
+  background: rgba(128, 128, 128, 0.3);
+}
+
+.layout-preview-container .flexlayout__tabset_header {
+  display: none;
+}
+
+.layout-preview-container .flexlayout__tabset_button {
+  display: none;
+}
+
+.layout-preview-container .flexlayout__tab_toolbar {
+  display: none;
+}
+
+.layout-preview-container .flexlayout__tab_button_trailing {
+  display: none !important;
+}

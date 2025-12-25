@@ -91,6 +91,14 @@ export function FileBrowserShortcuts() {
         label: "Show keyboard shortcuts",
       },
       {
+        key: { key: "l", ctrlKey: true, metaKey: true },
+        handler: (e) => {
+          e?.preventDefault();
+          dialogActions.open("customLayouts", {});
+        },
+        label: "Manage custom layouts",
+      },
+      {
         key: { key: "s", ctrlKey: true },
         handler: (e) => {
           e?.preventDefault();

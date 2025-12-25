@@ -9,7 +9,8 @@ import { FinderDialog, FinderTab } from "./components/FinderDialog";
 import { ZipDialog } from "./components/ZipDialog";
 import { UnzipDialog } from "./components/UnzipDialog";
 import { CommandPalette } from "./components/CommandPalette";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon } from "lucide-react";
+import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -24,7 +25,8 @@ export type DialogType =
   | "finder"
   | "zip"
   | "unzip"
-  | "commandPalette";
+  | "commandPalette"
+  | "customLayouts";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -37,6 +39,7 @@ export type DialogMetadata = {
   zip: { filePaths: string[]; suggestedName?: string };
   unzip: { zipFilePath: string; suggestedName: string };
   commandPalette: {};
+  customLayouts: {};
 };
 
 // Store context - only one dialog can be open at a time
@@ -147,6 +150,12 @@ const dialogDefinitions = [
     component: CommandPalette,
     icon: KeyboardIcon,
     title: "Keyboard Shortcuts",
+  },
+  {
+    type: "customLayouts" as const,
+    component: CustomLayoutsDialog,
+    icon: LayoutGridIcon,
+    title: "Custom Layouts",
   },
 ] as const;
 
