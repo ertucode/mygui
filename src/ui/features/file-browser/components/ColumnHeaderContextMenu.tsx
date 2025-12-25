@@ -241,7 +241,7 @@ export function ColumnHeaderContextMenu({
           </div>
           <div className="flex justify-stretch items-stretch border-t border-base-300">
             <button
-              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none"
+              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none py-4"
               onClick={clearPathPreferences}
               disabled={!isPathRefreshEnabled}
             >
@@ -274,7 +274,7 @@ export function ColumnHeaderContextMenu({
           </div>
           <div className="flex justify-stretch items-stretch border-t border-base-300">
             <button
-              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none"
+              className="btn btn-xs btn-ghost gap-1 h-6 min-h-6 w-full rounded-none py-4"
               onClick={clearGlobalPreferences}
               disabled={!isGlobalRefreshEnabled}
             >
