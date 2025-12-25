@@ -41,5 +41,5 @@ export type TaskEvents =
   | {
       type: "result";
       id: string;
-      result: GenericResult<unknown>;
+      result: GenericResult<void>;
     };

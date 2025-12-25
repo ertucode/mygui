@@ -1,0 +1,79 @@
+import { getWindowElectron } from "@/getWindowElectron";
+import { TaskDefinition } from "@common/Tasks";
+import { createStore } from "@xstate/store";
+
+type TaskStoreContext = {
+  tasks: Record<string, TaskDefinition>;
+};
+export const taskStore = createStore({
+  context: {
+    tasks: {},
+  } as TaskStoreContext,
+  on: {
+    createTask: (
+      context: TaskStoreContext,
+      event: {
+        task: TaskDefinition;
+      },
+    ) => ({
+      tasks: {
+        ...context.tasks,
+        [event.task.id]: event.task,
+      },
+    }),
+    progressTask: (
+      context: TaskStoreContext,
+      event: {
+        id: string;
+        progress: number;
+      },
+    ) => ({
+      tasks: {
+        ...context.tasks,
+        [event.id]: {
+          ...context.tasks[event.id],
+          progress: event.progress,
+        },
+      },
+    }),
+    setResult: (
+      context: TaskStoreContext,
+      event: {
+        id: string;
+        result: TaskDefinition["result"];
+      },
+    ) => ({
+      tasks: {
+        ...context.tasks,
+        [event.id]: {
+          ...context.tasks[event.id],
+          result: event.result,
+        },
+      },
+    }),
+    removeTask: (
+      context: TaskStoreContext,
+      event: {
+        id: string;
+      },
+    ) => {
+      const { [event.id]: _, ...tasks } = context.tasks;
+      return {
+        tasks,
+      };
+    },
+  },
+});
+
+getWindowElectron().onTaskEvent((e) => {
+  if (e.type === "create") {
+    taskStore.trigger.createTask({ task: e.task });
+  } else if (e.type === "progress") {
+    taskStore.trigger.progressTask({ id: e.id, progress: e.progress });
+  } else if (e.type === "result") {
+    taskStore.trigger.setResult({ id: e.id, result: e.result });
+  } else {
+    const _exhaustiveCheck: never = e;
+    return _exhaustiveCheck;
+  }
+});
