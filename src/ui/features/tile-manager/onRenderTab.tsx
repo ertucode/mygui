@@ -29,10 +29,7 @@ import {
   useContextMenu,
 } from "@/lib/components/context-menu";
 import { TextWithIcon } from "@/lib/components/text-with-icon";
-import {
-  favoritesStore,
-  selectIsFavorite,
-} from "../file-browser/favorites";
+import { favoritesStore, selectIsFavorite } from "../file-browser/favorites";
 import { setDefaultPath } from "../file-browser/defaultPath";
 import { dialogActions } from "../file-browser/dialogStore";
 
@@ -156,7 +153,7 @@ function DirectoryTabLabel({ directoryId }: { directoryId: DirectoryId }) {
   );
 }
 
-function getIconForComponent(component: string | undefined) {
+export function getIconForComponent(component: string | undefined) {
   if (component === "favorites") return HeartIcon;
   else if (component === "recents") return ClockIcon;
   else if (component === "tags") return TagIcon;
@@ -218,9 +215,7 @@ function DirectoryTabContextMenu({
       setDefaultPath(fullPath);
       close();
     },
-    view: (
-      <TextWithIcon icon={FolderCogIcon}>Set as default path</TextWithIcon>
-    ),
+    view: <TextWithIcon icon={FolderCogIcon}>Set as default path</TextWithIcon>,
   };
 
   return (

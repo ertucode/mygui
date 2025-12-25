@@ -1,4 +1,6 @@
+import { getIconForComponent } from "@/features/tile-manager/onRenderTab";
 import { IJsonModel, Layout, Model, TabNode } from "flexlayout-react";
+import { FilesIcon } from "lucide-react";
 import { useMemo } from "react";
 
 interface LayoutPreviewProps {
@@ -42,7 +44,12 @@ export function LayoutPreview({
         onRenderTab={(node, renderValues) => {
           if (node.getComponent() === "directory") {
             if (renderValues.content) {
-              renderValues.content = <div className="mr-2">Dir</div>;
+              renderValues.content = <FilesIcon className="size-2 mr-2" />;
+            }
+          } else {
+            const Icon = getIconForComponent(node.getComponent());
+            if (Icon) {
+              renderValues.content = <Icon className="size-2" />;
             }
           }
         }}

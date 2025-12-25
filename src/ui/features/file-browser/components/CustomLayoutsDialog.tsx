@@ -121,7 +121,7 @@ function LayoutCard({
       onDrop={onDrop}
       onDragEnd={onDragEnd}
       className={`
-        border rounded-lg p-3 flex flex-col gap-2
+        border rounded-lg p-3 flex flex-col gap-2 h-60
         ${isCurrentLayout ? "border-primary bg-primary/5" : "border-base-content/20"}
         ${isDragging ? "opacity-50" : ""}
         ${isOver ? "border-primary" : ""}
@@ -137,7 +137,7 @@ function LayoutCard({
 
         {isCurrentLayout ? (
           // Current layout - always shows input
-          <div className="flex-1 flex gap-2 items-center">
+          <div className="flex-1 flex gap-2 items-center h-full">
             <input
               ref={inputRef}
               type="text"
@@ -159,7 +159,7 @@ function LayoutCard({
           </div>
         ) : isEditing ? (
           // Existing layout - editing mode
-          <div className="flex-1 flex gap-2 items-center">
+          <div className="flex-1 flex gap-2 items-center h-full">
             <input
               ref={inputRef}
               type="text"
@@ -220,7 +220,7 @@ function LayoutCard({
 
       {/* Preview */}
       <div
-        className={`w-full h-32 bg-base-100 rounded ${!isCurrentLayout && onApply ? "cursor-pointer hover:ring-2 hover:ring-primary transition-shadow" : ""}`}
+        className={`w-full h-full bg-base-100 rounded ${!isCurrentLayout && onApply ? "cursor-pointer hover:ring-2 hover:ring-primary transition-shadow" : ""}`}
         onClick={() => {
           if (!isCurrentLayout && layout && onApply) {
             onApply(layout);
