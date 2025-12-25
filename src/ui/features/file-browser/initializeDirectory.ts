@@ -5,6 +5,28 @@ import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { layoutStore, selectDefaultLayout } from "./layoutStore";
 
 export const layoutJson = ((): IJsonModel => {
+  // First, check if there's an applied layout in localStorage (from CustomLayoutsDialog)
+  const appliedLayoutStr = localStorage.getItem("mygui-flexlayout-model");
+  if (appliedLayoutStr) {
+    try {
+      const appliedLayout = JSON.parse(appliedLayoutStr);
+      if (appliedLayout.layout && appliedLayout.directories) {
+        directoryStore.trigger.initDirectories({
+          directories: appliedLayout.directories,
+          activeDirectoryId: appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
+        });
+        // Clear the applied layout after loading it once
+        localStorage.removeItem("mygui-flexlayout-model");
+        return appliedLayout.layout;
+      }
+    } catch (error) {
+      console.error("Failed to load applied layout:", error);
+      // Clear corrupted data
+      localStorage.removeItem("mygui-flexlayout-model");
+    }
+  }
+
+  // Otherwise, use the default layout from layoutStore
   const layoutStoreState = layoutStore.get();
   const defaultLayout = selectDefaultLayout(layoutStoreState);
   const layoutToUse = defaultLayout || layoutStoreState.context.layouts[0];
