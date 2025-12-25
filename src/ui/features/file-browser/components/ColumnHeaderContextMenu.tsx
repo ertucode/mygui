@@ -353,7 +353,10 @@ function ColumnRow({
       }}
     >
       <button
-        onClick={onToggle}
+        onClick={(e) => {
+          e.preventDefault();
+          onToggle();
+        }}
         className="btn btn-xs btn-ghost btn-square flex-shrink-0 h-5 w-5 min-h-5 p-0"
       >
         {column.visible ? (
