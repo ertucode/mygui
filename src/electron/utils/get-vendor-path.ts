@@ -9,10 +9,11 @@ const base =
   process.env.NODE_ENV === "development"
     ? path.join(process.cwd(), "vendor-bin")
     : process.platform === "darwin"
-    ? path.join(path.dirname(app.getAppPath()), "vendor-bin")
-    : path.join(process.resourcesPath, "vendor-bin");
+      ? path.join(path.dirname(app.getAppPath()), "vendor-bin")
+      : path.join(process.resourcesPath, "vendor-bin");
 
 export const rgPath = path.join(base, "rg");
 export const fzyPath = path.join(base, "fzy", "fzy");
 export const fdPath = path.join(base, "fd");
 export const ffmpegPath = path.join(base, "ffmpeg");
+export const sevenZPath = path.join(base, "7zz");
