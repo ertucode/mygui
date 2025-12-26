@@ -11,12 +11,14 @@ import {
   FileIcon,
   FolderIcon,
   X,
+  XOctagon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
 import { errorResponseToMessage } from "@common/GenericError";
 import { PathHelpers } from "@common/PathHelpers";
 import { directoryHelpers } from "./file-browser/directoryStore/directory";
+import { getWindowElectron } from "@/getWindowElectron";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -186,6 +188,11 @@ function TaskItem({
     }
   }, [status, onDismiss]);
 
+  const handleCancel = async () => {
+    const electron = getWindowElectron();
+    await electron.abortTask(task.id);
+  };
+
   return (
     <div className="p-3 bg-base-200 rounded-lg border border-base-300 hover:border-primary/30 transition-colors group">
       <div className="flex items-start gap-2.5">
@@ -229,6 +236,15 @@ function TaskItem({
                   <XCircle className="h-4 w-4 text-error" />
                 )}
               </div>
+              {status === "running" && (
+                <button
+                  onClick={handleCancel}
+                  className="btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Cancel task"
+                >
+                  <XOctagon className="h-3 w-3" />
+                </button>
+              )}
               {status !== "running" && (
                 <button
                   onClick={onDismiss}

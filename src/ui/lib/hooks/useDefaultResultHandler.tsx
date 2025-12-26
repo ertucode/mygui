@@ -23,10 +23,12 @@ export function useDefaultResultHandler() {
         if ("noResult" in result) return;
         if (result.success) {
           additional?.success?.();
-          toast.show({
-            severity: "success",
-            message: "Başarıyla tamamlandı",
-          });
+          if (!additional?.noToastOnSuccess) {
+            toast.show({
+              severity: "success",
+              message: "Başarıyla tamamlandı",
+            });
+          }
         } else {
           additional?.error?.();
           toast.show({

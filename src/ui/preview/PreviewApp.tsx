@@ -171,6 +171,14 @@ export function PreviewApp() {
       return;
     }
 
+    if (isTooLarge) {
+      setContent(null);
+      setContentType("text");
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     if (isZip) {
       // Fetch zip contents via IPC
       setLoading(true);
@@ -195,14 +203,6 @@ export function PreviewApp() {
         .finally(() => {
           setLoading(false);
         });
-      return;
-    }
-
-    if (isTooLarge) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
       return;
     }
 
@@ -234,7 +234,7 @@ export function PreviewApp() {
           File too large for preview
           <br />
           <span className="text-xs">
-            ({((previewData.fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max
+            ({((previewData.fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max:
             {fileSizeLimit}MB)
           </span>
         </div>

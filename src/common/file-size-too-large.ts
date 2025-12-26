@@ -5,6 +5,7 @@ export const fileSizeLimits: Partial<Record<FileCategory, number>> = {
   document: 1,
   spreadsheet: 10,
   video: 10,
+  archive: 100,
 };
 
 const defaultLimit = 1;

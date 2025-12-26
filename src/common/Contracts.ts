@@ -94,6 +94,7 @@ export type EventResponseMapping = {
   "task:event": TaskEvents;
   startArchive: Promise<void>;
   startUnarchive: Promise<void>;
+  abortTask: Promise<void>;
 };
 
 export type StringSearchOptions = {
@@ -160,6 +161,7 @@ export type EventRequestMapping = {
     source: string;
     destination: string;
   };
+  abortTask: string;
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -257,4 +259,5 @@ export type WindowElectron = {
     source: string,
     destination: string,
   ) => Promise<void>;
+  abortTask: (taskId: string) => Promise<void>;
 };

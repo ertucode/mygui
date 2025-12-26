@@ -201,6 +201,9 @@ app.on("ready", () => {
   );
   ipcHandle("startArchive", (request) => startArchive(request));
   ipcHandle("startUnarchive", (request) => startUnarchive(request));
+  ipcHandle("abortTask", async (taskId) => {
+    TaskManager.abort(taskId);
+  });
 
   TaskManager.addListener((e) => {
     const windows = BrowserWindow.getAllWindows();

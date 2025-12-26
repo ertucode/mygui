@@ -76,6 +76,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     source: string,
     destination: string,
   ) => ipcInvoke("startUnarchive", { archiveType, source, destination }),
+  abortTask: (taskId: string) => ipcInvoke("abortTask", taskId),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(
