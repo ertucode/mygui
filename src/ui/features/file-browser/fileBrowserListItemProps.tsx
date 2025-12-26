@@ -166,26 +166,28 @@ export function fileBrowserListItemProps({
         index,
         directoryId,
       );
-      const isOutsideDrag = e.metaKey;
+      const isOutsideDrag = e.metaKey || e.ctrlKey || e.shiftKey;
 
       if (isOutsideDrag) {
         // e.preventDefault çağırmayınca başka uygulamaya taşıma yapılamıyor.
         // e.preventDefault() çağırınca uygulama içinde taşıma yapılamıyor.
+        // Şu anda dışarı drag sadece metaKeyle başlarsa ve bırakırken metaKey kapatılırsa çalışıyor.
         e.preventDefault();
-      }
-      e.dataTransfer.setData("application/x-mygui-file-drag", "true");
+      } else {
+        e.dataTransfer.setData("application/x-mygui-file-drag", "true");
 
-      // Store dragged items data for favorites/other drop targets
-      e.dataTransfer.setData(
-        "application/x-mygui-drag-items",
-        JSON.stringify(
-          items.map((i) => ({
-            fullPath: directoryHelpers.getFullPathForItem(i, directoryId),
-            type: i.type,
-            name: i.name,
-          })),
-        ),
-      );
+        // Store dragged items data for favorites/other drop targets
+        e.dataTransfer.setData(
+          "application/x-mygui-drag-items",
+          JSON.stringify(
+            items.map((i) => ({
+              fullPath: directoryHelpers.getFullPathForItem(i, directoryId),
+              type: i.type,
+              name: i.name,
+            })),
+          ),
+        );
+      }
 
       const filePaths = items.map((i) =>
         directoryHelpers.getFullPathForItem(i, directoryId),
