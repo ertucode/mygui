@@ -21,25 +21,25 @@ export type LabeledFormFieldNoChildrenProps = {
 
 export function LabeledFormField(props: LabeledFormFieldProps) {
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col gap-1">
       <label
         className={clsx(
-          "mb-2 input pr-0 w-full",
+          "w-full text-xs",
           props.required && "after:content-['_*']",
         )}
       >
-        <span className="label">{props.label}</span>
-
-        {"children" in props ? (
-          props.children
-        ) : (
-          <input
-            id={props.name}
-            {...props}
-            className={clsx("input", props.className)}
-          />
-        )}
+        {props.label}
       </label>
+
+      {"children" in props ? (
+        props.children
+      ) : (
+        <input
+          id={props.name}
+          {...props}
+          className={clsx("input w-full", props.className)}
+        />
+      )}
       <>{props.error ? <Alert className="mt-3">{props.error}</Alert> : null}</>
     </div>
   );
@@ -60,7 +60,7 @@ export const LabeledFormInputField = React.forwardRef<
         ref={ref}
         type={type}
         {...props}
-        className={clsx("input", className)}
+        className={clsx("input w-full", className)}
       />
     </LabeledFormField>
   );

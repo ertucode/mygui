@@ -174,6 +174,7 @@ export function createFormDialog<
             onClose={onClose}
             style={opts.dialogContentStyle}
             title={text.title}
+            className="max-w-[100] w-100"
             footer={
               <>
                 {opts.extraButtons?.(formId)}

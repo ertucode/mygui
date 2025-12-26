@@ -5,6 +5,4 @@
 
 # TODO
 
-- @src/ui/features/TaskMonitor.tsx show a tooltip with fullpaths for the sources when archiving. Nagivate to that path when clicked. similar thing for unarchive.
 - set selection for taskSubscriptions
-- fix UI for dialog form

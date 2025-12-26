@@ -31,7 +31,7 @@ function Inside({
   contextValue: FormFieldFromConfigContextValue | undefined;
 }) {
   if (config.type === "input") {
-    const className = clsx("input", config.props?.className);
+    const className = clsx("input w-full", config.props?.className);
     return (
       <input
         id={config.field}
@@ -44,7 +44,7 @@ function Inside({
   }
 
   if (config.type === "textarea") {
-    const className = clsx("textarea", config.props?.className);
+    const className = clsx("textarea w-full", config.props?.className);
     return (
       <textarea
         id={config.field}
@@ -57,7 +57,7 @@ function Inside({
   }
 
   if (config.type === "select") {
-    const className = clsx("select", config.props?.className);
+    const className = clsx("select w-full", config.props?.className);
     return (
       <select
         id={config.field}
