@@ -134,13 +134,18 @@ export namespace Zip {
   export function unarchive(
     opts: Archive.UnarchiveOpts,
   ): Promise<Archive.UnarchiveResult> {
-    return new Promise<Archive.UnarchiveResult>((resolve) => {
+    return new Promise<Archive.UnarchiveResult>(async (resolve) => {
+      if (fs.existsSync(opts.destination)) {
+        resolve(GenericError.Message("Destination already exists"));
+        return;
+      }
       const {
         source, // .zip file
         destination, // folder
         progressCallback,
         abortSignal,
       } = opts;
+      console.log(source, destination);
 
       let settled = false;
       let completedSuccessfully = false;
