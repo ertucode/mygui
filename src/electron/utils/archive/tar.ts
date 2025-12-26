@@ -87,26 +87,39 @@ function archiveWithTar(
     // -----------------
     const compressionFlag = getCompressionFlag(compressionType);
     
-    // Build tar command: tar -c[z|j|J]f output.tar[.gz|.bz2|.xz] -C parent source
+    // Build tar command: tar -c[z|j|J]f output.tar[.gz|.bz2|.xz] -C parent source1 source2 ...
     const args = [`-c${compressionFlag}f`, tarPath];
 
     let workingDir: string | undefined;
 
     try {
-      const stats = fs.statSync(source);
-      
-      if (stats.isDirectory()) {
-        // For directories, change to parent and archive the dir name
-        const parentDir = PathHelpers.getParentFolder(source).path;
-        const dirName = PathHelpers.getLastPathPart(source);
-        args.push("-C", parentDir, dirName);
-        workingDir = parentDir;
-      } else {
-        // For files, change to parent and archive the file name
-        const parentDir = PathHelpers.getParentFolder(source).path;
-        const fileName = PathHelpers.getLastPathPart(source);
-        args.push("-C", parentDir, fileName);
-        workingDir = parentDir;
+      // Add all source files/directories
+      for (const sourcePath of source) {
+        const stats = fs.statSync(sourcePath);
+        
+        if (stats.isDirectory()) {
+          // For directories, change to parent and archive the dir name
+          const parentDir = PathHelpers.getParentFolder(sourcePath).path;
+          const dirName = PathHelpers.getLastPathPart(sourcePath);
+          
+          // Set working directory from first item (all items should be in same dir ideally)
+          if (!workingDir) {
+            workingDir = parentDir;
+            args.push("-C", parentDir);
+          }
+          args.push(dirName);
+        } else {
+          // For files, change to parent and archive the file name
+          const parentDir = PathHelpers.getParentFolder(sourcePath).path;
+          const fileName = PathHelpers.getLastPathPart(sourcePath);
+          
+          // Set working directory from first item (all items should be in same dir ideally)
+          if (!workingDir) {
+            workingDir = parentDir;
+            args.push("-C", parentDir);
+          }
+          args.push(fileName);
+        }
       }
     } catch (err) {
       return finish(err as Error);
@@ -139,7 +152,10 @@ function archiveWithTar(
           }
           return stat.size;
         };
-        totalSize = getSize(source);
+        // Calculate total size of all source files/directories
+        for (const sourcePath of source) {
+          totalSize += getSize(sourcePath);
+        }
       } catch {
         // Ignore size calculation errors
       }

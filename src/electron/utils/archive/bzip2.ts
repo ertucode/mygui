@@ -43,8 +43,14 @@ export namespace Bzip2 {
       };
 
       // BZIP2 can only compress single files
+      if (source.length !== 1) {
+        return finish(new Error("BZIP2 can only compress a single file. Use TAR.BZ2 for multiple files or directories."));
+      }
+
+      const sourceFile = source[0];
+
       try {
-        const stats = fs.statSync(source);
+        const stats = fs.statSync(sourceFile);
         if (stats.isDirectory()) {
           return finish(new Error("BZIP2 can only compress single files, not directories. Use TAR.BZ2 for directories."));
         }
@@ -72,7 +78,7 @@ export namespace Bzip2 {
       // SPAWN PROCESS
       // -----------------
       // bzip2 -c source > destination.bz2
-      const args = ["-c", source];
+      const args = ["-c", sourceFile];
 
       const bzip2Process = spawn("bzip2", args, {
         stdio: ["ignore", "pipe", "pipe"],
@@ -93,7 +99,7 @@ export namespace Bzip2 {
       // PROGRESS
       // -----------------
       if (progressCallback) {
-        const totalSize = fs.statSync(source).size;
+        const totalSize = fs.statSync(sourceFile).size;
         let processedBytes = 0;
 
         bzip2Process.stdout?.on("data", (chunk) => {

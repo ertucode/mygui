@@ -101,12 +101,15 @@ export namespace Zip {
       archive.pipe(output);
 
       try {
-        if (fs.existsSync(source) && fs.statSync(source).isDirectory()) {
-          archive.directory(source, false);
-        } else {
-          archive.file(source, {
-            name: PathHelpers.getLastPathPart(source),
-          });
+        // Add all source files/directories to the archive
+        for (const sourcePath of source) {
+          if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+            archive.directory(sourcePath, PathHelpers.getLastPathPart(sourcePath));
+          } else {
+            archive.file(sourcePath, {
+              name: PathHelpers.getLastPathPart(sourcePath),
+            });
+          }
         }
 
         archive.finalize();

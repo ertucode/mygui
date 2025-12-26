@@ -43,8 +43,14 @@ export namespace Gzip {
       };
 
       // GZIP can only compress single files
+      if (source.length !== 1) {
+        return finish(new Error("GZIP can only compress a single file. Use TAR.GZ for multiple files or directories."));
+      }
+
+      const sourceFile = source[0];
+
       try {
-        const stats = fs.statSync(source);
+        const stats = fs.statSync(sourceFile);
         if (stats.isDirectory()) {
           return finish(new Error("GZIP can only compress single files, not directories. Use TAR.GZ for directories."));
         }
@@ -72,7 +78,7 @@ export namespace Gzip {
       // SPAWN PROCESS
       // -----------------
       // gzip -c source > destination.gz
-      const args = ["-c", source];
+      const args = ["-c", sourceFile];
 
       const gzipProcess = spawn("gzip", args, {
         stdio: ["ignore", "pipe", "pipe"],
@@ -93,7 +99,7 @@ export namespace Gzip {
       // PROGRESS
       // -----------------
       if (progressCallback) {
-        const totalSize = fs.statSync(source).size;
+        const totalSize = fs.statSync(sourceFile).size;
         let processedBytes = 0;
 
         gzipProcess.stdout?.on("data", (chunk) => {

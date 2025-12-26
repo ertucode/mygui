@@ -31,7 +31,7 @@ export namespace ArchiveTypes {
   export type ArchiveType = (typeof Types)[number]["extension"];
 
   export type ArchiveOpts = {
-    source: string;
+    source: string[]; // array of file paths to archive
     destination: string;
     progressCallback: (progress: number) => void;
     abortSignal: AbortSignal;
@@ -39,7 +39,12 @@ export namespace ArchiveTypes {
 
   export type ArchiveResult = GenericResult<void>;
 
-  export type UnarchiveOpts = ArchiveOpts;
+  export type UnarchiveOpts = {
+    source: string; // single archive file path to extract
+    destination: string;
+    progressCallback: (progress: number) => void;
+    abortSignal: AbortSignal;
+  };
 
   export type UnarchiveResult = GenericResult<void>;
 }

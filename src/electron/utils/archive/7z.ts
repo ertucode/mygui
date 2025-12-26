@@ -66,18 +66,20 @@ export namespace SevenZip {
       // -----------------
       // SPAWN PROCESS
       // -----------------
-      // 7z a -t7z -mx=9 <output.7z> <source>
+      // 7z a -t7z -mx=9 <output.7z> <source1> <source2> ...
       // -bsp1 = show progress percentage
       const args = ["a", "-t7z", "-mx=9", sevenZipPath];
 
-      // Check if source is directory or file
+      // Add all source files/directories
       try {
-        if (fs.existsSync(source) && fs.statSync(source).isDirectory()) {
-          // For directories, add all contents
-          args.push(path.join(source, "*"));
-        } else {
-          // For files, add the file directly
-          args.push(source);
+        for (const sourcePath of source) {
+          if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+            // For directories, add all contents
+            args.push(path.join(sourcePath, "*"));
+          } else {
+            // For files, add the file directly
+            args.push(sourcePath);
+          }
         }
       } catch (err) {
         return finish(err as Error);
