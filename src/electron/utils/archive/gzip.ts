@@ -13,7 +13,9 @@ export namespace Gzip {
     return new Promise<Archive.ArchiveResult>((resolve) => {
       const { source, destination, progressCallback, abortSignal } = opts;
 
-      const gzPath = destination.endsWith(".gz") ? destination : destination + ".gz";
+      const gzPath = destination.endsWith(".gz")
+        ? destination
+        : destination + ".gz";
 
       let settled = false;
       let completedSuccessfully = false;
@@ -45,7 +47,11 @@ export namespace Gzip {
 
       // GZIP can only compress single files
       if (source.length !== 1) {
-        return finish(new Error("GZIP can only compress a single file. Use TAR.GZ for multiple files or directories."));
+        return finish(
+          new Error(
+            "GZIP can only compress a single file. Use TAR.GZ for multiple files or directories.",
+          ),
+        );
       }
 
       const sourceFile = source[0];
@@ -53,7 +59,11 @@ export namespace Gzip {
       try {
         const stats = fs.statSync(sourceFile);
         if (stats.isDirectory()) {
-          return finish(new Error("GZIP can only compress single files, not directories. Use TAR.GZ for directories."));
+          return finish(
+            new Error(
+              "GZIP can only compress single files, not directories. Use TAR.GZ for directories.",
+            ),
+          );
         }
       } catch (err) {
         return finish(err as Error);
@@ -87,7 +97,7 @@ export namespace Gzip {
 
       // Create output stream
       const outputStream = fs.createWriteStream(gzPath);
-      
+
       outputStream.on("error", (err) => {
         gzipProcess.kill("SIGTERM");
         finish(err);
@@ -134,7 +144,9 @@ export namespace Gzip {
           outputStream.end();
         } else {
           outputStream.destroy();
-          finish(new Error(`gzip process exited with code ${code}: ${errorOutput}`));
+          finish(
+            new Error(`gzip process exited with code ${code}: ${errorOutput}`),
+          );
         }
       });
 
@@ -220,7 +232,7 @@ export namespace Gzip {
 
       // Create output stream
       const outputStream = fs.createWriteStream(destination);
-      
+
       outputStream.on("error", (err) => {
         gunzipProcess.kill("SIGTERM");
         finish(err);
@@ -267,7 +279,11 @@ export namespace Gzip {
           outputStream.end();
         } else {
           outputStream.destroy();
-          finish(new Error(`gunzip process exited with code ${code}: ${errorOutput}`));
+          finish(
+            new Error(
+              `gunzip process exited with code ${code}: ${errorOutput}`,
+            ),
+          );
         }
       });
 
@@ -276,5 +292,13 @@ export namespace Gzip {
         finish(err);
       });
     });
+  }
+
+  export async function readContents(
+    archivePath: string,
+  ): Promise<ArchiveTypes.ReadContentsResult> {
+    return GenericError.Message(
+      "GZIP is a single-file compression format and does not support listing contents. Only container formats like ZIP, 7z, and TAR variants support this operation.",
+    );
   }
 }
