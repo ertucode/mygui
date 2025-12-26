@@ -35,12 +35,13 @@ import { resolveSortFromStores } from "../schemas";
 export const cd = async (
   newDirectory: DirectoryInfo,
   isNew: boolean,
-  directoryId: DirectoryId,
+  drectoryId: DirectoryId | undefined,
 ) => {
   const context = getActiveDirectory(
     directoryStore.getSnapshot().context,
-    directoryId,
+    drectoryId,
   );
+  const directoryId = context.directoryId;
   if (directoryInfoEquals(newDirectory, context.directory)) return;
   if (isNew)
     directoryStore.send({
@@ -250,10 +251,10 @@ export const directoryHelpers = {
 
   changeDirectory,
 
-  cd: (dir: DirectoryInfo, directoryId: DirectoryId) =>
+  cd: (dir: DirectoryInfo, directoryId: DirectoryId | undefined) =>
     cd(dir, true, directoryId),
 
-  cdFull: (fullPath: string, directoryId: DirectoryId) => {
+  cdFull: (fullPath: string, directoryId: DirectoryId | undefined) => {
     return cd({ type: "path", fullPath }, true, directoryId);
   },
 
@@ -324,20 +325,28 @@ export const directoryHelpers = {
 
       // Check if it's an archive file - if so, open the unarchive dialog instead
       const archiveExtensions = [
-        ".zip", ".7z", ".tar", ".tar.gz", ".tgz", 
-        ".tar.bz2", ".tbz2", ".tar.xz", ".txz", 
-        ".gz", ".bz2"
+        ".zip",
+        ".7z",
+        ".tar",
+        ".tar.gz",
+        ".tgz",
+        ".tar.bz2",
+        ".tbz2",
+        ".tar.xz",
+        ".txz",
+        ".gz",
+        ".bz2",
       ];
-      const matchedExt = archiveExtensions.find(ext => 
-        item.name.toLowerCase().endsWith(ext)
+      const matchedExt = archiveExtensions.find((ext) =>
+        item.name.toLowerCase().endsWith(ext),
       );
-      
+
       if (matchedExt) {
         const suggestedName = item.name.slice(0, -matchedExt.length);
-        dialogActions.open("unarchive", { 
-          archiveFilePath: fullPath, 
+        dialogActions.open("unarchive", {
+          archiveFilePath: fullPath,
           suggestedName,
-          archiveType: matchedExt
+          archiveType: matchedExt,
         });
         return;
       }
@@ -634,13 +643,13 @@ export const directoryHelpers = {
         context.directory.fullPath,
         finalArchiveName,
       );
-      
+
       await getWindowElectron().startArchive(
         archiveType as any,
         filePaths,
         destinationArchivePath,
       );
-      
+
       // The task system will handle the progress and reload
       return { success: true, data: { path: destinationArchivePath } };
     } catch (err) {
@@ -669,13 +678,13 @@ export const directoryHelpers = {
         context.directory.fullPath,
         folderName,
       );
-      
+
       await getWindowElectron().startUnarchive(
         archiveType as any,
         archiveFilePath,
         destinationFolder,
       );
-      
+
       // The task system will handle the progress and reload
       return { success: true, data: { path: destinationFolder } };
     } catch (err) {

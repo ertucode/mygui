@@ -16,18 +16,20 @@ export const ArchiveDialog = createFormDialog<
     archiveName: z.string().min(1, "Archive name is required"),
     archiveType: z.string(),
   }),
-  action: (body, _, item) => {
+  action: async (body, _, item) => {
     if (!item?.filePaths || item.filePaths.length === 0) {
       return Promise.resolve(
         GenericError.Message("No files selected for archiving"),
       );
     }
-    return directoryHelpers.createArchive(
+    const result = await directoryHelpers.createArchive(
       item.filePaths,
       body.archiveName,
       body.archiveType as ArchiveTypes.ArchiveType,
       directoryStore.getSnapshot().context.activeDirectoryId,
     );
+    if ("success" in result) return { noResult: true };
+    return result;
   },
   getConfigs: () => [
     {

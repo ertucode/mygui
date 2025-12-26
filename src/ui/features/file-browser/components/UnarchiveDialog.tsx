@@ -4,8 +4,8 @@ import z from "zod";
 import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { GenericError } from "@common/GenericError";
 
-type UnarchiveDialogItem = { 
-  archiveFilePath: string; 
+type UnarchiveDialogItem = {
+  archiveFilePath: string;
   suggestedName: string;
   archiveType: string;
 };
@@ -18,16 +18,18 @@ export const UnarchiveDialog = createFormDialog<
   schema: z.object({
     folderName: z.string().min(1, "Folder name is required"),
   }),
-  action: (body, _, item) => {
+  action: async (body, _, item) => {
     if (!item?.archiveFilePath) {
       return Promise.resolve(GenericError.Message("No archive file selected"));
     }
-    return directoryHelpers.extractArchive(
+    const result = await directoryHelpers.extractArchive(
       item.archiveFilePath,
       body.folderName,
       item.archiveType,
       directoryStore.getSnapshot().context.activeDirectoryId,
     );
+    if ("success" in result) return { noResult: true };
+    return result;
   },
   getConfigs: () => [
     {

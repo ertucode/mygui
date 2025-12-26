@@ -16,7 +16,7 @@ import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
 import { errorResponseToMessage } from "@common/GenericError";
 import { PathHelpers } from "@common/PathHelpers";
-import { directoryHelpers, directoryStore } from "./file-browser/directoryStore/directory";
+import { directoryHelpers } from "./file-browser/directoryStore/directory";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -49,41 +49,67 @@ function getTaskStatus(task: TaskDefinition): "running" | "success" | "error" {
 
 function formatPath(filePath: string, maxLength = 35): string {
   if (filePath.length <= maxLength) return filePath;
-  
+
   const filename = PathHelpers.getLastPathPart(filePath);
   const parentInfo = PathHelpers.getParentFolder(filePath);
-  
+
   if (filename.length > maxLength - 3) {
     return "..." + filename.slice(-(maxLength - 3));
   }
-  
+
   const remainingLength = maxLength - filename.length - 4; // 4 for "/..."
   if (remainingLength <= 0) {
     return ".../" + filename;
   }
-  
+
   if (parentInfo.path.length <= remainingLength) {
     return parentInfo.path + "/" + filename;
   }
-  
+
   return ".../" + filename;
 }
 
 function TaskMetadata({ task }: { task: TaskDefinition }) {
+  const handleNavigateToPath = (fullPath: string) => {
+    const parentPath = PathHelpers.getParentFolder(fullPath).path;
+    directoryHelpers.cdFull(parentPath, undefined);
+  };
+
   if (task.type === "archive") {
     const sourceCount = task.metadata.source.length;
     const destination = task.metadata.destination;
-    
+
     return (
       <div className="mt-2 space-y-1.5 text-xs">
         <div className="flex items-center gap-1.5 text-base-content/70">
           <FileIcon className="h-3 w-3 flex-shrink-0" />
           <span className="font-medium">Source:</span>
-          <span className="truncate">
-            {sourceCount === 1
-              ? formatPath(task.metadata.source[0])
-              : `${sourceCount} items`}
-          </span>
+          <div className="dropdown dropdown-hover">
+            <div
+              tabIndex={0}
+              className="truncate cursor-pointer hover:text-primary transition-colors"
+            >
+              {sourceCount === 1
+                ? formatPath(task.metadata.source[0])
+                : `${sourceCount} items`}
+            </div>
+            <div
+              tabIndex={0}
+              className="dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box border border-base-300 max-w-md"
+            >
+              <div className="space-y-1">
+                {task.metadata.source.map((sourcePath, index) => (
+                  <div
+                    key={index}
+                    className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded"
+                    onClick={() => handleNavigateToPath(sourcePath)}
+                  >
+                    {sourcePath}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 text-base-content/70">
           <Archive className="h-3 w-3 flex-shrink-0" />
@@ -95,19 +121,35 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
       </div>
     );
   }
-  
+
   if (task.type === "unarchive") {
     const source = task.metadata.source;
     const destination = task.metadata.destination;
-    
+
     return (
       <div className="mt-2 space-y-1.5 text-xs">
         <div className="flex items-center gap-1.5 text-base-content/70">
           <Archive className="h-3 w-3 flex-shrink-0" />
           <span className="font-medium">Archive:</span>
-          <span className="truncate" title={source}>
-            {formatPath(source)}
-          </span>
+          <div className="dropdown dropdown-hover">
+            <div
+              tabIndex={0}
+              className="truncate cursor-pointer hover:text-primary transition-colors"
+            >
+              {formatPath(source)}
+            </div>
+            <div
+              tabIndex={0}
+              className="dropdown-content z-[1] p-2 shadow bg-base-100 rounded-box border border-base-300 max-w-md"
+            >
+              <div
+                className="text-xs cursor-pointer hover:text-primary transition-colors p-1 hover:bg-base-200 rounded"
+                onClick={() => handleNavigateToPath(source)}
+              >
+                {source}
+              </div>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-1.5 text-base-content/70">
           <FolderIcon className="h-3 w-3 flex-shrink-0" />
@@ -119,11 +161,17 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
       </div>
     );
   }
-  
+
   return null;
 }
 
-function TaskItem({ task, onDismiss }: { task: TaskDefinition; onDismiss: () => void }) {
+function TaskItem({
+  task,
+  onDismiss,
+}: {
+  task: TaskDefinition;
+  onDismiss: () => void;
+}) {
   const status = getTaskStatus(task);
   const Icon = getTaskIcon(task);
   const label = getTaskTypeLabel(task);
@@ -160,7 +208,7 @@ function TaskItem({ task, onDismiss }: { task: TaskDefinition; onDismiss: () => 
             />
           </div>
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 justify-between">
             <div className="font-medium text-sm text-base-content">{label}</div>
@@ -177,7 +225,9 @@ function TaskItem({ task, onDismiss }: { task: TaskDefinition; onDismiss: () => 
                 {status === "success" && (
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 )}
-                {status === "error" && <XCircle className="h-4 w-4 text-error" />}
+                {status === "error" && (
+                  <XCircle className="h-4 w-4 text-error" />
+                )}
               </div>
               {status !== "running" && (
                 <button
@@ -190,9 +240,9 @@ function TaskItem({ task, onDismiss }: { task: TaskDefinition; onDismiss: () => 
               )}
             </div>
           </div>
-          
+
           <TaskMetadata task={task} />
-          
+
           {status === "running" && (
             <div className="w-full bg-base-300 rounded-full h-1.5 mt-2.5 overflow-hidden">
               <div
@@ -201,13 +251,13 @@ function TaskItem({ task, onDismiss }: { task: TaskDefinition; onDismiss: () => 
               />
             </div>
           )}
-          
+
           {status === "error" && task.result && !task.result.success && (
             <div className="mt-2 p-2 bg-error/10 border border-error/20 rounded text-xs text-error">
               {errorResponseToMessage(task.result.error)}
             </div>
           )}
-          
+
           {status === "success" && (
             <div className="mt-2 text-xs text-success font-medium">
               Completed successfully
@@ -235,10 +285,14 @@ export function TaskMonitor() {
   }
 
   const runningTasks = taskArray.filter((t) => getTaskStatus(t) === "running");
-  const completedTasks = taskArray.filter((t) => getTaskStatus(t) !== "running");
+  const completedTasks = taskArray.filter(
+    (t) => getTaskStatus(t) !== "running",
+  );
 
   return (
-    <div className={clsx("fixed bottom-4 right-4 z-50", !isMinimized && "w-80")}>
+    <div
+      className={clsx("fixed bottom-4 right-4 z-50", !isMinimized && "w-80")}
+    >
       {isMinimized ? (
         <button
           onClick={() => setIsMinimized(false)}

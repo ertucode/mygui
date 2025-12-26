@@ -5,12 +5,13 @@ import { PathHelpers } from "../../../common/PathHelpers.js";
 import { Archive } from "./Archive.js";
 import { Result } from "../../../common/Result.js";
 import { GenericError } from "../../../common/GenericError.js";
+import { getSizeForPath } from "../get-directory-size.js";
 
 export namespace Zip {
   export function archive(
     opts: Archive.ArchiveOpts,
   ): Promise<Archive.ArchiveResult> {
-    return new Promise<Archive.ArchiveResult>((resolve) => {
+    return new Promise<Archive.ArchiveResult>(async (resolve) => {
       const { source, destination, progressCallback, abortSignal } = opts;
 
       const zipPath = PathHelpers.withExtension(destination, ".zip");
@@ -70,14 +71,16 @@ export namespace Zip {
         }
       });
 
+      const sizes = await Promise.all(
+        source.map((path) => getSizeForPath(path)),
+      );
+      const totalBytes = sizes.reduce((a, b) => a + b, 0);
       // -----------------
       // PROGRESS
       // -----------------
       if (progressCallback) {
         archive.on("progress", ({ fs }) => {
-          if (fs.totalBytes > 0) {
-            progressCallback((fs.processedBytes / fs.totalBytes) * 100);
-          }
+          progressCallback((fs.processedBytes / totalBytes) * 100);
         });
       }
 
@@ -106,8 +109,14 @@ export namespace Zip {
       try {
         // Add all source files/directories to the archive
         for (const sourcePath of source) {
-          if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
-            archive.directory(sourcePath, PathHelpers.getLastPathPart(sourcePath));
+          if (
+            fs.existsSync(sourcePath) &&
+            fs.statSync(sourcePath).isDirectory()
+          ) {
+            archive.directory(
+              sourcePath,
+              PathHelpers.getLastPathPart(sourcePath),
+            );
           } else {
             archive.file(sourcePath, {
               name: PathHelpers.getLastPathPart(sourcePath),
@@ -173,7 +182,7 @@ export namespace Zip {
       readStream.on("data", (chunk) => {
         processedBytes += chunk.length;
         if (progressCallback && totalBytes > 0) {
-          progressCallback((processedBytes / totalBytes) * 100);
+          progressCallback(processedBytes / totalBytes);
         }
       });
 

@@ -3,6 +3,7 @@ import path from "path";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { expandHome } from "./expand-home.js";
+import { PathHelpers } from "../../common/PathHelpers.js";
 
 const execAsync = promisify(exec);
 
@@ -50,7 +51,9 @@ export async function getDirectorySizes(
         try {
           // Use du -sk to get size in kilobytes (more reliable than du -sh for parsing)
           // The -k flag ensures consistent output in KB
-          const { stdout } = await execAsync(`du -sk ${JSON.stringify(fullPath)}`);
+          const { stdout } = await execAsync(
+            `du -sk ${JSON.stringify(fullPath)}`,
+          );
           const size = parseDuOutput(stdout);
           result[dir.name] = size;
         } catch (err) {
@@ -64,4 +67,18 @@ export async function getDirectorySizes(
   }
 
   return result;
+}
+
+export async function getSizeForPath(fullPath: string): Promise<number> {
+  const s = await fs.stat(fullPath);
+  if (s.isDirectory()) {
+    const itemName = PathHelpers.getLastPathPart(fullPath);
+    const sizes = await getDirectorySizes(
+      PathHelpers.getParentFolder(fullPath).path,
+      itemName,
+    );
+    return sizes[itemName] || 0;
+  } else {
+    return s.size;
+  }
 }
