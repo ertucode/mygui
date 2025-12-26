@@ -42,4 +42,8 @@ export type TaskEvents =
       type: "result";
       id: string;
       result: GenericResult<void>;
+    }
+  | {
+      type: "abort";
+      id: string;
     };

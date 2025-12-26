@@ -72,6 +72,9 @@ getWindowElectron().onTaskEvent((e) => {
     taskStore.trigger.progressTask({ id: e.id, progress: e.progress });
   } else if (e.type === "result") {
     taskStore.trigger.setResult({ id: e.id, result: e.result });
+  } else if (e.type === "abort") {
+    taskStore.trigger.removeTask({ id: e.id });
+    // TODO: toast maybe
   } else {
     const _exhaustiveCheck: never = e;
     return _exhaustiveCheck;

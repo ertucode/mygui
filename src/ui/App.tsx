@@ -2,12 +2,14 @@ import "./App.css";
 import { FlexLayoutManager } from "./features/tile-manager";
 import { ConfirmationProvider } from "./lib/hooks/useConfirmation";
 import { ToastProvider } from "./lib/components/toast";
+import { TaskMonitor } from "./features/TaskMonitor";
 
 function App() {
   return (
     <ToastProvider>
       <ConfirmationProvider>
         <FlexLayoutManager />
+        <TaskMonitor />
       </ConfirmationProvider>
     </ToastProvider>
   );

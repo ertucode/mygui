@@ -6,13 +6,16 @@ import {
 } from "../common/Tasks.js";
 
 export namespace TaskManager {
-  const tasks: Record<string, TaskDefinition> = {};
+  const tasks: Record<
+    string,
+    TaskDefinition & { abortController: AbortController }
+  > = {};
 
   export const publisher = new ExternalStore<TaskEvents>();
 
   export function create(task: TaskDefinitionWithoutId) {
     const id = Math.random().toString(36).slice(2);
-    const t = { ...task, id };
+    const t = { ...task, id, abortController: new AbortController() };
     tasks[id] = t;
     publisher.notifyListeners({ type: "create", task: t });
   }
@@ -28,6 +31,14 @@ export namespace TaskManager {
     if (!task) return;
     delete tasks[id];
     publisher.notifyListeners({ type: "result", id, result });
+  }
+
+  export function abort(id: string) {
+    const task = tasks[id];
+    if (!task) return;
+    task.abortController.abort();
+    delete tasks[id];
+    publisher.notifyListeners({ type: "abort", id });
   }
 
   export function addListener(listener: (event: TaskEvents) => void) {
