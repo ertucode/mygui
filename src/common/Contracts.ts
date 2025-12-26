@@ -1,5 +1,6 @@
 import { type GenericResult } from "./GenericError.js";
 import { TaskEvents } from "./Tasks.js";
+import { type ArchiveTypes } from "./ArchiveTypes.js";
 
 export type ContextLine = {
   lineNumber: number;
@@ -93,6 +94,8 @@ export type EventResponseMapping = {
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
   "task:event": TaskEvents;
+  startArchive: Promise<void>;
+  startUnarchive: Promise<void>;
 };
 
 export type StringSearchOptions = {
@@ -151,6 +154,16 @@ export type EventRequestMapping = {
   unzipFile: { zipFilePath: string; destinationFolder: string };
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
+  startArchive: {
+    archiveType: ArchiveTypes.ArchiveType;
+    source: string[];
+    destination: string;
+  };
+  startUnarchive: {
+    archiveType: ArchiveTypes.ArchiveType;
+    source: string;
+    destination: string;
+  };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -246,4 +259,14 @@ export type WindowElectron = {
   ) => Promise<Record<string, number>>;
   generateVideoThumbnail: (filePath: string) => Promise<string>;
   onTaskEvent: (cb: (e: TaskEvents) => void) => void;
+  startArchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string[],
+    destination: string,
+  ) => Promise<void>;
+  startUnarchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string,
+    destination: string,
+  ) => Promise<void>;
 };

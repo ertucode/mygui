@@ -1,5 +1,5 @@
-import { ArchiveTypes } from "./ArchiveTypes";
-import { GenericResult } from "./GenericError";
+import { ArchiveTypes } from "./ArchiveTypes.js";
+import { GenericResult } from "./GenericError.js";
 
 export type TaskDefinition = Tasks.Base & (Tasks.Archive | Tasks.Unarchive);
 

@@ -1,4 +1,4 @@
-import { GenericResult } from "./GenericError";
+import { GenericResult } from "./GenericError.js";
 
 export namespace ArchiveTypes {
   export const Types = [

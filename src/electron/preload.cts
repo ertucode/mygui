@@ -6,6 +6,7 @@ import {
   WindowElectron,
 } from "../common/Contracts";
 import { TaskEvents } from "../common/Tasks";
+import { ArchiveTypes } from "../common/ArchiveTypes";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   getFilePath: (file: File) => electron.webUtils.getPathForFile(file),
@@ -69,6 +70,16 @@ electron.contextBridge.exposeInMainWorld("electron", {
       off();
     };
   },
+  startArchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string[],
+    destination: string,
+  ) => ipcInvoke("startArchive", { archiveType, source, destination }),
+  startUnarchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string,
+    destination: string,
+  ) => ipcInvoke("startUnarchive", { archiveType, source, destination }),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(
