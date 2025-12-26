@@ -190,8 +190,8 @@ export const FileTableRowContextMenu = ({
     view: <TextWithIcon icon={ClipboardCopyIcon}>Copy Path</TextWithIcon>,
   };
 
-  // Zip selected files/folders
-  const zipItem: ContextMenuItem = {
+  // Archive selected files/folders
+  const archiveItem: ContextMenuItem = {
     onClick: () => {
       const filePaths = selectedItems.map(
         (i) => i.fullPath ?? directoryHelpers.getFullPath(i.name, directoryId),
@@ -201,19 +201,19 @@ export const FileTableRowContextMenu = ({
       if (selectedItems.length === 1) {
         const singleItem = selectedItems[0];
         if (singleItem.type === "file") {
-          // Remove extension and add .zip
-          suggestedName = singleItem.name.replace(/\.[^.]+$/, "") + ".zip";
+          // Remove extension
+          suggestedName = singleItem.name.replace(/\.[^.]+$/, "");
         } else {
-          // For folders, just add .zip
-          suggestedName = singleItem.name + ".zip";
+          // For folders, use the folder name
+          suggestedName = singleItem.name;
         }
       }
-      dialogActions.open("zip", { filePaths, suggestedName });
+      dialogActions.open("archive", { filePaths, suggestedName });
       close();
     },
     view: (
       <TextWithIcon icon={FileArchiveIcon}>
-        Create Zip Archive
+        Create Archive
         {isSelected && selectionIndexes.size > 1
           ? ` (${selectionIndexes.size} items)`
           : ""}
@@ -221,19 +221,36 @@ export const FileTableRowContextMenu = ({
     ),
   };
 
-  // Unzip (only show for .zip files)
-  const isZipFile = item.type === "file" && item.ext === ".zip";
-  const unzipItem: ContextMenuItem | null = isZipFile
+  // Unarchive (show for supported archive files)
+  const archiveExtensions = [
+    ".zip", ".7z", ".tar", ".tar.gz", ".tgz", 
+    ".tar.bz2", ".tbz2", ".tar.xz", ".txz", 
+    ".gz", ".bz2"
+  ];
+  const isArchiveFile = item.type === "file" && 
+    archiveExtensions.some(ext => item.name.toLowerCase().endsWith(ext));
+  
+  const unarchiveItem: ContextMenuItem | null = isArchiveFile
     ? {
         onClick: () => {
-          const zipFilePath =
+          const archiveFilePath =
             item.fullPath ??
             directoryHelpers.getFullPath(item.name, directoryId);
-          const suggestedName = item.name.replace(/\.zip$/i, "");
-          dialogActions.open("unzip", { zipFilePath, suggestedName });
+          
+          // Find the matching extension and remove it from the name
+          const matchedExt = archiveExtensions.find(ext => 
+            item.name.toLowerCase().endsWith(ext)
+          ) || "";
+          const suggestedName = item.name.slice(0, -matchedExt.length);
+          
+          dialogActions.open("unarchive", { 
+            archiveFilePath, 
+            suggestedName,
+            archiveType: matchedExt
+          });
           close();
         },
-        view: <TextWithIcon icon={FolderInputIcon}>Extract Here</TextWithIcon>,
+        view: <TextWithIcon icon={FolderInputIcon}>Extract Archive</TextWithIcon>,
       }
     : null;
 
@@ -311,7 +328,7 @@ export const FileTableRowContextMenu = ({
           copyItem,
           cutItem,
           pasteItem,
-          zipItem,
+          archiveItem,
           deleteItem,
           renameItem,
           batchRenameItem,
@@ -333,8 +350,8 @@ export const FileTableRowContextMenu = ({
         copyItem,
         cutItem,
         pasteItem,
-        zipItem,
-        unzipItem,
+        archiveItem,
+        unarchiveItem,
         deleteItem,
         renameItem,
         batchRenameItem,

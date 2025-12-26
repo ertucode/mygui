@@ -103,7 +103,7 @@ export namespace SevenZip {
           // 7z outputs progress as "  1%" or " 50%" etc
           const match = output.match(/(\d+)%/);
           if (match) {
-            const progress = parseInt(match[1], 10) / 100;
+            const progress = parseInt(match[1], 10);
             if (progress > lastProgress) {
               lastProgress = progress;
               progressCallback(progress);
@@ -125,6 +125,7 @@ export namespace SevenZip {
       // -----------------
       sevenZProcess.on("close", (code) => {
         if (code === 0) {
+          progressCallback?.(100); // Ensure we reach 100% on completion
           finish();
         } else {
           finish(
@@ -228,7 +229,7 @@ export namespace SevenZip {
           // 7z outputs progress as "  1%" or " 50%" etc
           const match = output.match(/(\d+)%/);
           if (match) {
-            const progress = parseInt(match[1], 10) / 100;
+            const progress = parseInt(match[1], 10);
             if (progress > lastProgress) {
               lastProgress = progress;
               progressCallback(progress);
@@ -250,6 +251,7 @@ export namespace SevenZip {
       // -----------------
       sevenZProcess.on("close", (code) => {
         if (code === 0) {
+          progressCallback?.(100); // Ensure we reach 100% on completion
           finish();
         } else {
           finish(

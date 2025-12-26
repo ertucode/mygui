@@ -89,8 +89,6 @@ export type EventResponseMapping = {
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
   readZipContents: Promise<GenericResult<ZipEntry[]>>;
-  zipFiles: Promise<GenericResult<{ path: string }>>;
-  unzipFile: Promise<GenericResult<{ path: string }>>;
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
   "task:event": TaskEvents;
@@ -150,8 +148,6 @@ export type EventRequestMapping = {
   searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
   readZipContents: string;
-  zipFiles: { filePaths: string[]; destinationZipPath: string };
-  unzipFile: { zipFilePath: string; destinationFolder: string };
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
   startArchive: {
@@ -245,14 +241,6 @@ export type WindowElectron = {
     filePaths: string[],
   ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
   readZipContents: (filePath: string) => Promise<GenericResult<ZipEntry[]>>;
-  zipFiles: (
-    filePaths: string[],
-    destinationZipPath: string,
-  ) => Promise<GenericResult<{ path: string }>>;
-  unzipFile: (
-    zipFilePath: string,
-    destinationFolder: string,
-  ) => Promise<GenericResult<{ path: string }>>;
   getDirectorySizes: (
     parentPath: string,
     specificDirName?: string,

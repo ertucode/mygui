@@ -105,7 +105,7 @@ export namespace Gzip {
         gzipProcess.stdout?.on("data", (chunk) => {
           processedBytes += chunk.length;
           if (totalSize > 0) {
-            progressCallback(Math.min(processedBytes / totalSize, 0.99));
+            progressCallback(Math.min((processedBytes / totalSize) * 100, 99));
           }
         });
       }
@@ -123,6 +123,7 @@ export namespace Gzip {
       // -----------------
       outputStream.on("close", () => {
         if (!settled) {
+          progressCallback?.(100); // Ensure we reach 100% on completion
           finish();
         }
       });
@@ -237,7 +238,7 @@ export namespace Gzip {
         gunzipProcess.stdout?.on("data", (chunk) => {
           processedBytes += chunk.length;
           if (totalSize > 0) {
-            progressCallback(Math.min(processedBytes / totalSize, 0.99));
+            progressCallback(Math.min((processedBytes / totalSize) * 100, 99));
           }
         });
       }
@@ -255,6 +256,7 @@ export namespace Gzip {
       // -----------------
       outputStream.on("close", () => {
         if (!settled) {
+          progressCallback?.(100); // Ensure we reach 100% on completion
           finish();
         }
       });

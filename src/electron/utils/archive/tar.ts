@@ -165,7 +165,7 @@ function archiveWithTar(
         const progressInterval = setInterval(() => {
           try {
             const currentSize = fs.statSync(tarPath).size;
-            const progress = Math.min(currentSize / totalSize, 0.99);
+            const progress = Math.min((currentSize / totalSize) * 100, 99);
             progressCallback(progress);
           } catch {
             // File might not exist yet
@@ -175,7 +175,7 @@ function archiveWithTar(
         tarProcess.on("close", () => {
           clearInterval(progressInterval);
           if (completedSuccessfully) {
-            progressCallback(1.0);
+            progressCallback(100);
           }
         });
       }
@@ -292,14 +292,14 @@ function unarchiveWithTar(
       readStream.on("data", (chunk) => {
         bytesRead += chunk.length;
         if (sourceSize > 0) {
-          progressCallback(Math.min(bytesRead / sourceSize, 0.99));
+          progressCallback(Math.min((bytesRead / sourceSize) * 100, 99));
         }
       });
 
       tarProcess.on("close", () => {
         readStream.destroy();
         if (completedSuccessfully) {
-          progressCallback(1.0);
+          progressCallback(100);
         }
       });
     }

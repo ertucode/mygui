@@ -26,8 +26,7 @@ import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 import { readZipContents } from "./utils/read-zip-contents.js";
-import { zipFiles } from "./utils/zip-files.js";
-import { unzipFile } from "./utils/unzip-file.js";
+
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
 import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
@@ -194,12 +193,6 @@ app.on("ready", () => {
   );
   ipcHandle("getFileInfoByPaths", getFileInfoByPaths);
   ipcHandle("readZipContents", (filePath) => readZipContents(filePath));
-  ipcHandle("zipFiles", ({ filePaths, destinationZipPath }) =>
-    zipFiles(filePaths, destinationZipPath),
-  );
-  ipcHandle("unzipFile", ({ zipFilePath, destinationFolder }) =>
-    unzipFile(zipFilePath, destinationFolder),
-  );
   ipcHandle("getDirectorySizes", ({ parentPath, specificDirName }) =>
     getDirectorySizes(parentPath, specificDirName),
   );

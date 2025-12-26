@@ -21,8 +21,26 @@ export namespace TaskManager {
       abortController: new AbortController(),
     } as TaskDefinition & { abortController: AbortController };
     tasks[id] = t;
-    publisher.notifyListeners({ type: "create", task: t });
+    
+    // Strip out non-serializable parts before sending
+    const serializableTask = stripNonSerializable(t);
+    publisher.notifyListeners({ type: "create", task: serializableTask });
     return id;
+  }
+  
+  function stripNonSerializable(task: TaskDefinition & { abortController?: AbortController }): TaskDefinition {
+    const { abortController, ...taskWithoutController } = task;
+    
+    // Create a deep copy and remove non-serializable fields from metadata
+    if (taskWithoutController.type === "archive" || taskWithoutController.type === "unarchive") {
+      const { progressCallback, abortSignal, ...serializableMetadata } = taskWithoutController.metadata;
+      return {
+        ...taskWithoutController,
+        metadata: serializableMetadata as any,
+      };
+    }
+    
+    return taskWithoutController as TaskDefinition;
   }
 
   export function getAbortSignal(id: string): AbortSignal | undefined {

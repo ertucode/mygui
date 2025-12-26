@@ -3,6 +3,7 @@ import { GenericError } from "../../common/GenericError.js";
 import { Tasks } from "../../common/Tasks.js";
 import { TaskManager } from "../TaskManager.js";
 import { Archive } from "./archive/Archive.js";
+import { expandHome } from "./expand-home.js";
 
 type StartArchiveRequest = {
   archiveType: ArchiveTypes.ArchiveType;
@@ -21,6 +22,10 @@ export async function startArchive(
 ): Promise<void> {
   const { archiveType, source, destination } = request;
 
+  // Expand home paths
+  const expandedSource = source.map(expandHome);
+  const expandedDestination = expandHome(destination);
+
   // Create a dummy abort controller and progress callback
   const dummyAbortController = new AbortController();
   const dummyProgressCallback = () => {};
@@ -31,8 +36,8 @@ export async function startArchive(
     progress: 0,
     metadata: {
       type: archiveType,
-      source,
-      destination,
+      source: expandedSource,
+      destination: expandedDestination,
       progressCallback: dummyProgressCallback,
       abortSignal: dummyAbortController.signal,
     },
@@ -51,8 +56,8 @@ export async function startArchive(
       }
 
       const opts: ArchiveTypes.ArchiveOpts = {
-        source,
-        destination,
+        source: expandedSource,
+        destination: expandedDestination,
         progressCallback: (progress: number) => {
           TaskManager.progress(taskId, progress);
         },
@@ -77,6 +82,10 @@ export async function startUnarchive(
 ): Promise<void> {
   const { archiveType, source, destination } = request;
 
+  // Expand home paths
+  const expandedSource = expandHome(source);
+  const expandedDestination = expandHome(destination);
+
   // Create a dummy abort controller and progress callback
   const dummyAbortController = new AbortController();
   const dummyProgressCallback = () => {};
@@ -87,8 +96,8 @@ export async function startUnarchive(
     progress: 0,
     metadata: {
       type: archiveType,
-      source,
-      destination,
+      source: expandedSource,
+      destination: expandedDestination,
       progressCallback: dummyProgressCallback,
       abortSignal: dummyAbortController.signal,
     },
@@ -107,8 +116,8 @@ export async function startUnarchive(
       }
 
       const opts: ArchiveTypes.UnarchiveOpts = {
-        source,
-        destination,
+        source: expandedSource,
+        destination: expandedDestination,
         progressCallback: (progress: number) => {
           TaskManager.progress(taskId, progress);
         },
