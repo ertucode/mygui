@@ -4,10 +4,14 @@ import z from "zod";
 import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { GenericError } from "@common/GenericError";
 
-type UnzipDialogItem = { zipFilePath: string; suggestedName: string };
+type UnarchiveDialogItem = { 
+  archiveFilePath: string; 
+  suggestedName: string;
+  archiveType: string;
+};
 
-export const UnzipDialog = createFormDialog<
-  UnzipDialogItem,
+export const UnarchiveDialog = createFormDialog<
+  UnarchiveDialogItem,
   { folderName: string },
   {}
 >({
@@ -15,12 +19,13 @@ export const UnzipDialog = createFormDialog<
     folderName: z.string().min(1, "Folder name is required"),
   }),
   action: (body, _, item) => {
-    if (!item?.zipFilePath) {
-      return Promise.resolve(GenericError.Message("No zip file selected"));
+    if (!item?.archiveFilePath) {
+      return Promise.resolve(GenericError.Message("No archive file selected"));
     }
-    return directoryHelpers.unzipFile(
-      item.zipFilePath,
+    return directoryHelpers.extractArchive(
+      item.archiveFilePath,
       body.folderName,
+      item.archiveType,
       directoryStore.getSnapshot().context.activeDirectoryId,
     );
   },
@@ -37,7 +42,7 @@ export const UnzipDialog = createFormDialog<
     },
   }),
   getTexts: () => ({
-    title: "Extract Zip Archive",
+    title: "Extract Archive",
     buttonLabel: "Extract",
     buttonIcon: FolderInputIcon,
   }),

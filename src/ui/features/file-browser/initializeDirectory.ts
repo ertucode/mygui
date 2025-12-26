@@ -13,7 +13,8 @@ export const layoutJson = ((): IJsonModel => {
       if (appliedLayout.layout && appliedLayout.directories) {
         directoryStore.trigger.initDirectories({
           directories: appliedLayout.directories,
-          activeDirectoryId: appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
+          activeDirectoryId:
+            appliedLayout.activeDirectoryId || appliedLayout.directories[0]?.id,
         });
         // Clear the applied layout after loading it once
         localStorage.removeItem("mygui-flexlayout-model");
@@ -46,7 +47,7 @@ export const layoutJson = ((): IJsonModel => {
     typeof directoryStore.trigger.initDirectories
   >[0]["directories"] = [
     {
-      fullPath: "~/Downloads",
+      fullPath: "~/dev/react-native",
       type: "path",
       id: Math.random().toString(36).slice(2) as DirectoryId,
     },

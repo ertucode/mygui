@@ -322,10 +322,23 @@ export const directoryHelpers = {
     } else {
       const fullPath = item.fullPath || getFullPath(item.name, directoryId);
 
-      // Check if it's a zip file - if so, open the unzip dialog instead
-      if (item.ext === ".zip") {
-        const suggestedName = item.name.replace(/\.zip$/i, "");
-        dialogActions.open("unzip", { zipFilePath: fullPath, suggestedName });
+      // Check if it's an archive file - if so, open the unarchive dialog instead
+      const archiveExtensions = [
+        ".zip", ".7z", ".tar", ".tar.gz", ".tgz", 
+        ".tar.bz2", ".tbz2", ".tar.xz", ".txz", 
+        ".gz", ".bz2"
+      ];
+      const matchedExt = archiveExtensions.find(ext => 
+        item.name.toLowerCase().endsWith(ext)
+      );
+      
+      if (matchedExt) {
+        const suggestedName = item.name.slice(0, -matchedExt.length);
+        dialogActions.open("unarchive", { 
+          archiveFilePath: fullPath, 
+          suggestedName,
+          archiveType: matchedExt
+        });
         return;
       }
 
@@ -598,9 +611,10 @@ export const directoryHelpers = {
     });
   },
 
-  zipFiles: async (
+  createArchive: async (
     filePaths: string[],
-    zipName: string,
+    archiveName: string,
+    archiveType: string,
     directoryId: DirectoryId,
   ): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(
@@ -608,28 +622,27 @@ export const directoryHelpers = {
       directoryId,
     );
     if (context.directory.type !== "path") {
-      return GenericError.Message("Cannot create zip in tags view");
+      return GenericError.Message("Cannot create archive in tags view");
     }
 
     try {
-      const finalZipName = zipName.endsWith(".zip")
-        ? zipName
-        : `${zipName}.zip`;
-      const destinationZipPath = mergeMaybeSlashed(
+      // Ensure archive name has the correct extension
+      const finalArchiveName = archiveName.endsWith(archiveType)
+        ? archiveName
+        : `${archiveName}${archiveType}`;
+      const destinationArchivePath = mergeMaybeSlashed(
         context.directory.fullPath,
-        finalZipName,
+        finalArchiveName,
       );
-      const result = await getWindowElectron().zipFiles(
+      
+      await getWindowElectron().startArchive(
+        archiveType as any,
         filePaths,
-        destinationZipPath,
+        destinationArchivePath,
       );
-      if (result.success) {
-        await directoryHelpers.reload(directoryId);
-        // Select the newly created zip file
-        const zipFileName = PathHelpers.getLastPathPart(result.data!.path);
-        directoryHelpers.setPendingSelection(zipFileName, directoryId);
-      }
-      return result;
+      
+      // The task system will handle the progress and reload
+      return { success: true, data: { path: destinationArchivePath } };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred";
@@ -637,9 +650,10 @@ export const directoryHelpers = {
     }
   },
 
-  unzipFile: async (
-    zipFilePath: string,
+  extractArchive: async (
+    archiveFilePath: string,
     folderName: string,
+    archiveType: string,
     directoryId: DirectoryId,
   ): Promise<ResultHandlerResult> => {
     const context = getActiveDirectory(
@@ -647,7 +661,7 @@ export const directoryHelpers = {
       directoryId,
     );
     if (context.directory.type !== "path") {
-      return GenericError.Message("Cannot extract zip in tags view");
+      return GenericError.Message("Cannot extract archive in tags view");
     }
 
     try {
@@ -655,16 +669,15 @@ export const directoryHelpers = {
         context.directory.fullPath,
         folderName,
       );
-      const result = await getWindowElectron().unzipFile(
-        zipFilePath,
+      
+      await getWindowElectron().startUnarchive(
+        archiveType as any,
+        archiveFilePath,
         destinationFolder,
       );
-      if (result.success) {
-        await directoryHelpers.reload(directoryId);
-        // Select the newly created folder
-        directoryHelpers.setPendingSelection(folderName, directoryId);
-      }
-      return result;
+      
+      // The task system will handle the progress and reload
+      return { success: true, data: { path: destinationFolder } };
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "An unexpected error occurred";

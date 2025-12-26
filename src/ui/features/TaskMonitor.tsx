@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
 import { errorResponseToMessage } from "@common/GenericError";
 import { PathHelpers } from "@common/PathHelpers";
+import { directoryHelpers, directoryStore } from "./file-browser/directoryStore/directory";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -23,6 +24,8 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return `Creating ${task.metadata.type} archive`;
     case "unarchive":
       return `Extracting ${task.metadata.type} archive`;
+    default:
+      return "Processing task";
   }
 }
 
@@ -32,6 +35,8 @@ function getTaskIcon(task: TaskDefinition) {
       return Archive;
     case "unarchive":
       return FolderArchive;
+    default:
+      return FileIcon;
   }
 }
 
@@ -233,7 +238,7 @@ export function TaskMonitor() {
   const completedTasks = taskArray.filter((t) => getTaskStatus(t) !== "running");
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 w-80">
+    <div className={clsx("fixed bottom-4 right-4 z-50", !isMinimized && "w-80")}>
       {isMinimized ? (
         <button
           onClick={() => setIsMinimized(false)}

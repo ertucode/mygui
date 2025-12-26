@@ -53,7 +53,10 @@ export namespace Zip {
       // -----------------
       // SUCCESS
       // -----------------
-      output.on("close", () => finish());
+      output.on("close", () => {
+        progressCallback?.(100); // Ensure we reach 100% on completion
+        finish();
+      });
 
       // -----------------
       // ERRORS
@@ -73,7 +76,7 @@ export namespace Zip {
       if (progressCallback) {
         archive.on("progress", ({ fs }) => {
           if (fs.totalBytes > 0) {
-            progressCallback(fs.processedBytes / fs.totalBytes);
+            progressCallback((fs.processedBytes / fs.totalBytes) * 100);
           }
         });
       }
@@ -170,7 +173,7 @@ export namespace Zip {
       readStream.on("data", (chunk) => {
         processedBytes += chunk.length;
         if (progressCallback && totalBytes > 0) {
-          progressCallback(processedBytes / totalBytes);
+          progressCallback((processedBytes / totalBytes) * 100);
         }
       });
 
@@ -178,7 +181,10 @@ export namespace Zip {
 
       const extractor = unzipper.Extract({ path: destination });
 
-      extractor.on("close", () => finish());
+      extractor.on("close", () => {
+        progressCallback?.(100); // Ensure we reach 100% on completion
+        finish();
+      });
       extractor.on("error", finish);
 
       // -----------------

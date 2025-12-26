@@ -6,8 +6,8 @@ import { NewItemDialog } from "./components/NewItemDialog";
 import { AssignTagsDialog } from "./components/AssignTagsDialog";
 import { MultiFileTagsDialog } from "./components/MultiFileTagsDialog";
 import { FinderDialog, FinderTab } from "./components/FinderDialog";
-import { ZipDialog } from "./components/ZipDialog";
-import { UnzipDialog } from "./components/UnzipDialog";
+import { ArchiveDialog } from "./components/ArchiveDialog";
+import { UnarchiveDialog } from "./components/UnarchiveDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
 import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon } from "lucide-react";
@@ -23,8 +23,8 @@ export type DialogType =
   | "assignTags"
   | "multiFileTags"
   | "finder"
-  | "zip"
-  | "unzip"
+  | "archive"
+  | "unarchive"
   | "commandPalette"
   | "customLayouts";
 
@@ -36,8 +36,8 @@ export type DialogMetadata = {
   assignTags: string;
   multiFileTags: string[];
   finder: { initialTab?: FinderTab };
-  zip: { filePaths: string[]; suggestedName?: string };
-  unzip: { zipFilePath: string; suggestedName: string };
+  archive: { filePaths: string[]; suggestedName?: string };
+  unarchive: { archiveFilePath: string; suggestedName: string; archiveType: string };
   commandPalette: {};
   customLayouts: {};
 };
@@ -134,16 +134,16 @@ const dialogDefinitions = [
     title: "Finder",
   },
   {
-    type: "zip" as const,
-    component: ZipDialog,
+    type: "archive" as const,
+    component: ArchiveDialog,
     icon: FileArchiveIcon,
-    title: "Create Zip Archive",
+    title: "Create Archive",
   },
   {
-    type: "unzip" as const,
-    component: UnzipDialog,
+    type: "unarchive" as const,
+    component: UnarchiveDialog,
     icon: FolderInputIcon,
-    title: "Extract Zip Archive",
+    title: "Extract Archive",
   },
   {
     type: "commandPalette" as const,

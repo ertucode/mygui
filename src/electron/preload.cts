@@ -50,10 +50,6 @@ electron.contextBridge.exposeInMainWorld("electron", {
   getFileInfoByPaths: (filePaths: string[]) =>
     ipcInvoke("getFileInfoByPaths", filePaths),
   readZipContents: (filePath: string) => ipcInvoke("readZipContents", filePath),
-  zipFiles: (filePaths: string[], destinationZipPath: string) =>
-    ipcInvoke("zipFiles", { filePaths, destinationZipPath }),
-  unzipFile: (zipFilePath: string, destinationFolder: string) =>
-    ipcInvoke("unzipFile", { zipFilePath, destinationFolder }),
   getDirectorySizes: (parentPath: string, specificDirName?: string) =>
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
   generateVideoThumbnail: (filePath: string) =>
