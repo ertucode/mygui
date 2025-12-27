@@ -1,5 +1,5 @@
-import { getCategoryFromFilename } from "./file-category";
-import { PathHelpers } from "./PathHelpers";
+import { getCategoryFromFilename } from "./file-category.js";
+import { PathHelpers } from "./PathHelpers.js";
 
 export namespace ArchiveHelpers {
   export function getUnarchiveMetadata(fullPath: string) {
