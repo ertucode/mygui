@@ -8,6 +8,7 @@ import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 import { DirectoryId, DirectoryType } from "../directoryStore/DirectoryBase";
 import { CategoryHelpers } from "../CategoryHelpers";
 import { perDirectoryDataHelpers } from "../directoryStore/perDirectoryData";
+import { getWindowElectron } from "@/getWindowElectron";
 
 function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
   const config = CategoryHelpers.get(category);
@@ -17,6 +18,45 @@ function CategoryIcon({ category }: { category: FileCategory | "folder" }) {
       fill={config.fill || "transparent"}
     />
   );
+}
+
+function AppIconOrCategoryIcon({
+  item,
+  ctx,
+}: {
+  item: GetFilesAndFoldersInDirectoryItem;
+  ctx: ColumnsContext;
+}) {
+  const [appIcon, setAppIcon] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (item.type !== "dir" || !item.name.endsWith(".app")) return;
+    const fullPath = ctx.getFullPath(item.name);
+    if (
+      !fullPath.startsWith("/Applications/") ||
+      fullPath.startsWith("/System/Applications/")
+    )
+      return;
+
+    getWindowElectron()
+      .generateAppIcon(fullPath)
+      .then(setAppIcon)
+      .catch(() => {});
+  }, []);
+
+  if (appIcon) {
+    return (
+      <span className="relative flex items-center">
+        <img
+          src={appIcon}
+          alt=""
+          className="absolute top-0 size-5 object-contain translate-y-[-50%] translate-x-[calc(-.5*var(--spacing))] max-w-1000"
+        />
+      </span>
+    );
+  }
+
+  return <CategoryIcon category={item.category} />;
 }
 
 /**
@@ -51,7 +91,7 @@ export function createColumns(
       accessorKey: "type",
       header: "",
       cell: (row) => {
-        return <CategoryIcon category={row.category} />;
+        return <AppIconOrCategoryIcon item={row} ctx={ctx} />;
       },
       size: 24,
       headerConfigView: "Icon",

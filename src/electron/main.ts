@@ -28,6 +28,7 @@ import { searchStringRecursively } from "./utils/search-string-recursively.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
+import { generateAppIcon } from "./utils/generate-app-icon.js";
 import { xlsxWorkerPool } from "./utils/xlsx-worker-pool.js";
 import { TaskManager } from "./TaskManager.js";
 import { startArchive, startUnarchive } from "./utils/start-archive-task.js";
@@ -216,6 +217,7 @@ app.on("ready", () => {
   ipcHandle("generateVideoThumbnail", (filePath) =>
     generateVideoThumbnail(filePath),
   );
+  ipcHandle("generateAppIcon", (filePath) => generateAppIcon(filePath));
   ipcHandle("startArchive", (request) => startArchive(request));
   ipcHandle("startUnarchive", (request) => startUnarchive(request));
   ipcHandle("abortTask", async (taskId) => {

@@ -96,6 +96,7 @@ export type EventResponseMapping = {
   readArchiveContents: Promise<GenericResult<ArchiveEntry[]>>;
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
+  generateAppIcon: Promise<string>;
   "task:event": TaskEvents;
   startArchive: Promise<void>;
   startUnarchive: Promise<void>;
@@ -162,6 +163,7 @@ export type EventRequestMapping = {
   };
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
+  generateAppIcon: string;
   startArchive: {
     archiveType: ArchiveTypes.ArchiveType;
     source: string[];
@@ -263,6 +265,7 @@ export type WindowElectron = {
     specificDirName?: string,
   ) => Promise<Record<string, number>>;
   generateVideoThumbnail: (filePath: string) => Promise<string>;
+  generateAppIcon: (filePath: string) => Promise<string>;
   onTaskEvent: (cb: (e: TaskEvents) => void) => void;
   startArchive: (
     archiveType: ArchiveTypes.ArchiveType,

@@ -41,8 +41,9 @@ export function FilePreview({
   // Get the preview URL - in dev it's the vite server, in prod it's the file
   const previewUrl =
     import.meta.env.MODE === "development"
-      ? "http://localhost:5123/preview.html"
-      : "./preview.html";
+      ? "http://localhost:5123/preview.html?window-args=" +
+        getWindowElectron().getWindowArgs()
+      : "./preview.html?window-args=" + getWindowElectron().getWindowArgs();
 
   // Get the preload path on mount
   useEffect(() => {

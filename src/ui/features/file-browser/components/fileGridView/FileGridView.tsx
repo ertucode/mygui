@@ -18,6 +18,7 @@ import { ImageThumbnail } from "./ImageThumbnail";
 import { BaseThumbnail } from "./BaseThumbnail";
 import { fileBrowserListContainerProps } from "../../fileBrowserListContainerProps";
 import { VideoThumbnail } from "./VideoThumbnail";
+import { AppIconThumbnail } from "./AppIconThumbnail";
 
 type GridItemProps = {
   item: GetFilesAndFoldersInDirectoryItem;
@@ -87,6 +88,16 @@ function FileThumbnail({
   fullPath: string;
 }) {
   if (item.type === "dir") {
+    // Check if this is a .app bundle in /Applications or /System/Applications
+    const isApp = item.name.endsWith(".app");
+    const isInApplicationsFolder =
+      fullPath.startsWith("/Applications/") ||
+      fullPath.startsWith("/System/Applications/");
+
+    if (isApp && isInApplicationsFolder) {
+      return <AppIconThumbnail item={item} fullPath={fullPath} />;
+    }
+
     return (
       <div className="w-full h-full flex items-center justify-center">
         <FolderIcon className="w-12 h-12 text-primary" />

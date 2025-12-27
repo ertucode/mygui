@@ -40,10 +40,7 @@ import { toast } from "@/lib/components/toast";
 import { getWindowElectron } from "@/getWindowElectron";
 import { useState, useEffect } from "react";
 import { ApplicationInfo } from "@common/Contracts";
-import {
-  EXTENSION_CATEGORY_MAP,
-  getCategoryFromFilename,
-} from "@common/file-category";
+import { getCategoryFromFilename } from "@common/file-category";
 import { PathHelpers } from "@common/PathHelpers";
 
 export const FileTableRowContextMenu = ({
