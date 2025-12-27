@@ -29,13 +29,15 @@ export function ipcWebContentsSend<Key extends keyof EventResponseMapping>(
   webContents.send(key, payload);
 }
 
+const uiPath = pathToFileURL(getUIPath()).toString();
+const previewHtmlPath = pathToFileURL(getPreviewHtmlPath()).toString();
 export function validateEventFrame(frame: Electron.WebFrameMain) {
   if (isDev() && new URL(frame.url).host === "localhost:5123") {
     return;
   }
 
-  if (frame.url === pathToFileURL(getUIPath()).toString()) return;
-  if (frame.url === pathToFileURL(getPreviewHtmlPath()).toString()) return;
+  if (frame.url === uiPath) return;
+  if (frame.url.split("?")[0] === previewHtmlPath) return;
   throw new Error(
     "Malicious attempt to send IPC messages to the UI. This is a security risk.",
   );

@@ -60,6 +60,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("getDirectorySizes", { parentPath, specificDirName }),
   generateVideoThumbnail: (filePath: string) =>
     ipcInvoke("generateVideoThumbnail", filePath),
+  generateAppIcon: (filePath: string) => ipcInvoke("generateAppIcon", filePath),
   batchRenameFiles: (
     items: Array<{
       fullPath: string;

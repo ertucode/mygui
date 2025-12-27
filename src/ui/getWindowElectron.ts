@@ -5,9 +5,12 @@ export function getWindowElectron() {
   return (window as any).electron as WindowElectron;
 }
 
-export const args = deserializeWindowArguments(
-  getWindowElectron().getWindowArgs(),
-);
+const windowArgsStr =
+  getWindowElectron().getWindowArgs() ||
+  new URLSearchParams(window.location.search).get("window-args") ||
+  "";
+
+export const args = deserializeWindowArguments(windowArgsStr);
 
 export const windowArgs = {
   ...args,

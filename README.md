@@ -5,11 +5,17 @@
 
 # TODO
 
-- Show vscode icon for vscode application etc
+- sectioned context menu
 
 - A file picker dialog for selecting files
 - Select app mode.
 
-- File encryption
 - auto update opened directories
 - unarchive as file if only one file
+
+# AMBITIOUS TODO
+
+- Plugin system ( run arbitrary script with the file path as an argument)
+- File encryption
+- tree view
+- themes
