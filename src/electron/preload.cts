@@ -73,6 +73,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
       off();
     };
   },
+  onWindowFocus: (cb: () => void) => {
+    const off = ipcOn("window:focus", () => cb());
+    return off;
+  },
   startArchive: (
     archiveType: ArchiveTypes.ArchiveType,
     source: string[],

@@ -179,6 +179,47 @@ function formatBytes(bytes: number): string {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 }
 
+/**
+ * Compares two directory data arrays to check if they're equal
+ * Ignores size differences for directories as they may not be loaded yet
+ */
+function areDirectoryContentsEqual(
+  oldData: GetFilesAndFoldersInDirectoryItem[],
+  newData: GetFilesAndFoldersInDirectoryItem[],
+): boolean {
+  if (oldData.length !== newData.length) return false;
+
+  // Create maps for faster lookup
+  const oldMap = new Map(
+    oldData.map((item) => [item.fullPath ?? item.name, item]),
+  );
+
+  for (const newItem of newData) {
+    const key = newItem.fullPath ?? newItem.name;
+    const oldItem = oldMap.get(key);
+
+    if (!oldItem) return false;
+
+    // Check if the essential properties are the same
+    if (
+      oldItem.type !== newItem.type ||
+      oldItem.name !== newItem.name ||
+      oldItem.modifiedTimestamp !== newItem.modifiedTimestamp
+    ) {
+      return false;
+    }
+
+    // For files, also check the size
+    if (newItem.type === "file" && oldItem.size !== newItem.size) {
+      return false;
+    }
+
+    // For directories, we skip size comparison as it may not be loaded yet
+  }
+
+  return true;
+}
+
 // Helper functions
 export const directoryHelpers = {
   createNewItem: async (
@@ -313,6 +354,33 @@ export const directoryHelpers = {
       directoryId,
     );
     return loadDirectoryInfo(context.directory, directoryId);
+  },
+
+  reloadIfChanged: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type === "tags") return;
+    const currentData = context.directoryData;
+
+    try {
+      const newData = await FileBrowserCache.load(context.directory.fullPath); // Compare the old and new data
+      const hasChanged = !areDirectoryContentsEqual(currentData, newData);
+
+      if (hasChanged) {
+        // Only update if the contents have actually changed
+        directoryStore.send({
+          type: "setDirectoryData",
+          data: newData,
+          directoryId,
+        });
+      }
+    } catch (e) {
+      // If there's an error loading, don't update anything
+      console.error("Error reloading directory:", e);
+      return;
+    }
   },
 
   openItem: (

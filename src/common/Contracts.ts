@@ -98,6 +98,7 @@ export type EventResponseMapping = {
   generateVideoThumbnail: Promise<string>;
   generateAppIcon: Promise<string>;
   "task:event": TaskEvents;
+  "window:focus": void;
   startArchive: Promise<void>;
   startUnarchive: Promise<void>;
   abortTask: Promise<void>;
@@ -267,6 +268,7 @@ export type WindowElectron = {
   generateVideoThumbnail: (filePath: string) => Promise<string>;
   generateAppIcon: (filePath: string) => Promise<string>;
   onTaskEvent: (cb: (e: TaskEvents) => void) => void;
+  onWindowFocus: (cb: () => void) => UnsubscribeFunction;
   startArchive: (
     archiveType: ArchiveTypes.ArchiveType,
     source: string[],

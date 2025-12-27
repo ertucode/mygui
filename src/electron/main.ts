@@ -306,6 +306,11 @@ app.on("ready", () => {
   });
 });
 
+// Listen for window focus events and notify renderer
+app.on("browser-window-focus", (_event, window) => {
+  window.webContents.send("window:focus");
+});
+
 // Clean up worker pool when app is quitting
 app.on("before-quit", async () => {
   await xlsxWorkerPool.terminate();
