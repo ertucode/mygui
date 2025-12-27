@@ -5,11 +5,6 @@
 
 # TODO
 
-- sectioned context menu
-
-- A file picker dialog for selecting files
-- Select app mode.
-
 - auto update opened directories
 - unarchive as file if only one file
 

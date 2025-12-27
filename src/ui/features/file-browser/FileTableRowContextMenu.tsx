@@ -346,57 +346,61 @@ export const FileTableRowContextMenu = ({
       ),
     };
 
-    return (
-      <ContextMenuList
-        items={[
-          {
-            onClick: () => {
-              setDefaultPath(fullPath);
-              close();
-            },
-            view: (
-              <TextWithIcon icon={FolderCogIcon}>
-                Set as default path
-              </TextWithIcon>
-            ),
-          },
-          favoriteItem,
-          lastUsedTagItem,
-          assignTagsItem,
-          copyItem,
-          cutItem,
-          pasteItem,
-          archiveItem,
-          deleteItem,
-          renameItem,
-          batchRenameItem,
-          newFileItem,
-          openDirectoryInNewTab,
-          loadDirectorySize,
-          copyPathItem,
-        ]}
-      />
-    );
+    const directoryMenuItems: (ContextMenuItem | null)[] = [
+      openDirectoryInNewTab,
+      { isSeparator: true },
+      {
+        onClick: () => {
+          setDefaultPath(fullPath);
+          close();
+        },
+        view: (
+          <TextWithIcon icon={FolderCogIcon}>Set as default path</TextWithIcon>
+        ),
+      },
+      favoriteItem,
+      lastUsedTagItem,
+      assignTagsItem,
+      { isSeparator: true },
+      copyItem,
+      cutItem,
+      pasteItem,
+      renameItem,
+      batchRenameItem,
+      deleteItem,
+      { isSeparator: true },
+      archiveItem,
+      { isSeparator: true },
+      newFileItem,
+      { isSeparator: true },
+      copyPathItem,
+      loadDirectorySize,
+    ];
+
+    return <ContextMenuList items={directoryMenuItems} />;
   }
 
-  return (
-    <ContextMenuList
-      items={[
-        openWithApplicationItem,
-        favoriteItem,
-        lastUsedTagItem,
-        assignTagsItem,
-        copyItem,
-        cutItem,
-        pasteItem,
-        archiveItem,
-        unarchiveItem,
-        deleteItem,
-        renameItem,
-        batchRenameItem,
-        newFileItem,
-        copyPathItem,
-      ]}
-    />
-  );
+  const fileMenuItems: (ContextMenuItem | null)[] = [
+    openWithApplicationItem,
+    { isSeparator: true },
+    favoriteItem,
+    lastUsedTagItem,
+    assignTagsItem,
+    { isSeparator: true },
+    copyItem,
+    cutItem,
+    pasteItem,
+    deleteItem,
+    renameItem,
+    batchRenameItem,
+    { isSeparator: true },
+    archiveItem,
+    unarchiveItem,
+    { isSeparator: true },
+    newFileItem,
+    { isSeparator: true },
+    copyPathItem,
+  ];
+
+  return <ContextMenuList items={fileMenuItems} />;
 };

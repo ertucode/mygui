@@ -58,11 +58,12 @@ export function ContextMenu<T>({ children, menu }: ContextMenuProps<T>) {
   );
 }
 
-export type ContextMenuItem = {
+type NormalContextMenuItem = {
   view: React.ReactNode;
   onClick?: () => void;
-  submenu?: (ContextMenuItem | false | null | undefined)[];
+  submenu?: (NormalContextMenuItem | false | null | undefined)[];
 };
+export type ContextMenuItem = NormalContextMenuItem | { isSeparator: true };
 
 export type ContextMenuListProps = {
   items: (ContextMenuItem | false | null | undefined)[];
@@ -71,13 +72,14 @@ export type ContextMenuListProps = {
 export function ContextMenuList({ items }: ContextMenuListProps) {
   const menu = useContext(ContextMenuContext);
   const filteredItems = items.filter((i): i is ContextMenuItem => !!i);
-  
+
   return (
     <ul className="menu menu-sm bg-base-200 rounded-box w-56">
       {filteredItems.map((item, idx) => {
+        if ("isSeparator" in item) return <li key={idx}></li>;
         if (item.submenu) {
           const filteredSubItems = item.submenu.filter(
-            (i): i is ContextMenuItem => !!i,
+            (i): i is NormalContextMenuItem => !!i,
           );
           return (
             <li key={idx}>
