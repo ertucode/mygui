@@ -91,9 +91,14 @@ export function FolderFinderTab({
           selectedFolder,
           activeDirectoryId,
         );
-        const contents =
+        const result =
           await getWindowElectron().getFilesAndFoldersInDirectory(fullPath);
-        setFolderContents(contents);
+        if (result.success) {
+          setFolderContents(result.data);
+        } else {
+          console.error("Failed to load folder contents:", result.error);
+          setFolderContents([]);
+        }
       } catch (err) {
         console.error("Failed to load folder contents:", err);
         setFolderContents([]);

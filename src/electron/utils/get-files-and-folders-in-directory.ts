@@ -3,6 +3,8 @@ import path from "node:path";
 import { expandHome } from "./expand-home.js";
 import { getCategoryFromExtension } from "../../common/file-category.js";
 import { GetFilesAndFoldersInDirectoryItem } from "../../common/Contracts.js";
+import { GenericError, GenericResult } from "../../common/GenericError.js";
+import { Result } from "../../common/Result.js";
 
 export function formatSize(bytes: number | null): string {
   if (bytes === null) return "";
@@ -22,11 +24,7 @@ export function formatPermissions(mode: number): string {
   const others = perms & 7;
 
   const format = (n: number) => {
-    return (
-      (n & 4 ? 'r' : '-') +
-      (n & 2 ? 'w' : '-') +
-      (n & 1 ? 'x' : '-')
-    );
+    return (n & 4 ? "r" : "-") + (n & 2 ? "w" : "-") + (n & 1 ? "x" : "-");
   };
 
   return format(owner) + format(group) + format(others);
@@ -45,48 +43,59 @@ async function safeStat(filePath: string) {
 
 export async function getFilesAndFoldersInDirectory(
   d: string,
-): Promise<GetFilesAndFoldersInDirectoryItem[]> {
-  const dir = expandHome(d);
-  const dirents = await fs.readdir(dir, { withFileTypes: true });
+): Promise<GenericResult<GetFilesAndFoldersInDirectoryItem[]>> {
+  try {
+    const dir = expandHome(d);
+    const dirents = await fs.readdir(dir, { withFileTypes: true });
 
-  const items = await Promise.all(
-    dirents.map(async (entry) => {
-      const fullPath = path.join(dir, entry.name);
+    const items = await Promise.all(
+      dirents.map(async (entry) => {
+        const fullPath = path.join(dir, entry.name);
 
-      if (entry.isFile()) {
+        if (entry.isFile()) {
+          const stat = await safeStat(fullPath);
+          const ext = path.extname(entry.name);
+          const item: GetFilesAndFoldersInDirectoryItem = {
+            type: "file" as const,
+            name: entry.name,
+            ext,
+            category: getCategoryFromExtension(ext),
+            sizeStr: stat?.size ? formatSize(stat.size) : "--",
+            size: stat?.size,
+            modifiedTimestamp: stat?.mtime.getTime(),
+            modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
+            permissions:
+              stat?.mode !== undefined
+                ? formatPermissions(stat.mode)
+                : undefined,
+          };
+          return item;
+        }
+
         const stat = await safeStat(fullPath);
-        const ext = path.extname(entry.name);
-        const item: GetFilesAndFoldersInDirectoryItem = {
-          type: "file" as const,
+
+        return {
+          type: "dir" as const,
           name: entry.name,
-          ext,
-          category: getCategoryFromExtension(ext),
-          sizeStr: stat?.size ? formatSize(stat.size) : "--",
-          size: stat?.size,
+          ext: "" as const,
+          category: "folder" as const,
+          sizeStr: "--",
+          size: null,
           modifiedTimestamp: stat?.mtime.getTime(),
           modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
-          permissions: stat?.mode !== undefined ? formatPermissions(stat.mode) : undefined,
+          permissions:
+            stat?.mode !== undefined ? formatPermissions(stat.mode) : undefined,
         };
-        return item;
-      }
+      }),
+    );
 
-      const stat = await safeStat(fullPath);
-
-      return {
-        type: "dir" as const,
-        name: entry.name,
-        ext: "" as const,
-        category: "folder" as const,
-        sizeStr: "--",
-        size: null,
-        modifiedTimestamp: stat?.mtime.getTime(),
-        modifiedAt: stat?.mtime.toLocaleString("tr-TR", dateOptions),
-        permissions: stat?.mode !== undefined ? formatPermissions(stat.mode) : undefined,
-      };
-    }),
-  );
-
-  return items;
+    return Result.Success(items);
+  } catch (error) {
+    if (error instanceof Error) {
+      return GenericError.Message(error.message);
+    }
+    return GenericError.Unknown(error);
+  }
 }
 
 const dateOptions: Intl.DateTimeFormatOptions = {

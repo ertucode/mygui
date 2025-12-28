@@ -6,12 +6,6 @@
 # TODO
 
 - unarchive as file if only one file
-- fix dialog
-- check ~/.Trash ask for disk access -> import { shell } from "electron";
-
-shell.openExternal(
-"x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"
-);
 
 # AMBITIOUS TODO
 

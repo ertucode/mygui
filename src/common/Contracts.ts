@@ -65,7 +65,9 @@ export type GetFilesAndFoldersInDirectoryItem = (
 
 export type EventResponseMapping = {
   docxToPdf: Promise<string>;
-  getFilesAndFoldersInDirectory: Promise<GetFilesAndFoldersInDirectoryItem[]>;
+  getFilesAndFoldersInDirectory: Promise<
+    GenericResult<GetFilesAndFoldersInDirectoryItem[]>
+  >;
   getFileInfoByPaths: Promise<GetFilesAndFoldersInDirectoryItem[]>;
   openFile: Promise<unknown>;
   onDragStart: Promise<unknown>;
@@ -106,6 +108,7 @@ export type EventResponseMapping = {
   getApplicationsForFile: Promise<ApplicationInfo[]>;
   openFileWithApplication: Promise<void>;
   openSelectAppWindow: Promise<string | null | undefined>;
+  openShell: Promise<void>;
 };
 
 export type StringSearchOptions = {
@@ -180,6 +183,7 @@ export type EventRequestMapping = {
   getApplicationsForFile: string;
   openFileWithApplication: { filePath: string; applicationPath: string };
   openSelectAppWindow: { initialPath: string };
+  openShell: string;
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -200,7 +204,7 @@ export type WindowElectron = {
   convertDocxToPdfByPath: (filePath: string) => Promise<string>;
   getFilesAndFoldersInDirectory: (
     directory: string,
-  ) => Promise<GetFilesAndFoldersInDirectoryItem[]>;
+  ) => Promise<GenericResult<GetFilesAndFoldersInDirectoryItem[]>>;
   openFile: (filePath: string) => Promise<unknown>;
   onDragStart: (
     request: EventRequestMapping["onDragStart"],
@@ -289,6 +293,7 @@ export type WindowElectron = {
   openSelectAppWindow: (
     initialPath: string,
   ) => Promise<string | null | undefined>;
+  openShell: (url: string) => Promise<void>;
   isSelectAppMode: () => boolean;
   sendSelectAppResult: (appPath: string | null | undefined) => void;
   getWindowArgs: () => string;

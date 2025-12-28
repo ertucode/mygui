@@ -2,15 +2,16 @@ import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { mergeMaybeSlashed } from "@common/merge-maybe-slashed";
 import { PathHelpers } from "@common/PathHelpers";
+import { GenericResult } from "@common/GenericError";
 
 export type FileBrowserCacheOperation =
   | {
       loading: true;
-      promise: Promise<GetFilesAndFoldersInDirectoryItem[]>;
+      promise: Promise<GenericResult<GetFilesAndFoldersInDirectoryItem[]>>;
     }
   | {
       loading: false;
-      loaded: GetFilesAndFoldersInDirectoryItem[];
+      loaded: GenericResult<GetFilesAndFoldersInDirectoryItem[]>;
     };
 
 export class FileBrowserCache {
@@ -25,19 +26,22 @@ export class FileBrowserCache {
 
     const promise = getWindowElectron()
       .getFilesAndFoldersInDirectory(dir)
-      .then((items) => {
-        FileBrowserCache.cache.set(dir, { loading: false, loaded: items });
+      .then((result) => {
+        FileBrowserCache.cache.set(dir, { loading: false, loaded: result });
 
-        for (const i of items) {
-          i.fullPath = PathHelpers.revertExpandedHome(
-            homeDirectory,
-            mergeMaybeSlashed(dir, i.name),
-          );
+        if (result.success) {
+          for (const i of result.data) {
+            i.fullPath = PathHelpers.revertExpandedHome(
+              homeDirectory,
+              mergeMaybeSlashed(dir, i.name),
+            );
+          }
         }
+        
         setTimeout(() => {
           FileBrowserCache.cache.delete(dir);
         }, 500);
-        return items;
+        return result;
       });
     return promise;
   };

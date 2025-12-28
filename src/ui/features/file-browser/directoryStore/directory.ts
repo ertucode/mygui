@@ -27,6 +27,7 @@ import {
   DirectoryInfo,
   DirectoryLocalSort,
 } from "./DirectoryBase";
+import { errorResponseToMessage, GenericError } from "@common/GenericError";
 
 function updateDirectory(
   context: DirectoryContext,
@@ -58,7 +59,7 @@ export function createDirectoryContext(
     directory,
     loading: false,
     directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-    error: undefined as string | undefined,
+    error: undefined as GenericError | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
     pendingSelection: null as string | string[] | null,
     selection: {
@@ -131,6 +132,15 @@ export const directoryStore = createStore({
       updateDirectory(context, event.directoryId, (d) => ({
         ...d,
         directoryData: event.data,
+        error: undefined,
+      })),
+    setError: (
+      context,
+      event: { error: GenericError | undefined; directoryId: DirectoryId },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => ({
+        ...d,
+        error: event.error,
       })),
 
     setDirectory: (
@@ -380,7 +390,7 @@ export const directoryStore = createStore({
               directory: directory,
               loading: false,
               directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
-              error: undefined as string | undefined,
+              error: undefined as GenericError | undefined,
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
               // Selection state
@@ -420,12 +430,26 @@ export const loadDirectoryPath = async (
   try {
     const result = await FileBrowserCache.load(dir);
 
+    if (!result.success) {
+      console.log(result);
+      directoryStore.send({
+        type: "setError",
+        error: result.error,
+        directoryId,
+      });
+      toast.show({
+        message: errorResponseToMessage(result.error),
+        severity: "error",
+      });
+      return undefined;
+    }
+
     directoryStore.send({
       type: "setDirectoryData",
-      data: result,
+      data: result.data,
       directoryId,
     });
-    return result;
+    return result.data;
   } catch (e) {
     toast.show({
       message: errorToString(e),
@@ -541,3 +565,8 @@ export const selectViewMode =
   (directoryId: DirectoryId | undefined) =>
   (state: StoreSnapshot<DirectoryContext>) =>
     getActiveDirectory(state.context, directoryId).viewMode;
+
+export const selectError =
+  (directoryId: DirectoryId | undefined) =>
+  (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).error;

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, screen, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, screen, ipcMain, shell } from "electron";
 import os from "os";
 import { ipcHandle, isDev } from "./util.js";
 import fs from "fs";
@@ -237,6 +237,10 @@ app.on("ready", () => {
       return openFileWithApplication(filePath, applicationPath);
     },
   );
+
+  ipcHandle("openShell", async (url: string) => {
+    await shell.openExternal(url);
+  });
 
   // Store pending select-app promises
   const selectAppPromises = new Map<

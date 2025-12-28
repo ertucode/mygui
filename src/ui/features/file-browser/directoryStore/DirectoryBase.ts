@@ -2,6 +2,7 @@ import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { HistoryStack } from "@common/history-stack";
 import { TagColor } from "../tags";
 import { SortState } from "../schemas";
+import { GenericError } from "@common/GenericError";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -37,7 +38,7 @@ export type DirectoryContextDirectory = {
   directory: DirectoryInfo;
   loading: boolean;
   directoryData: GetFilesAndFoldersInDirectoryItem[];
-  error: string | undefined;
+  error: GenericError | undefined;
   historyStack: HistoryStack<DirectoryInfo>;
   pendingSelection: string | string[] | null;
   selection: {

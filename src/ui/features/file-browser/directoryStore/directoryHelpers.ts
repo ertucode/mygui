@@ -365,7 +365,15 @@ export const directoryHelpers = {
     const currentData = context.directoryData;
 
     try {
-      const newData = await FileBrowserCache.load(context.directory.fullPath); // Compare the old and new data
+      const result = await FileBrowserCache.load(context.directory.fullPath);
+      
+      if (!result.success) {
+        // Handle error - could show a toast or update error state
+        console.error("Error reloading directory:", result.error);
+        return;
+      }
+      
+      const newData = result.data;
       const hasChanged = !areDirectoryContentsEqual(currentData, newData);
 
       if (hasChanged) {
@@ -813,12 +821,17 @@ export const directoryHelpers = {
       ? { type: "path", fullPath: opts.fullPath }
       : initialDirectoryInfo;
 
-    FileBrowserCache.load(directory.fullPath).then((directoryData) => {
-      directoryStore.trigger.createLoadedDirectory({
-        fullPath: directory.fullPath,
-        directoryData,
-        tabId: opts.tabId,
-      });
+    FileBrowserCache.load(directory.fullPath).then((result) => {
+      if (result.success) {
+        directoryStore.trigger.createLoadedDirectory({
+          fullPath: directory.fullPath,
+          directoryData: result.data,
+          tabId: opts.tabId,
+        });
+      } else {
+        // If load fails, create with empty data - the error will be shown by loadDirectoryPath
+        directoryStore.send({ type: "createDirectory", ...opts });
+      }
     });
   },
 };

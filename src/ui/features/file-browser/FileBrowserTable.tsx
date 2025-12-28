@@ -1,4 +1,10 @@
-import { ChevronDownIcon, ChevronUpIcon, Loader2Icon } from "lucide-react";
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  Loader2Icon,
+  RefreshCwIcon,
+  Settings2Icon,
+} from "lucide-react";
 import { ContextMenu, useContextMenu } from "../../lib/components/context-menu";
 import { clsx } from "../../lib/functions/clsx";
 import { useTable } from "../../lib/libs/table/useTable";
@@ -10,6 +16,7 @@ import {
   selectLoading,
   selectDirectory,
   selectViewMode,
+  selectError,
 } from "@/features/file-browser/directoryStore/directory";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileTableRowContextMenu } from "@/features/file-browser/FileTableRowContextMenu";
@@ -30,6 +37,10 @@ import {
   selectEffectivePreferences,
 } from "./columnPreferences";
 import { sortNames } from "./schemas";
+import { Alert } from "@/lib/components/alert";
+import { errorResponseToMessage, GenericError } from "@common/GenericError";
+import { getWindowElectron } from "@/getWindowElectron";
+import { Button } from "@/lib/components/button";
 
 export type TableContextMenuProps<T> = {
   item: T;
@@ -117,6 +128,12 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
   );
 
   const viewMode = useSelector(directoryStore, selectViewMode(directoryId));
+
+  const error = useSelector(directoryStore, selectError(directoryId));
+
+  if (error) {
+    return <ErrorView error={error} directoryId={directoryId} />;
+  }
 
   // If grid view is selected, render the grid view component
   if (viewMode === "grid") {
@@ -338,6 +355,55 @@ function LoadingOverlay() {
   return (
     <div className="flex flex-col items-center justify-center absolute inset-0">
       <Loader2Icon className="size-8 stroke-current" />
+    </div>
+  );
+}
+
+function ErrorView({
+  error,
+  directoryId,
+}: {
+  error: GenericError;
+  directoryId: DirectoryId;
+}) {
+  const str = errorResponseToMessage(error);
+
+  if (str.startsWith("EPERM")) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-3">
+        <p className="text-sm opacity-80">
+          To access this file or folder, Koda needs Full Disk Access permission.
+          You can grant this permission in System Settings.
+        </p>
+
+        <div className="flex gap-3">
+          <Button
+            className="btn-secondary"
+            onClick={() => directoryHelpers.reload(directoryId)}
+            icon={RefreshCwIcon}
+          >
+            Reload
+          </Button>
+          <Button
+            className="btn-primary"
+            autoFocus
+            onClick={() => {
+              getWindowElectron().openShell(
+                "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles",
+              );
+            }}
+            icon={Settings2Icon}
+          >
+            Open System Settings
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-full">
+      <Alert>{str}</Alert>
     </div>
   );
 }
