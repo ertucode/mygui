@@ -95,7 +95,6 @@ export function FilePreview({
       key: " ",
       label: "Preview anyway",
       handler: (e) => {
-        console.log("here Preview anyway");
         e?.preventDefault();
         sendMessage("preview-anyway", undefined);
       },

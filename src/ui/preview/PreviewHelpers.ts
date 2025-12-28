@@ -21,7 +21,8 @@ export namespace PreviewHelpers {
     | "xlsx"
     | "video"
     | "video-unsupported"
-    | "archive";
+    | "archive"
+    | "folder";
 
   export type MessageData = {
     filePath: string;

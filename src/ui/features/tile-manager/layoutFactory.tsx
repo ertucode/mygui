@@ -83,11 +83,10 @@ function FileBrowserFilePreview({ isResizing }: { isResizing: boolean }) {
     selection.last != null
       ? filteredDirectoryData[selection.last]
       : null;
-  const previewFilePath =
-    selectedItem && selectedItem.type === "file"
-      ? (selectedItem.fullPath ??
-        directoryHelpers.getFullPath(selectedItem.name, activeDirectoryId))
-      : null;
+  const previewFilePath = selectedItem
+    ? (selectedItem.fullPath ??
+      directoryHelpers.getFullPath(selectedItem.name, activeDirectoryId))
+    : null;
 
   return (
     <FilePreview
