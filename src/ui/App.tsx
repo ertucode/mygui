@@ -1,7 +1,7 @@
 import "./App.css";
 import { FlexLayoutManager } from "./features/tile-manager";
-import { ConfirmationProvider } from "./lib/hooks/useConfirmation";
-import { ToastProvider } from "./lib/components/toast";
+import { ConfirmationRenderer } from "./lib/components/confirmation";
+import { ToastRenderer } from "./lib/components/toast";
 import { TaskMonitor } from "./features/TaskMonitor";
 import { subscribeToTasks } from "./features/taskSubscription";
 import { useCallback } from "react";
@@ -23,12 +23,13 @@ function App() {
   useWindowFocus(handleWindowFocus);
 
   return (
-    <ToastProvider>
-      <ConfirmationProvider>
-        <FlexLayoutManager />
-        <TaskMonitor />
-      </ConfirmationProvider>
-    </ToastProvider>
+    <>
+      <ToastRenderer />
+      <ConfirmationRenderer />
+
+      <FlexLayoutManager />
+      <TaskMonitor />
+    </>
   );
 }
 

@@ -1,4 +1,3 @@
-import { useConfirmation } from "@/lib/hooks/useConfirmation";
 import { useSelector } from "@xstate/store/react";
 import { dialogActions, useIsDialogOpen } from "./dialogStore";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
@@ -22,7 +21,6 @@ function getData(activeDirectoryId: DirectoryId) {
 }
 
 export function FileBrowserShortcuts() {
-  const isConfirmationOpen = useConfirmation().isOpen;
   const isDialogsOpen = useIsDialogOpen();
   const directoryId = useSelector(
     directoryStore,
@@ -324,7 +322,7 @@ export function FileBrowserShortcuts() {
       })),
     ],
     {
-      isDisabled: isConfirmationOpen || isDialogsOpen,
+      isDisabled: isDialogsOpen,
     },
   );
   return undefined;

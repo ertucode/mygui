@@ -1,10 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useCallback,
-  ReactNode,
-} from "react";
+import React, { useState, useCallback, ReactNode } from "react";
 import { CheckCircle, XCircle, AlertTriangle, Info, X } from "lucide-react";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
 
@@ -29,20 +23,6 @@ export interface ToastOptions {
 interface Toast extends ToastOptions {
   id: string;
 }
-
-interface ToastContextType {
-  show: (options: ToastOptions | GenericError.ResultType) => void;
-}
-
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error("useToast must be used within ToastProvider");
-  }
-  return context;
-};
 
 // Global toast manager - available anywhere, even outside React
 class ToastManager {
@@ -148,9 +128,7 @@ const ToastItem: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({
   );
 };
 
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const ToastRenderer = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const removeToast = useCallback((id: string) => {
@@ -204,8 +182,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 
   return (
-    <ToastContext.Provider value={{ show }}>
-      {children}
+    <>
       {Object.entries(toastsByLocation).map(([location, locationToasts]) => (
         <div
           key={location}
@@ -216,6 +193,6 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
           ))}
         </div>
       ))}
-    </ToastContext.Provider>
+    </>
   );
 };

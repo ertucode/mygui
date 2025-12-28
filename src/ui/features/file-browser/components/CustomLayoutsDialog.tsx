@@ -20,7 +20,7 @@ import {
   CheckIcon,
   XIcon,
 } from "lucide-react";
-import { useConfirmation } from "@/lib/hooks/useConfirmation";
+import { confirmation } from "@/lib/components/confirmation";
 import { toast } from "@/lib/components/toast";
 import { IJsonModel } from "flexlayout-react";
 
@@ -251,7 +251,6 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
     const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
     const [currentLayoutJson, setCurrentLayoutJson] =
       useState<IJsonModel | null>(null);
-    const { confirm } = useConfirmation();
 
     useEffect(() => {
       if (dialogOpen) {
@@ -330,7 +329,7 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
     };
 
     const handleDelete = (id: string, name: string) => {
-      confirm({
+      confirmation.trigger.confirm({
         title: "Delete Layout",
         message: `Are you sure you want to delete the layout "${name}"?`,
         confirmText: "Delete",
@@ -359,7 +358,7 @@ export const CustomLayoutsDialog = forwardRef<DialogForItem<{}>, {}>(
         return;
       }
 
-      confirm({
+      confirmation.trigger.confirm({
         title: "Apply Layout",
         message: `Apply layout "${layout.name}"? This will replace your current layout and directories.`,
         confirmText: "Apply",

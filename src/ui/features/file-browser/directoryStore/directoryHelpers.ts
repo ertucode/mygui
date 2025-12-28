@@ -4,7 +4,7 @@ import {
   windowArgs,
 } from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
-import { confirmation } from "@/lib/hooks/useConfirmation";
+import { confirmation } from "@/lib/components/confirmation";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { GenericError } from "@common/GenericError";
@@ -366,13 +366,13 @@ export const directoryHelpers = {
 
     try {
       const result = await FileBrowserCache.load(context.directory.fullPath);
-      
+
       if (!result.success) {
         // Handle error - could show a toast or update error state
         console.error("Error reloading directory:", result.error);
         return;
       }
-      
+
       const newData = result.data;
       const hasChanged = !areDirectoryContentsEqual(currentData, newData);
 
@@ -496,7 +496,7 @@ export const directoryHelpers = {
         ? `Are you sure you want to delete "${items[0].name}"?`
         : `Are you sure you want to delete ${items.length} items?`;
 
-    confirmation.confirm({
+    confirmation.trigger.confirm({
       title: "Confirm Delete",
       message,
       confirmText: "Delete",

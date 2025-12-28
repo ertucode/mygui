@@ -1,6 +1,6 @@
 import { errorResponseToMessage, GenericResult } from "@common/GenericError";
 import { useMemo } from "react";
-import { useToast } from "../components/toast";
+import { toast } from "../components/toast";
 
 export type ResultHandlerResult = GenericResult<unknown> | { noResult: true };
 export type ResultHandlerAdditional = {
@@ -8,8 +8,6 @@ export type ResultHandlerAdditional = {
   error?: () => void;
 };
 export function useDefaultResultHandler() {
-  const toast = useToast();
-
   return useMemo(() => {
     return {
       onResult: (
@@ -39,5 +37,5 @@ export function useDefaultResultHandler() {
       },
       toast,
     };
-  }, [toast]);
+  }, []);
 }
