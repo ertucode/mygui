@@ -28,7 +28,7 @@ export async function getFileContent(
     const isXlsx = XLSX_EXTENSIONS.has(ext);
 
     const stat = await fsP.stat(fullPath);
-    if (!allowBigSize && fileSizeTooLarge(filePath, stat.size).isTooLarge) {
+    if (!allowBigSize && fileSizeTooLarge(ext, stat.size).isTooLarge) {
       return { error: "FILE_TOO_LARGE" };
     }
 
@@ -54,10 +54,10 @@ export async function getFileContent(
     // Handle XLSX/XLS/CSV files - use worker pool to avoid blocking main thread
     if (isXlsx) {
       const MAX_ROWS = fullSize ? 5000 : 50;
-      
+
       try {
         const result = await xlsxWorkerPool.processXlsx(fullPath, MAX_ROWS);
-        
+
         if (result.success) {
           return {
             content: JSON.stringify(result.sheets),
@@ -68,8 +68,9 @@ export async function getFileContent(
           return { error: result.error };
         }
       } catch (error) {
-        return { 
-          error: error instanceof Error ? error.message : "Failed to read XLSX file" 
+        return {
+          error:
+            error instanceof Error ? error.message : "Failed to read XLSX file",
         };
       }
     }
@@ -118,5 +119,3 @@ export async function readCsvWithLimit(
     stream.pipe(parser);
   });
 }
-
-

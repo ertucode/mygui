@@ -30,6 +30,8 @@ export namespace ArchiveTypes {
 
   export type ArchiveType = (typeof Types)[number]["extension"];
 
+  export const SupportedExtensions = new Set(Types.map((t) => t.extension));
+
   export type ArchiveOpts = {
     source: string[]; // array of file paths to archive
     destination: string;

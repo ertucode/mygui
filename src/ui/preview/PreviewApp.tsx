@@ -1,59 +1,55 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  CopyIcon,
-  FilmIcon,
-  AlertCircleIcon,
-  FileArchiveIcon,
-} from "lucide-react";
-import { renderAsync } from "docx-preview";
-import { getWindowElectron } from "@/getWindowElectron";
+import { useEffect, useState } from "react";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
 import { isImageExtension, isVideoExtension } from "@common/file-category";
-import { ArchiveEntry } from "@common/Contracts";
-import { useDebounce } from "@/lib/hooks/useDebounce";
 import { NO_PREVIEW_EXTENSIONS } from "@common/no-preview-extensions";
 import { ArchiveTypes } from "@common/ArchiveTypes";
-
-function expandHome(filePath: string): string {
-  if (filePath.startsWith("~/")) {
-    return homeDirectory + filePath.slice(1);
-  }
-  return filePath;
-}
-let homeDirectory = "";
-
-type ContentType =
-  | "image"
-  | "pdf"
-  | "text"
-  | "docx"
-  | "xlsx"
-  | "video"
-  | "video-unsupported"
-  | "archive";
-
-type PreviewData = {
-  filePath: string;
-  isFile: boolean;
-  fileSize: number | null;
-  fileExt: string | null;
-};
+import { ImagePreview } from "./renderers/ImagePreview";
+import { PdfPreview } from "./renderers/PdfPreview";
+import { DocxPreview } from "./renderers/DocxPreview";
+import { XlsxPreview } from "./renderers/XlsxPreview";
+import { VideoPreview } from "./renderers/VideoPreview";
+import { VideoUnsupportedPreview } from "./renderers/VideoUnsupportedPreview";
+import { ArchivePreview } from "./renderers/ArchivePreview";
+import { TextPreview } from "./renderers/TextPreview";
+import { PathHelpers } from "@common/PathHelpers";
+import { PreviewHelpers } from "./PreviewHelpers";
+import { useDebounce } from "@/lib/hooks/useDebounce";
+import { Button } from "@/lib/components/button";
+import { EyeIcon } from "lucide-react";
 
 export function PreviewApp() {
-  const [previewData, setPreviewData] = useState<PreviewData | null>(null);
-  const [content, setContent] = useState<string | null>(null);
-  const [contentType, setContentType] = useState<ContentType>("text");
+  const [data, setData] = useState<PreviewHelpers.DerivedData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allowBigSize, setAllowBigSize] = useState(false);
   const [_loading, setLoading] = useState(false);
   const loading = useDebounce(_loading, 100);
-  const [copied, setCopied] = useState(false);
 
   // Listen for messages from parent window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === "preview-file") {
-        setPreviewData(event.data.payload);
-        homeDirectory = event.data.payload.homePath;
+        const data = event.data.payload;
+        const contentType = getContentType(data);
+
+        const ext = data.fileExt || "";
+        const shouldSkipPreview = NO_PREVIEW_EXTENSIONS.has(ext);
+        const fullPath = PathHelpers.expandHome(
+          event.data.payload.homePath,
+          data.filePath,
+        );
+        const { isTooLarge, limit: fileSizeLimit } = data.fileSize
+          ? fileSizeTooLarge(ext, data.fileSize)
+          : { isTooLarge: false, limit: Infinity };
+        setData({
+          preview: data,
+          contentType,
+          fullPath,
+          shouldSkipPreview,
+          isTooLarge,
+          fileSizeLimit,
+        });
+        setAllowBigSize(false);
+        setError(null);
       }
     };
 
@@ -61,184 +57,7 @@ export function PreviewApp() {
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const handleCopy = async () => {
-    if (content && contentType === "text") {
-      await navigator.clipboard.writeText(content);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
-  const fetchPreview = (path: string, allowBigSize?: boolean) => {
-    setLoading(true);
-    setError(null);
-
-    getWindowElectron()
-      .readFilePreview(path, allowBigSize)
-      .then((result) => {
-        if ("error" in result) {
-          setError(result.error);
-          setContent(null);
-          setContentType("text");
-        } else {
-          setContent(result.content);
-          setContentType(result.contentType);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        setError(err.message || "Failed to load file preview");
-        setContent(null);
-        setContentType("text");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-
-  const PDF_EXTENSIONS = new Set([".pdf"]);
-  const XLSX_EXTENSIONS = new Set([".xlsx", ".xls", ".csv"]);
-  
-  // Archive formats that support listing contents
-  const ARCHIVE_EXTENSIONS = new Set<ArchiveTypes.ArchiveType>([
-    ".zip",
-    ".7z",
-    ".tar",
-    ".tar.gz",
-    ".tgz",
-    ".tar.bz2",
-    ".tbz2",
-    ".tar.xz",
-    ".txz",
-  ]);
-  
-  // Video formats that Chromium can play natively
-  const PLAYABLE_VIDEO_EXTENSIONS = new Set([
-    ".mp4",
-    ".m4v",
-    ".webm",
-    ".ogv",
-    ".ogg",
-    ".mov",
-  ]);
-
-  const ext = previewData?.fileExt || "";
-  const isXlsx = XLSX_EXTENSIONS.has(ext);
-  const isImage = isImageExtension(ext);
-  const isPdf = PDF_EXTENSIONS.has(ext);
-  const isVideo = isVideoExtension(ext);
-  const isPlayableVideo = PLAYABLE_VIDEO_EXTENSIONS.has(ext);
-  const isArchive = ARCHIVE_EXTENSIONS.has(ext as ArchiveTypes.ArchiveType);
-  const shouldSkipPreview = NO_PREVIEW_EXTENSIONS.has(ext);
-  const { isTooLarge, limit: fileSizeLimit } = previewData?.fileSize
-    ? fileSizeTooLarge(ext, previewData.fileSize)
-    : { isTooLarge: false, limit: Infinity };
-
-  useEffect(() => {
-    if (!previewData?.filePath || !previewData.isFile) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    const fullPath = expandHome(previewData.filePath);
-
-    // For images, PDFs, and playable videos - use file:// URL directly without IPC
-    if (isImage) {
-      setContent(`file://${fullPath}`);
-      setContentType("image");
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    if (isPdf) {
-      setContent(`file://${fullPath}`);
-      setContentType("pdf");
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    if (isVideo) {
-      if (isPlayableVideo) {
-        setContent(`file://${fullPath}`);
-        setContentType("video");
-      } else {
-        // Unsupported video format - show metadata
-        const fileSizeMB = previewData.fileSize
-          ? (previewData.fileSize / 1024 / 1024).toFixed(2)
-          : "Unknown";
-        setContent(
-          JSON.stringify({
-            path: fullPath,
-            size: `${fileSizeMB} MB`,
-            format: ext.replace(".", "").toUpperCase(),
-            message:
-              "This video format cannot be played in the browser. Use an external player.",
-          }),
-        );
-        setContentType("video-unsupported");
-      }
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    if (isTooLarge) {
-      setContent(null);
-      setContentType("text");
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
-    if (isArchive) {
-      // Fetch archive contents via IPC
-      setLoading(true);
-      getWindowElectron()
-        .readArchiveContents(
-          previewData.filePath,
-          ext as ArchiveTypes.ArchiveType,
-        )
-        .then((result) => {
-          if ("error" in result) {
-            setError(String(result.error));
-            setContent(null);
-            setContentType("text");
-          } else {
-            setContent(JSON.stringify(result.data));
-            setContentType("archive");
-            setError(null);
-          }
-        })
-        .catch((err) => {
-          setError(err.message || "Failed to read archive file");
-          setContent(null);
-          setContentType("text");
-        })
-        .finally(() => {
-          setLoading(false);
-        });
-      return;
-    }
-
-    if (shouldSkipPreview) {
-      setContent(null);
-      setContentType("text");
-      setError("Preview not available for this file type");
-      setLoading(false);
-      return;
-    }
-
-    // For other file types (text, docx, xlsx), fetch via IPC
-    const allowBigSize = previewData.fileSize != null;
-    fetchPreview(previewData.filePath, allowBigSize);
-  }, [previewData, isTooLarge, isImage, isPdf, isVideo, isPlayableVideo]);
-
-  if (!previewData?.filePath) {
+  if (!data?.preview?.filePath) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
         No file selected
@@ -246,7 +65,7 @@ export function PreviewApp() {
     );
   }
 
-  if (!previewData.isFile) {
+  if (!data?.preview?.isFile) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
         Directory preview not available
@@ -254,25 +73,37 @@ export function PreviewApp() {
     );
   }
 
-  if (isTooLarge && !content && !loading) {
+  if (data.shouldSkipPreview) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
-        <div>
-          File too large for preview
-          <br />
-          <span className="text-xs">
-            ({((previewData.fileSize ?? 0) / 1024 / 1024).toFixed(2)}MB, max:
-            {fileSizeLimit}MB)
-          </span>
+      <div className="flex items-center justify-center h-full text-gray-500 p-4">
+        Preview not available for this file type
+      </div>
+    );
+  }
+
+  if ((data.isTooLarge && !allowBigSize) || error === "FILE_TOO_LARGE") {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-6 text-center gap-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-md text-gray-700 dark:text-gray-300">
+        <div className="text-lg font-semibold">File too large for preview</div>
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          {((data.preview.fileSize ?? 0) / 1024 / 1024).toFixed(2)} MB /{" "}
+          {data.fileSizeLimit} MB
         </div>
-        <button
-          className="btn btn-xs btn-ghost"
-          onClick={() =>
-            previewData.filePath && fetchPreview(previewData.filePath, true)
-          }
+        <Button
+          className="btn btn-sm mt-2 flex items-center gap-2"
+          onClick={() => setAllowBigSize(true)}
+          icon={EyeIcon}
         >
           Preview anyway
-        </button>
+        </Button>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full text-red-500 p-4">
+        {error}
       </div>
     );
   }
@@ -285,411 +116,57 @@ export function PreviewApp() {
     );
   }
 
-  if (error) {
-    // Handle FILE_TOO_LARGE error specifically
-    if (error === "FILE_TOO_LARGE") {
-      return (
-        <div className="flex flex-col items-center justify-center h-full text-gray-500 p-4 text-center gap-2">
-          <div>
-            File too large for preview
-            <br />
-            <span className="text-xs">(max {isXlsx ? "10" : "1"}MB)</span>
-          </div>
-          <button
-            className="btn btn-xs btn-ghost"
-            onClick={() =>
-              previewData?.filePath && fetchPreview(previewData.filePath, true)
-            }
-          >
-            Preview anyway
-          </button>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4">
-        {error}
-      </div>
-    );
-  }
-
-  if (content === null) {
-    return null;
-  }
-
-  if (contentType === "image") {
-    return (
-      <div className="h-full flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-3 rounded-xl flex items-center justify-center">
-          <img
-            src={content}
-            alt="Preview"
-            className="max-w-full max-h-full object-contain"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (contentType === "pdf") {
-    return (
-      <div className="h-full flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-1 min-h-0 bg-base-200 rounded-xl overflow-hidden">
-          <iframe
-            src={content}
-            title="PDF Preview"
-            className="w-full h-full border-0"
-          />
-        </div>
-      </div>
-    );
-  }
-
-  if (contentType === "docx") {
-    return <DocxPreview base64Content={content} />;
-  }
-
-  if (contentType === "xlsx") {
-    return <XlsxPreview jsonContent={content} />;
-  }
-
-  if (contentType === "video") {
-    return <VideoPreview src={content} />;
-  }
-
-  if (contentType === "video-unsupported") {
-    return <VideoUnsupportedPreview jsonContent={content} />;
-  }
-
-  if (contentType === "archive") {
-    return <ArchivePreview jsonContent={content} />;
-  }
+  const Renderer = getRenderer(data);
 
   return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-3 rounded-xl flex flex-col">
-        <button
-          className="btn btn-xs btn-ghost self-end flex-shrink-0"
-          onClick={handleCopy}
-          title="Copy contents"
-        >
-          <CopyIcon className="size-3" />
-          {copied ? "Copied!" : "Copy"}
-        </button>
-        <pre className="text-[10px] leading-tight whitespace-pre-wrap break-words font-mono">
-          {content}
-        </pre>
-      </div>
-    </div>
+    <Renderer
+      data={data}
+      error={error}
+      setError={setError}
+      loading={loading}
+      setLoading={setLoading}
+      allowBigSize={allowBigSize}
+    />
   );
 }
 
-function DocxPreview({ base64Content }: { base64Content: string }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
+function getRenderer(data: PreviewHelpers.DerivedData) {
+  if (data.contentType === "image") return ImagePreview;
+  if (data.contentType === "pdf") return PdfPreview;
+  if (data.contentType === "docx") return DocxPreview;
+  if (data.contentType === "xlsx") return XlsxPreview;
+  if (data.contentType === "video") return VideoPreview;
+  if (data.contentType === "video-unsupported") return VideoUnsupportedPreview;
+  if (data.contentType === "archive") return ArchivePreview;
+  return TextPreview;
+}
 
-  useEffect(() => {
-    if (!containerRef.current || !base64Content) return;
-
-    const renderDocx = async () => {
-      try {
-        // Convert base64 to ArrayBuffer
-        const binaryString = atob(base64Content);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const arrayBuffer = bytes.buffer;
-
-        // Clear previous content
-        containerRef.current!.innerHTML = "";
-
-        // Render the DOCX
-        await renderAsync(arrayBuffer, containerRef.current!, undefined, {
-          className: "docx-preview",
-          inWrapper: true,
-          ignoreWidth: true,
-          ignoreHeight: true,
-          ignoreFonts: false,
-          breakPages: false,
-          ignoreLastRenderedPageBreak: true,
-          experimental: false,
-          trimXmlDeclaration: true,
-          useBase64URL: true,
-          renderHeaders: true,
-          renderFooters: true,
-          renderFootnotes: true,
-          renderEndnotes: true,
-        });
-
-        setError(null);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to render DOCX");
-      }
-    };
-
-    renderDocx();
-  }, [base64Content]);
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4">
-        {error}
-      </div>
-    );
+function getContentType(previewData: $Maybe<PreviewHelpers.MessageData>) {
+  if (!previewData?.filePath || !previewData.isFile) {
+    return "text";
   }
 
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      <style>{`
-        .docx-preview .docx-wrapper {
-          background: white;
-          padding: 0;
-        }
-        .docx-preview .docx-wrapper > section.docx {
-          box-shadow: none;
-          margin-bottom: 0;
-          padding: 0;
-          width: 100% !important;
-          min-width: 0 !important;
-        }
-        .docx-preview {
-          padding: 1rem !important;
-max-width: 100% !important;
-        }
+  if (!previewData.fileExt) return "text";
 
-.docx-preview-wrapper {
-padding: 0 !important;
-}
-      `}</style>
-      <div
-        ref={containerRef}
-        className="flex-1 min-h-0 overflow-auto bg-white rounded-xl p-2"
-      />
-    </div>
-  );
-}
+  const ext = previewData.fileExt;
 
-function XlsxPreview({ jsonContent }: { jsonContent: string }) {
-  const [activeSheet, setActiveSheet] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-  const [sheets, setSheets] = useState<Record<string, unknown[][]>>({});
-
-  useEffect(() => {
-    try {
-      const parsed = JSON.parse(jsonContent) as Record<string, unknown[][]>;
-      setSheets(parsed);
-      const sheetNames = Object.keys(parsed);
-      if (sheetNames.length > 0 && !activeSheet) {
-        setActiveSheet(sheetNames[0]);
-      }
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to parse spreadsheet data",
-      );
-    }
-  }, [jsonContent]);
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4">
-        {error}
-      </div>
-    );
+  if (isImageExtension(ext)) {
+    return "image";
+  } else if (PreviewHelpers.PDF_EXTENSIONS.has(ext)) {
+    return "pdf";
+  } else if (PreviewHelpers.DOCX_EXTENSIONS.has(ext)) {
+    return "docx";
+  } else if (PreviewHelpers.XLSX_EXTENSIONS.has(ext)) {
+    return "xlsx";
+  } else if (isVideoExtension(ext)) {
+    return PreviewHelpers.PLAYABLE_VIDEO_EXTENSIONS.has(ext)
+      ? "video"
+      : "video-unsupported";
+  } else if (
+    ArchiveTypes.SupportedExtensions.has(ext as ArchiveTypes.ArchiveType)
+  ) {
+    return "archive";
+  } else {
+    return "text";
   }
-
-  const sheetNames = Object.keys(sheets);
-  const currentData = sheets[activeSheet] || [];
-
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      {sheetNames.length > 1 && (
-        <div className="flex gap-1 mb-2 flex-wrap">
-          {sheetNames.map((name) => (
-            <button
-              key={name}
-              className={`btn btn-xs ${activeSheet === name ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => setActiveSheet(name)}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
-      )}
-      <div className="flex-1 min-h-0 overflow-auto bg-base-200 rounded-xl">
-        <table className="table table-xs table-pin-rows table-pin-cols">
-          <tbody>
-            {currentData.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className={rowIndex === 0 ? "bg-base-300 font-semibold" : ""}
-              >
-                {(row as unknown[]).map((cell, colIndex) => (
-                  <td
-                    key={colIndex}
-                    className="border border-base-300 px-2 py-1 text-[10px] whitespace-nowrap"
-                  >
-                    {cell != null ? String(cell) : ""}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function VideoPreview({ src }: { src: string }) {
-  const [error, setError] = useState<string | null>(null);
-
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      {error ? (
-        <div className="flex-1 flex items-center justify-center text-red-500 p-4 text-center">
-          <div>
-            <AlertCircleIcon className="size-8 mx-auto mb-2" />
-            <div>{error}</div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 overflow-hidden bg-base-200 rounded-xl flex items-center justify-center p-2">
-          <video
-            src={src}
-            controls
-            className="max-w-full max-h-full rounded"
-            onError={() =>
-              setError("Failed to load video. Format may not be supported.")
-            }
-          >
-            Your browser does not support video playback.
-          </video>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function VideoUnsupportedPreview({ jsonContent }: { jsonContent: string }) {
-  const [metadata, setMetadata] = useState<{
-    path: string;
-    size: string;
-    format: string;
-    message: string;
-  } | null>(null);
-
-  useEffect(() => {
-    try {
-      setMetadata(JSON.parse(jsonContent));
-    } catch {
-      // ignore parse errors
-    }
-  }, [jsonContent]);
-
-  if (!metadata) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Unable to load video metadata
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      <div className="flex-1 min-h-0 overflow-auto bg-base-200 p-4 rounded-xl flex flex-col items-center justify-center text-center gap-3">
-        <FilmIcon className="size-12 text-gray-400" />
-        <div className="space-y-1">
-          <div className="text-sm font-medium">{metadata.format} Video</div>
-          <div className="text-xs text-gray-500">{metadata.size}</div>
-        </div>
-        <div className="text-xs text-gray-400 max-w-[200px]">
-          {metadata.message}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ArchivePreview({ jsonContent }: { jsonContent: string }) {
-  const [entries, setEntries] = useState<ArchiveEntry[]>([]);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    try {
-      const parsed = JSON.parse(jsonContent) as ArchiveEntry[];
-      setEntries(parsed);
-      setError(null);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to parse archive contents",
-      );
-    }
-  }, [jsonContent]);
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full text-red-500 p-4">
-        {error}
-      </div>
-    );
-  }
-
-  const totalSize = entries.reduce((sum, entry) => sum + entry.size, 0);
-  const totalCompressed = entries.reduce(
-    (sum, entry) => sum + (entry.compressedSize ?? 0),
-    0,
-  );
-  const compressionRatio =
-    totalSize > 0 ? ((1 - totalCompressed / totalSize) * 100).toFixed(1) : "0";
-  const fileSizeMB = (totalSize / 1024 / 1024).toFixed(2);
-
-  return (
-    <div className="h-full flex flex-col min-h-0 overflow-hidden">
-      <div className="flex items-center justify-between mb-2 bg-base-200 rounded-t-none rounded-lg px-3 py-2">
-        <div className="flex items-center gap-2">
-          <FileArchiveIcon className="size-4" />
-          <span className="text-sm font-medium">
-            {entries.length} {entries.length === 1 ? "item" : "items"}
-          </span>
-        </div>
-        <div className="flex gap-3 text-xs">
-          <span>{fileSizeMB} MB</span>
-          <span>{compressionRatio}% saved</span>
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 overflow-auto bg-base-200 rounded-xl">
-        <table className="table table-xs table-pin-rows">
-          <thead>
-            <tr className="bg-base-300">
-              <th className="w-full">Name</th>
-              <th className="text-right whitespace-nowrap">Size</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry, index) => (
-              <tr key={index}>
-                <td className="font-mono text-[10px] break-all">
-                  {entry.isDirectory ? (
-                    <span className="text-blue-500">{entry.name}</span>
-                  ) : (
-                    entry.name
-                  )}
-                </td>
-                <td className="text-right text-[10px] whitespace-nowrap">
-                  {entry.isDirectory
-                    ? "-"
-                    : entry.size >= 1024
-                      ? `${(entry.size / 1024).toFixed(1)} KB`
-                      : `${entry.size} B`}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
 }

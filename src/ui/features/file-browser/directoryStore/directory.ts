@@ -431,7 +431,6 @@ export const loadDirectoryPath = async (
     const result = await FileBrowserCache.load(dir);
 
     if (!result.success) {
-      console.log(result);
       directoryStore.send({
         type: "setError",
         error: result.error,
