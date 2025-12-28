@@ -58,7 +58,6 @@ export namespace GlobalShortcuts {
       compiled.shortcuts.forEach((item, k) => flattened.shortcuts.set(k, item));
       flattened.sequences.push(...compiled.sequences);
     }
-    console.log(compiled);
   }
 
   export function updateEnabled(key: string, enabled: boolean) {
@@ -89,5 +88,19 @@ export namespace GlobalShortcuts {
     handleKeydown(flattened.shortcuts, flattened.sequences, e);
   }
 
-  window.addEventListener("keydown", check);
+  function throttle(fn: Function, delay: number) {
+    let timeout: number | undefined;
+    return function (...args: any[]) {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+      timeout = setTimeout(() => {
+        fn(...args);
+        timeout = undefined;
+      }, delay);
+    };
+  }
+
+  // çok hızlı state değişince patlıyoruz
+  window.addEventListener("keydown", throttle(check, 0));
 }
