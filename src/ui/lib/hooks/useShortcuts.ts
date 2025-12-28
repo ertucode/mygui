@@ -54,13 +54,13 @@ function applyCustomShortcut(
   customShortcuts: Record<string, any>,
 ): DefinedShortcutInput {
   const customKey = customShortcuts[shortcut.label];
-  
+
   if (!customKey) {
     return shortcut;
   }
 
   const customizedShortcut = { ...shortcut };
-  
+
   if (isSequenceShortcut(customizedShortcut)) {
     // Handle sequence shortcuts
     if (typeof customKey === "object" && "sequence" in customKey) {
@@ -91,15 +91,21 @@ export function useShortcuts(
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (opts?.isDisabled) return;
-      
+
       // Apply custom shortcuts
-      const customShortcuts = shortcutCustomizationStore.get().context.customShortcuts;
+      const customShortcuts =
+        shortcutCustomizationStore.get().context.customShortcuts;
       const customizedShortcuts = shortcuts.map((s) => {
         if (!s || s === true) return s;
         return applyCustomShortcut(s, customShortcuts);
       });
-      
-      handleKeyDownWithShortcuts(e, customizedShortcuts, sequenceBufferRef.current, opts);
+
+      handleKeyDownWithShortcuts(
+        e,
+        customizedShortcuts,
+        sequenceBufferRef.current,
+        opts,
+      );
     };
 
     window.addEventListener("keydown", handleKeyDown);

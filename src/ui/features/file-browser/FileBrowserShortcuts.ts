@@ -110,18 +110,6 @@ export function FileBrowserShortcuts() {
         label: "Go to next directory",
       },
       {
-        key: " ",
-        handler: (_) => {
-          if (
-            selectSelection(directoryId)(directoryStore.getSnapshot()).last ==
-            null
-          ) {
-            directorySelection.selectManually(0, directoryId);
-          }
-        },
-        label: "Select first item",
-      },
-      {
         key: ["-", "h"],
         handler: () =>
           directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId),
