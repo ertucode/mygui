@@ -1,5 +1,5 @@
 import { Store } from "@xstate/store";
-import { useSelector } from "@xstate/store/react";
+import { useSyncExternalStore } from "react";
 
 export function subscribeToStores<const Stores extends readonly AnyStore[]>(
   stores: Stores,
@@ -78,28 +78,44 @@ export function createUseDerivedStoreValue<
       }
     | undefined;
 
+  const subscribe = (onStoreChange: () => void) => {
+    // Subscribe to all stores
+    const subscriptions = stores.map((store) => store.subscribe(onStoreChange));
+
+    // Return cleanup function
+    return () => {
+      subscriptions.forEach((sub) => sub.unsubscribe());
+    };
+  };
+
+  const getSnapshot = () => {
+    const contexts = stores.map(
+      (s) => s.getSnapshot().context,
+    ) as ContextsOf<Stores>;
+    const checks = selector(contexts);
+
+    // Only recompute the derived value if checks actually changed
+    if (
+      !last ||
+      last.checks.length !== checks.length ||
+      last.checks.some((v, i) => v !== checks[i])
+    ) {
+      last = {
+        checks,
+        id: Math.random(),
+        value: fn(contexts),
+      };
+    }
+
+    return last.value;
+  };
+
   return [
     function useDerivedStoreValue(): TDerivedValue {
-      // subscribe to each store context
-      const contexts = stores.map((store) =>
-        useSelector(store, (state) => state.context),
-      ) as ContextsOf<Stores>;
+      // Use useSyncExternalStore for manual subscription that only rerenders when
+      // the selector check values actually change, not when unrelated store parts change.
 
-      const checks = selector(contexts);
-
-      if (
-        !last ||
-        last.checks.length !== checks.length ||
-        last.checks.some((v, i) => v !== checks[i])
-      ) {
-        last = {
-          checks,
-          id: Math.random(),
-          value: fn(contexts),
-        };
-      }
-
-      return last.value;
+      return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
     },
     () => last?.value,
   ] as const;
