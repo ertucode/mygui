@@ -47,7 +47,7 @@ export const layoutFactory = (node: TabNode) => {
     case "preview":
       return (
         <div className={paneClassName}>
-          <FileBrowserFilePreview isResizing={false} />
+          <FileBrowserFilePreview />
         </div>
       );
     case "directory":
@@ -63,7 +63,7 @@ export const layoutFactory = (node: TabNode) => {
   }
 };
 
-function FileBrowserFilePreview({ isResizing }: { isResizing: boolean }) {
+function FileBrowserFilePreview() {
   const activeDirectoryId = useSelector(
     directoryStore,
     (s) => s.context.activeDirectoryId,
@@ -94,7 +94,7 @@ function FileBrowserFilePreview({ isResizing }: { isResizing: boolean }) {
       isFile={selectedItem?.type === "file"}
       fileSize={selectedItem?.size}
       fileExt={selectedItem?.type === "file" ? selectedItem.ext : null}
-      isResizing={isResizing}
+      isResizing={false}
     />
   );
 }
