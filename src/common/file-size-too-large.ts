@@ -4,7 +4,7 @@ import { getCategoryFromExtension } from "./file-category.js";
 export const fileSizeLimits: Partial<Record<FileCategory, number>> = {
   document: 1,
   spreadsheet: 10,
-  video: 10,
+  video: Infinity,
   archive: 100,
   image: 100000,
 };
