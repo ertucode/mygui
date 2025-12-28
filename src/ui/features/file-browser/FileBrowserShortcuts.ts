@@ -269,6 +269,18 @@ export const FileBrowserShortcuts = {
           label: "New tab",
         },
         {
+          key: { key: "m", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            const activeTabSet =
+              LayoutHelpers.getActiveTabsetThatHasDirectory();
+            if (!activeTabSet) return;
+
+            layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()));
+          },
+          label: "Maximize/Minimize",
+        },
+        {
           key: { key: "w", metaKey: true },
           handler: (e) => {
             if (

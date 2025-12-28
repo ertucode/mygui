@@ -2,7 +2,7 @@ export function throttle<T extends (...args: any[]) => any>(
   fn: T,
   delay: number,
 ) {
-  let timeout: number | undefined;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   return function (...args: Parameters<T>) {
     if (timeout) {
       clearTimeout(timeout);
