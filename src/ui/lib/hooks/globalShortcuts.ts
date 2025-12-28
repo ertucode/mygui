@@ -88,19 +88,5 @@ export namespace GlobalShortcuts {
     handleKeydown(flattened.shortcuts, flattened.sequences, e);
   }
 
-  function throttle(fn: Function, delay: number) {
-    let timeout: number | undefined;
-    return function (...args: any[]) {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      timeout = setTimeout(() => {
-        fn(...args);
-        timeout = undefined;
-      }, delay);
-    };
-  }
-
-  // çok hızlı state değişince patlıyoruz
-  window.addEventListener("keydown", throttle(check, 2));
+  window.addEventListener("keydown", check);
 }

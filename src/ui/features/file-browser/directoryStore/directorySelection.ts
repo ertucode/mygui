@@ -5,6 +5,7 @@ import {
 import { directoryStore } from "./directory";
 import { DirectoryId, getActiveDirectory } from "./DirectoryBase";
 import { directoryDerivedStores } from "./directorySubscriptions";
+import { throttle } from "@common/throttle";
 
 export const directorySelection = {
   // Selection helpers
@@ -159,6 +160,9 @@ export const directorySelection = {
       return 1;
     };
 
+    // Throttle delay for selection shortcuts
+    const THROTTLE_DELAY = 5;
+
     return [
       {
         key: [{ key: "a", metaKey: true }],
@@ -183,7 +187,7 @@ export const directorySelection = {
       },
       {
         key: ["ArrowUp", "k", "K"],
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -249,12 +253,12 @@ export const directorySelection = {
             }
           }
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Select previous item",
       },
       {
         key: ["ArrowDown", "j", "J"],
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -320,12 +324,12 @@ export const directorySelection = {
             }
           }
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Select next item",
       },
       {
         key: "ArrowLeft",
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -370,12 +374,12 @@ export const directorySelection = {
             directorySelection.select(lastSelected - 10, e, state.directoryId);
           }
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Move left or Jump 10 items up",
       },
       {
         key: "ArrowRight",
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -420,7 +424,7 @@ export const directorySelection = {
             directorySelection.select(lastSelected + 10, e, state.directoryId);
           }
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Move right or Jump 10 items down",
       },
       {
@@ -434,7 +438,7 @@ export const directorySelection = {
       },
       {
         key: { key: "d", ctrlKey: true },
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -450,12 +454,12 @@ export const directorySelection = {
             state.directoryId,
           );
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Page down",
       },
       {
         key: { key: "u", ctrlKey: true },
-        handler: (e) => {
+        handler: throttle((e) => {
           const state = getActiveDirectory(
             directoryStore.getSnapshot().context,
             undefined,
@@ -467,7 +471,7 @@ export const directorySelection = {
             state.directoryId,
           );
           e?.preventDefault();
-        },
+        }, THROTTLE_DELAY),
         label: "Page up",
       },
     ];
