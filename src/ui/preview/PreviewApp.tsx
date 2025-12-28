@@ -153,7 +153,7 @@ function getContentType(previewData: $Maybe<PreviewHelpers.MessageData>) {
 
   if (!previewData.fileExt) return "text";
 
-  const ext = previewData.fileExt;
+  const ext = PathHelpers.ensureDot(previewData.fileExt);
 
   if (isImageExtension(ext)) {
     return "image";

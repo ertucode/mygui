@@ -85,4 +85,9 @@ export namespace PathHelpers {
     }
     return filePath.slice(lastDot + 1);
   }
+
+  export function ensureDot(ext: string) {
+    if (ext.startsWith(".")) return ext;
+    return "." + ext;
+  }
 }

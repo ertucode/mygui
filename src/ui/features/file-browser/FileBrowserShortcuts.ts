@@ -1,6 +1,4 @@
-import { useSelector } from "@xstate/store/react";
-import { dialogActions, useIsDialogOpen } from "./dialogStore";
-import { useShortcuts } from "@/lib/hooks/useShortcuts";
+import { dialogActions, dialogStore } from "./dialogStore";
 import {
   directoryHelpers,
   directoryStore,
@@ -13,320 +11,19 @@ import { LayoutHelpers } from "./utils/LayoutHelpers";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
 import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
 import { directorySelection } from "./directoryStore/directorySelection";
+import { GlobalShortcuts } from "@/lib/hooks/globalShortcuts";
 
-function getData(activeDirectoryId: DirectoryId) {
+function getData() {
   return directoryDerivedStores
-    .get(activeDirectoryId)
+    .get(getActiveDirectoryId())
     ?.getFilteredDirectoryData()!;
 }
 
-export function FileBrowserShortcuts() {
-  const isDialogsOpen = useIsDialogOpen();
-  const directoryId = useSelector(
-    directoryStore,
-    (s) => s.context.activeDirectoryId,
-  );
-
-  const dataCount = directoryDerivedStores
-    .get(directoryId)!
-    .useFilteredDirectoryData().length;
-
-  const directories = useSelector(
-    directoryStore,
-    (s) => s.context.directoryOrder,
-  );
-
-  const viewMode = useSelector(
-    directoryStore,
-    (s) => s.context.directoriesById[directoryId]?.viewMode ?? "list",
-  );
-
-  useShortcuts(
-    [
-      {
-        key: ["Enter", "l"],
-        handler: (e) =>
-          directoryHelpers.openSelectedItem(
-            getData(directoryId),
-            e,
-            directoryId,
-          ),
-        label: "Open selected item",
-      },
-      {
-        key: { key: "p", ctrlKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("finder", { initialTab: "files" });
-        },
-        label: "Find file",
-      },
-      {
-        key: { key: "k", ctrlKey: true, metaKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("commandPalette", {});
-        },
-        label: "Show keyboard shortcuts",
-      },
-      {
-        key: { key: "l", ctrlKey: true, metaKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("customLayouts", {});
-        },
-        label: "Manage custom layouts",
-      },
-      {
-        key: { key: "s", ctrlKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("finder", { initialTab: "strings" });
-        },
-        label: "Find string",
-      },
-      {
-        key: { key: "f", ctrlKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("finder", { initialTab: "folders" });
-        },
-        label: "Find folder",
-      },
-      {
-        key: { key: "o", ctrlKey: true },
-        handler: (_) => {
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, directoryId);
-        },
-        label: "Go to previous directory",
-      },
-      {
-        key: { key: "i", ctrlKey: true },
-        handler: (_) => {
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, directoryId);
-        },
-        label: "Go to next directory",
-      },
-      {
-        key: ["-", "h"],
-        handler: () =>
-          directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, directoryId),
-        label: "Go up to parent directory",
-      },
-      {
-        key: { key: "Backspace", metaKey: true },
-        handler: () => {
-          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
-          // Command+Delete on macOS
-          if (s.indexes.size === 0) return;
-          const data = getData(directoryId);
-          const itemsToDelete = [...s.indexes].map((i) => data[i]);
-          directoryHelpers.handleDelete(itemsToDelete, data, directoryId);
-        },
-        enabledIn: () => true,
-        label: "Delete selected items",
-      },
-      {
-        key: { key: "n", ctrlKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          dialogActions.open("newItem", {});
-        },
-        label: "Create new item",
-      },
-      {
-        key: "r",
-        notKey: { key: "r", metaKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          directoryHelpers.reload(directoryId);
-        },
-        label: "Reload directory",
-      },
-      {
-        key: { key: "r", metaKey: true, shiftKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          const data = getData(directoryId);
-          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
-          const itemsToRename =
-            s.indexes.size < 1 ? data : [...s.indexes].map((i) => data[i]);
-          dialogActions.open("batchRename", itemsToRename);
-        },
-        enabledIn: () => true,
-        label: "Batch rename selected items",
-      },
-      {
-        key: { key: "c", metaKey: true },
-        handler: (e) => {
-          // Check if user is selecting text
-          const selection = window.getSelection();
-          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
-          if (selection && selection.toString().length > 0) {
-            return; // Allow default text copy
-          }
-
-          e?.preventDefault();
-          if (s.indexes.size === 0) return;
-          const itemsToCopy = [...s.indexes].map(
-            (i) => getData(directoryId)[i],
-          );
-          directoryHelpers.handleCopy(itemsToCopy, false, directoryId);
-        },
-        enabledIn: () => true,
-        label: "Copy selected items",
-      },
-      {
-        key: { key: "x", metaKey: true },
-        handler: (e) => {
-          // Check if user is selecting text
-          const selection = window.getSelection();
-          if (selection && selection.toString().length > 0) {
-            return; // Allow default text cut
-          }
-
-          e?.preventDefault();
-          const s = selectSelection(directoryId)(directoryStore.getSnapshot());
-          if (s.indexes.size === 0) return;
-          const itemsToCut = [...s.indexes].map((i) => getData(directoryId)[i]);
-          directoryHelpers.handleCopy(itemsToCut, true, directoryId);
-        },
-        enabledIn: () => true,
-        label: "Cut selected items",
-      },
-      {
-        key: { key: "v", metaKey: true },
-        handler: (e) => {
-          // Check if user is in an input field
-          const target = e?.target as HTMLElement;
-          if (
-            target.tagName === "INPUT" ||
-            target.tagName === "TEXTAREA" ||
-            target.isContentEditable
-          ) {
-            return; // Allow default paste in inputs
-          }
-
-          e?.preventDefault();
-          directoryHelpers.handlePaste(directoryId);
-        },
-        enabledIn: () => true,
-        label: "Paste items",
-      },
-      {
-        key: { key: "v", metaKey: true, ctrlKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          directoryStore.send({ type: "toggleViewMode", directoryId });
-        },
-        label: "Toggle view mode (list/grid)",
-      },
-      {
-        key: { key: "0", ctrlKey: true },
-        handler: (_) => {
-          // @ts-ignore
-          document.querySelector("webview")?.openDevTools();
-        },
-        label: "Open dev tools",
-      },
-      {
-        key: { key: "/" },
-        handler: (e) => {
-          directoryStore.trigger.focusFuzzyInput({ e });
-        },
-        label: "Focus search",
-      },
-      {
-        key: { key: "l", ctrlKey: true, metaKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          directoryHelpers.loadDirectorySizes(directoryId);
-        },
-        label: "Load directory sizes",
-      },
-      {
-        key: { key: "t", metaKey: true },
-        handler: (e) => {
-          e?.preventDefault();
-          const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
-          if (!activeTabSet) return;
-
-          directoryHelpers.createDirectory({
-            tabId: activeTabSet.getId(),
-          });
-        },
-        label: "New tab",
-      },
-      {
-        key: { key: "w", metaKey: true },
-        handler: (e) => {
-          if (
-            directoryStore.getSnapshot().context.directoryOrder.length === 1
-          ) {
-            // Close the window
-            return;
-          }
-          e?.preventDefault();
-          const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
-          if (!activeTabSet) return;
-
-          const activeTab =
-            LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
-          if (!activeTab) return;
-          if (!LayoutHelpers.isDirectory(activeTab)) return;
-
-          layoutModel.doAction(Actions.deleteTab(activeTab.getId()));
-        },
-        label: "Close tab",
-      },
-      {
-        key: "Escape",
-        handler: () => {
-          directorySelection.resetSelection(directoryId);
-        },
-        label: "Reset selection",
-      },
-      // Option+1 through Option+9 to open favorites
-      ...Array.from({ length: 9 }, (_, i) => ({
-        key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
-        handler: (e: KeyboardEvent | undefined) => {
-          e?.preventDefault();
-          const favorite = favoritesStore.get().context.favorites[i];
-          if (favorite) {
-            // Use the current active directory, not the one from the closure
-            const currentActiveId =
-              directoryStore.getSnapshot().context.activeDirectoryId;
-            directoryHelpers.openItemFull(favorite, currentActiveId);
-          }
-        },
-        label: `Open favorite ${i + 1}`,
-      })),
-      ...directorySelection.getSelectionShortcuts(
-        dataCount,
-        directoryId,
-        viewMode,
-      ),
-      ...directories.map((_, i) => ({
-        key: { key: (i + 1).toString(), metaKey: true },
-        handler: (e: KeyboardEvent | undefined) => {
-          e?.preventDefault();
-          const dir = getNthLayoutDirectory(i + 1);
-          if (!dir) return;
-
-          directoryStore.send({
-            type: "setActiveDirectoryId",
-            directoryId: dir,
-          });
-        },
-        label: `Switch to pane ${i + 1}`,
-      })),
-    ],
-    {
-      isDisabled: isDialogsOpen,
-    },
-  );
-  return undefined;
+function getActiveDirectoryId() {
+  return directoryStore.getSnapshot().context.activeDirectoryId;
 }
+
+const SHORTCUTS_KEY = "file-browser";
 
 function getNthLayoutDirectory(n: number) {
   let dir: DirectoryId | undefined = undefined;
@@ -348,3 +45,297 @@ function getNthLayoutDirectory(n: number) {
 
   return dir;
 }
+
+let subscription: (() => void) | undefined = undefined;
+
+export const FileBrowserShortcuts = {
+  init: () => {
+    GlobalShortcuts.create({
+      key: SHORTCUTS_KEY,
+      shortcuts: [
+        {
+          key: ["Enter", "l"],
+          handler: (e) =>
+            directoryHelpers.openSelectedItem(getData(), e, undefined),
+          label: "Open selected item",
+        },
+        {
+          key: { key: "p", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("finder", { initialTab: "files" });
+          },
+          label: "Find file",
+        },
+        {
+          key: { key: "k", ctrlKey: true, metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("commandPalette", {});
+          },
+          label: "Show keyboard shortcuts",
+        },
+        {
+          key: { key: "l", ctrlKey: true, metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("customLayouts", {});
+          },
+          label: "Manage custom layouts",
+        },
+        {
+          key: { key: "s", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("finder", { initialTab: "strings" });
+          },
+          label: "Find string",
+        },
+        {
+          key: { key: "f", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("finder", { initialTab: "folders" });
+          },
+          label: "Find folder",
+        },
+        {
+          key: { key: "o", ctrlKey: true },
+          handler: (_) => {
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, undefined);
+          },
+          label: "Go to previous directory",
+        },
+        {
+          key: { key: "i", ctrlKey: true },
+          handler: (_) => {
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, undefined);
+          },
+          label: "Go to next directory",
+        },
+        {
+          key: ["-", "h"],
+          handler: () =>
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, undefined),
+          label: "Go up to parent directory",
+        },
+        {
+          key: { key: "Backspace", metaKey: true },
+          handler: () => {
+            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            // Command+Delete on macOS
+            if (s.indexes.size === 0) return;
+            const data = getData();
+            const itemsToDelete = [...s.indexes].map((i) => data[i]);
+            directoryHelpers.handleDelete(itemsToDelete, data, undefined);
+          },
+          enabledIn: () => true,
+          label: "Delete selected items",
+        },
+        {
+          key: { key: "n", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            dialogActions.open("newItem", {});
+          },
+          label: "Create new item",
+        },
+        {
+          key: "r",
+          notKey: { key: "r", metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            directoryHelpers.reload(undefined);
+          },
+          label: "Reload directory",
+        },
+        {
+          key: { key: "r", metaKey: true, shiftKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            const data = getData();
+            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            const itemsToRename =
+              s.indexes.size < 1 ? data : [...s.indexes].map((i) => data[i]);
+            dialogActions.open("batchRename", itemsToRename);
+          },
+          enabledIn: () => true,
+          label: "Batch rename selected items",
+        },
+        {
+          key: { key: "c", metaKey: true },
+          handler: (e) => {
+            // Check if user is selecting text
+            const selection = window.getSelection();
+            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            if (selection && selection.toString().length > 0) {
+              return; // Allow default text copy
+            }
+
+            e?.preventDefault();
+            if (s.indexes.size === 0) return;
+            const itemsToCopy = [...s.indexes].map((i) => getData()[i]);
+            directoryHelpers.handleCopy(itemsToCopy, false, undefined);
+          },
+          enabledIn: () => true,
+          label: "Copy selected items",
+        },
+        {
+          key: { key: "x", metaKey: true },
+          handler: (e) => {
+            // Check if user is selecting text
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) {
+              return; // Allow default text cut
+            }
+
+            e?.preventDefault();
+            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            if (s.indexes.size === 0) return;
+            const itemsToCut = [...s.indexes].map((i) => getData()[i]);
+            directoryHelpers.handleCopy(itemsToCut, true, undefined);
+          },
+          enabledIn: () => true,
+          label: "Cut selected items",
+        },
+        {
+          key: { key: "v", metaKey: true },
+          handler: (e) => {
+            // Check if user is in an input field
+            const target = e?.target as HTMLElement;
+            if (
+              target.tagName === "INPUT" ||
+              target.tagName === "TEXTAREA" ||
+              target.isContentEditable
+            ) {
+              return; // Allow default paste in inputs
+            }
+
+            e?.preventDefault();
+            directoryHelpers.handlePaste(undefined);
+          },
+          enabledIn: () => true,
+          label: "Paste items",
+        },
+        {
+          key: { key: "v", metaKey: true, ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            directoryStore.send({
+              type: "toggleViewMode",
+              directoryId: undefined,
+            });
+          },
+          label: "Toggle view mode (list/grid)",
+        },
+        {
+          key: { key: "0", ctrlKey: true },
+          handler: (_) => {
+            // @ts-ignore
+            document.querySelector("webview")?.openDevTools();
+          },
+          label: "Open dev tools",
+          enabledIn: () => true,
+        },
+        {
+          key: { key: "/" },
+          handler: (e) => {
+            directoryStore.trigger.focusFuzzyInput({ e });
+          },
+          label: "Focus search",
+        },
+        {
+          key: { key: "l", ctrlKey: true, metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            directoryHelpers.loadDirectorySizes(undefined);
+          },
+          label: "Load directory sizes",
+        },
+        {
+          key: { key: "t", metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            const activeTabSet =
+              LayoutHelpers.getActiveTabsetThatHasDirectory();
+            if (!activeTabSet) return;
+
+            directoryHelpers.createDirectory({
+              tabId: activeTabSet.getId(),
+            });
+          },
+          label: "New tab",
+        },
+        {
+          key: { key: "w", metaKey: true },
+          handler: (e) => {
+            if (
+              directoryStore.getSnapshot().context.directoryOrder.length === 1
+            ) {
+              // Close the window
+              return;
+            }
+            e?.preventDefault();
+            const activeTabSet =
+              LayoutHelpers.getActiveTabsetThatHasDirectory();
+            if (!activeTabSet) return;
+
+            const activeTab =
+              LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
+            if (!activeTab) return;
+            if (!LayoutHelpers.isDirectory(activeTab)) return;
+
+            layoutModel.doAction(Actions.deleteTab(activeTab.getId()));
+          },
+          label: "Close tab",
+        },
+        {
+          key: "Escape",
+          handler: () => {
+            directorySelection.resetSelection(undefined);
+          },
+          label: "Reset selection",
+        },
+        ...directorySelection.getSelectionShortcuts(),
+        // Option+1 through Option+9 to open favorites
+        ...Array.from({ length: 9 }, (_, i) => ({
+          key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
+          handler: (e: KeyboardEvent | undefined) => {
+            e?.preventDefault();
+            const favorite = favoritesStore.get().context.favorites[i];
+            if (favorite) {
+              // Use the current active directory, not the one from the closure
+              const currentActiveId =
+                directoryStore.getSnapshot().context.activeDirectoryId;
+              directoryHelpers.openItemFull(favorite, currentActiveId);
+            }
+          },
+          label: `Open favorite ${i + 1}`,
+        })),
+        ...new Array(10).fill(0).map((_, i) => ({
+          key: { key: (i + 1).toString(), metaKey: true },
+          handler: (e: KeyboardEvent | undefined) => {
+            e?.preventDefault();
+            const dir = getNthLayoutDirectory(i + 1);
+            if (!dir) return;
+
+            directoryStore.send({
+              type: "setActiveDirectoryId",
+              directoryId: dir,
+            });
+          },
+          label: `Switch to pane ${i + 1}`,
+        })),
+      ],
+      enabled: true,
+      sequences: directorySelection.getSelectionSequenceShortcuts(),
+    });
+
+    subscription = dialogStore.subscribe((state) => {
+      GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, !state.context.openDialog);
+    }).unsubscribe;
+  },
+  deinit: () => {
+    GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false);
+  },
+};

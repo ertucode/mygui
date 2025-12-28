@@ -4,7 +4,6 @@ import {
   windowArgs,
 } from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
-import { confirmation } from "@/lib/components/confirmation";
 import { ResultHandlerResult } from "@/lib/hooks/useDefaultResultHandler";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { GenericError } from "@common/GenericError";
@@ -36,6 +35,7 @@ import { initialDirectoryInfo } from "../defaultPath";
 import { columnPreferencesStore } from "../columnPreferences";
 import { resolveSortFromStores } from "../schemas";
 import { ArchiveHelpers } from "@common/ArchiveHelpers";
+import { confirmation } from "@/lib/components/confirmation";
 
 export const cd = async (
   newDirectory: DirectoryInfo,
@@ -72,7 +72,7 @@ const preloadDirectory = (dir: string) => {
   return FileBrowserCache.load(dir);
 };
 
-const getFullPath = (dir: string, directoryId: DirectoryId) => {
+const getFullPath = (dir: string, directoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(
     directoryStore.getSnapshot().context,
     directoryId,
@@ -92,7 +92,7 @@ const getFullPathForItem = (
 };
 
 const goNextOrPrev = async (
-  directoryId: DirectoryId,
+  directoryId: DirectoryId | undefined,
   nextOrPrev: "Next" | "Prev",
 ) => {
   const context = getActiveDirectory(
@@ -309,15 +309,15 @@ export const directoryHelpers = {
     return cd({ type: "tags", color }, true, directoryId);
   },
 
-  goNext: (directoryId: DirectoryId) => {
+  goNext: (directoryId: DirectoryId | undefined) => {
     return goNextOrPrev(directoryId, "Next");
   },
 
-  goPrev: (directoryId: DirectoryId) => {
+  goPrev: (directoryId: DirectoryId | undefined) => {
     return goNextOrPrev(directoryId, "Prev");
   },
 
-  goUp: async (directoryId: DirectoryId) => {
+  goUp: async (directoryId: DirectoryId | undefined) => {
     const context = getActiveDirectory(
       directoryStore.getSnapshot().context,
       directoryId,
@@ -333,7 +333,7 @@ export const directoryHelpers = {
         directory.fullPath,
       ),
     };
-    return await cdWithMetadata(info, true, directoryId);
+    return await cdWithMetadata(info, true, context.directoryId);
   },
 
   toggleShowDotFiles: fileBrowserSettingsHelpers.toggleShowDotFiles,
@@ -348,12 +348,12 @@ export const directoryHelpers = {
 
   setSettings: fileBrowserSettingsHelpers.setSettings,
 
-  reload: (directoryId: DirectoryId) => {
+  reload: (directoryId: DirectoryId | undefined) => {
     const context = getActiveDirectory(
       directoryStore.getSnapshot().context,
       directoryId,
     );
-    return loadDirectoryInfo(context.directory, directoryId);
+    return loadDirectoryInfo(context.directory, context.directoryId);
   },
 
   reloadIfChanged: async (directoryId: DirectoryId) => {
@@ -393,7 +393,7 @@ export const directoryHelpers = {
 
   openItem: (
     item: GetFilesAndFoldersInDirectoryItem,
-    directoryId: DirectoryId,
+    directoryId: DirectoryId | undefined,
   ) => {
     const fullPath = item.fullPath || getFullPath(item.name, directoryId);
     if (item.type === "dir") {
@@ -435,7 +435,7 @@ export const directoryHelpers = {
   handleCopy: async (
     items: GetFilesAndFoldersInDirectoryItem[],
     cut: boolean = false,
-    directoryId: DirectoryId,
+    directoryId: DirectoryId | undefined,
   ) => {
     const paths = items.map(
       (item) =>
@@ -447,7 +447,7 @@ export const directoryHelpers = {
     }
   },
 
-  handlePaste: async (directoryId: DirectoryId) => {
+  handlePaste: async (directoryId: DirectoryId | undefined) => {
     const context = getActiveDirectory(
       directoryStore.getSnapshot().context,
       directoryId,
@@ -467,7 +467,7 @@ export const directoryHelpers = {
           directoryId,
         );
       }
-      await directoryHelpers.reload(directoryId);
+      await directoryHelpers.reload(context.directoryId);
     } else {
       toast.show(result);
     }
@@ -476,8 +476,13 @@ export const directoryHelpers = {
   handleDelete: async (
     items: GetFilesAndFoldersInDirectoryItem[],
     tableData: GetFilesAndFoldersInDirectoryItem[],
-    directoryId: DirectoryId,
+    _directoryId: DirectoryId | undefined,
   ) => {
+    const directoryId = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      _directoryId,
+    ).directoryId;
+
     const paths = items.map(
       (item) =>
         item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId),
@@ -550,8 +555,8 @@ export const directoryHelpers = {
   },
 
   onGoUpOrPrev: async (
-    fn: (directoryId: DirectoryId) => ReturnOfGoPrev,
-    directoryId: DirectoryId,
+    fn: (directoryId: DirectoryId | undefined) => ReturnOfGoPrev,
+    directoryId: DirectoryId | undefined,
   ) => {
     const metadata = await fn(directoryId);
     if (!metadata) return;
@@ -574,7 +579,7 @@ export const directoryHelpers = {
   openSelectedItem: (
     data: GetFilesAndFoldersInDirectoryItem[],
     e: KeyboardEvent | undefined,
-    directoryId: DirectoryId,
+    directoryId: DirectoryId | undefined,
   ) => {
     const context = getActiveDirectory(
       directoryStore.getSnapshot().context,
@@ -754,7 +759,7 @@ export const directoryHelpers = {
   },
 
   loadDirectorySizes: async (
-    directoryId: DirectoryId,
+    directoryId: DirectoryId | undefined,
     specificDirName?: string,
   ): Promise<void> => {
     const context = getActiveDirectory(
@@ -769,7 +774,7 @@ export const directoryHelpers = {
       return;
     }
 
-    directoryLoadingHelpers.startLoading(directoryId);
+    directoryLoadingHelpers.startLoading(context.directoryId);
     try {
       const sizes = await getWindowElectron().getDirectorySizes(
         context.directory.fullPath,
@@ -791,7 +796,7 @@ export const directoryHelpers = {
       directoryStore.send({
         type: "setDirectoryData",
         data: updatedData,
-        directoryId,
+        directoryId: context.directoryId,
       });
 
       if (specificDirName) {
@@ -813,7 +818,7 @@ export const directoryHelpers = {
         severity: "error",
       });
     } finally {
-      directoryLoadingHelpers.endLoading(directoryId);
+      directoryLoadingHelpers.endLoading(context.directoryId);
     }
   },
   createDirectory: (opts: { tabId?: string; fullPath?: string }) => {

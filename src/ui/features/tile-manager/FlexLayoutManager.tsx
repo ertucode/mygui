@@ -1,4 +1,4 @@
-import React, { useRef, ComponentProps } from "react";
+import React, { useRef, ComponentProps, useEffect } from "react";
 import { Layout } from "flexlayout-react";
 import { BottomToolbar } from "../file-browser/components/BottomToolbar";
 import { CustomTitleBar } from "../file-browser/components/CustomTitleBar";
@@ -17,12 +17,18 @@ export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null);
   const dialogs = useDialogStoreRenderer();
 
+  useEffect(() => {
+    FileBrowserShortcuts.init();
+    return () => {
+      FileBrowserShortcuts.deinit();
+    };
+  });
+
   const { handleModelChange } = useSyncDirectoryStoreAndLayout({ layoutRef });
 
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
       {dialogs.RenderOutside}
-      <FileBrowserShortcuts />
       <SettingsShortcuts />
       <CustomTitleBar />
       <div className="flex-1 min-w-0 min-h-0 relative">

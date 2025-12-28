@@ -58,7 +58,6 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
     directoryStore,
     (d) => d.context.directoriesById[directoryId].directory.type,
   );
-  console.log("renreder");
 
   const fileTags = useSelector(tagsStore, selectFileTags);
 

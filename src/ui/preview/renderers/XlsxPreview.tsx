@@ -3,9 +3,7 @@ import { getWindowElectron } from "@/getWindowElectron";
 import { PreviewHelpers } from "../PreviewHelpers";
 
 export function XlsxPreview({
-  data: {
-    preview: { filePath },
-  },
+  data: { fullPath },
   allowBigSize,
   error,
   setError,
@@ -20,7 +18,7 @@ export function XlsxPreview({
     setError(null);
 
     getWindowElectron()
-      .readFilePreview(filePath, allowBigSize)
+      .readFilePreview(fullPath, allowBigSize)
       .then((result) => {
         if ("error" in result) {
           setError(result.error);
@@ -57,7 +55,7 @@ export function XlsxPreview({
       .finally(() => {
         setLoading(false);
       });
-  }, [filePath, allowBigSize]);
+  }, [fullPath, allowBigSize]);
 
   if (loading) {
     return (
