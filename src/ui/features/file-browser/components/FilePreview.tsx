@@ -74,7 +74,7 @@ export function FilePreview({
     const webview = webviewRef.current;
     if (!webview || !isWebviewReady) return;
 
-    webview.send(message, data);
+    webview.send("message-to-preview", { type: message, payload: data });
   }
 
   // Send file data to webview when it changes or webview becomes ready
@@ -94,7 +94,9 @@ export function FilePreview({
     {
       key: " ",
       label: "Preview anyway",
-      handler: () => {
+      handler: (e) => {
+        console.log("here Preview anyway");
+        e?.preventDefault();
         sendMessage("preview-anyway", undefined);
       },
     },

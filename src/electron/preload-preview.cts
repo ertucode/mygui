@@ -78,6 +78,6 @@ function ipcOn<Key extends keyof EventResponseMapping>(
   };
 }
 
-electron.ipcRenderer.on("preview-file", (_event, payload) => {
-  window.postMessage({ type: "preview-file", payload }, "*");
+electron.ipcRenderer.on("message-to-preview", (_event, payload) => {
+  window.postMessage({ type: payload.type, payload: payload.payload }, "*");
 });

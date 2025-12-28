@@ -27,6 +27,7 @@ export function PreviewApp() {
   // Listen for messages from parent window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      console.log(event.data);
       if (event.data?.type === "preview-file") {
         const data = event.data.payload as PreviewHelpers.MessageData;
         const contentType = getContentType(data);
@@ -54,6 +55,7 @@ export function PreviewApp() {
 
       if (event.data?.type === "preview-anyway") {
         setAllowBigSize(true);
+        setError(null);
       }
     };
 
