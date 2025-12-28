@@ -288,8 +288,6 @@ export function FileBrowserShortcuts() {
         label: "New tab",
       },
       {
-        // layoutModel.doAction(Actions.deleteTab(node.getId()));
-
         key: { key: "w", metaKey: true },
         handler: (e) => {
           if (
@@ -302,7 +300,6 @@ export function FileBrowserShortcuts() {
           const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory();
           if (!activeTabSet) return;
 
-          if (activeTabSet.getChildren().length === 1) return;
           const activeTab =
             LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
           if (!activeTab) return;
