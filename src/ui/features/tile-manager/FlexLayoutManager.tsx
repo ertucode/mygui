@@ -13,8 +13,6 @@ import { useSyncDirectoryStoreAndLayout } from "./useSyncDirectoryStoreAndLayout
 import { LayoutHelpers } from "../file-browser/utils/LayoutHelpers";
 import { SettingsShortcuts } from "../file-browser/SettingsShortcuts";
 
-FileBrowserShortcuts.init();
-
 export const FlexLayoutManager: React.FC = () => {
   const layoutRef = useRef<Layout>(null);
   const dialogs = useDialogStoreRenderer();
@@ -24,6 +22,7 @@ export const FlexLayoutManager: React.FC = () => {
   return (
     <div className="flex flex-col items-stretch h-full overflow-hidden">
       {dialogs.RenderOutside}
+      <FileBrowserShortcuts />
       <SettingsShortcuts />
       <CustomTitleBar />
       <div className="flex-1 min-w-0 min-h-0 relative">
