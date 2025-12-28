@@ -154,14 +154,14 @@ export const directoryStore = createStore({
 
     historyGoNew: (
       context,
-      event: { directory: DirectoryInfo; directoryId: DirectoryId | undefined },
+      event: { directory: DirectoryInfo; directoryId: DirectoryId },
     ) =>
       updateDirectory(context, event.directoryId, (d) => {
         d.historyStack.goNew(event.directory);
         return d;
       }),
 
-    historyGoNext: (context, event: { directoryId: DirectoryId | undefined }) =>
+    historyGoNext: (context, event: { directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, (d) => {
         const nextDir = d.historyStack.goNext();
         return {
@@ -170,7 +170,7 @@ export const directoryStore = createStore({
         };
       }),
 
-    historyGoPrev: (context, event: { directoryId: DirectoryId | undefined }) =>
+    historyGoPrev: (context, event: { directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, (d) => {
         const prevDir = d.historyStack.goPrev();
         return {
@@ -203,10 +203,7 @@ export const directoryStore = createStore({
         },
       })),
 
-    resetSelection: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-    ) =>
+    resetSelection: (context, event: { directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, (d) => ({
         ...d,
         selection: {
@@ -219,7 +216,7 @@ export const directoryStore = createStore({
       context,
       event: {
         index: number;
-        directoryId: DirectoryId | undefined;
+        directoryId: DirectoryId;
         dontTouchWhenSelected?: boolean;
       },
     ) => {
@@ -256,10 +253,7 @@ export const directoryStore = createStore({
         ...d,
         fuzzyQuery: "",
       })),
-    toggleViewMode: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-    ) =>
+    toggleViewMode: (context, event: { directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, (d) => ({
         ...d,
         viewMode: d.viewMode === "list" ? "grid" : "list",
@@ -430,12 +424,8 @@ export const directoryStore = createStore({
 
 export const loadDirectoryPath = async (
   dir: string,
-  _directoryId: DirectoryId | undefined,
+  directoryId: DirectoryId,
 ) => {
-  const directoryId =
-    _directoryId ??
-    getActiveDirectory(directoryStore.getSnapshot().context, _directoryId)
-      .directoryId;
   directoryLoadingHelpers.startLoading(directoryId);
   try {
     const result = await FileBrowserCache.load(dir);
@@ -471,12 +461,8 @@ export const loadDirectoryPath = async (
 
 export const loadTaggedFiles = async (
   color: TagColor,
-  _directoryId: DirectoryId | undefined,
+  directoryId: DirectoryId,
 ) => {
-  const directoryId = getActiveDirectory(
-    directoryStore.getSnapshot().context,
-    _directoryId,
-  ).directoryId;
   const getFilesWithTag = (color: TagColor) =>
     Object.entries(tagsStore.get().context.fileTags)
       .filter(([_, tags]) => tags.includes(color))
@@ -518,7 +504,7 @@ export const loadTaggedFiles = async (
 
 export const loadDirectoryInfo = async (
   info: DirectoryInfo,
-  directoryId: DirectoryId | undefined,
+  directoryId: DirectoryId,
 ) => {
   if (info.type === "path") {
     return loadDirectoryPath(info.fullPath, directoryId);
