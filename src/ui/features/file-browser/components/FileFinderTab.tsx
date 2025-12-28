@@ -259,6 +259,9 @@ export function FileFinderTab({
       {showPreview && selectedFilePath && (
         <div className="w-[400px] h-full border-gray-200 flex flex-col flex-shrink-0">
           <div className="flex-1 min-h-0 overflow-hidden">
+            {selectedFile}
+            {selectedFilePath}
+            {activeDirectoryId}
             <FilePreview
               filePath={selectedFilePath}
               isFile={true}
