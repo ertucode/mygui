@@ -457,40 +457,29 @@ export function getCategoryFromFilename(filename: string): FileCategory {
  * Extension sets for backwards compatibility with existing code.
  * These mirror the sets previously defined in get-file-content.ts and PreviewApp.tsx
  */
+const entries = Object.entries(EXTENSION_CATEGORY_MAP);
 export const IMAGE_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "image")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "image").map(([ext]) => ext),
 );
 
 export const VIDEO_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "video")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "video").map(([ext]) => ext),
 );
 
 export const AUDIO_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "audio")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "audio").map(([ext]) => ext),
 );
 
 export const DOCUMENT_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "document")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "document").map(([ext]) => ext),
 );
 
 export const SPREADSHEET_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "spreadsheet")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "spreadsheet").map(([ext]) => ext),
 );
 
 export const CODE_EXTENSIONS = new Set(
-  Object.entries(EXTENSION_CATEGORY_MAP)
-    .filter(([, cat]) => cat === "code")
-    .map(([ext]) => ext),
+  entries.filter(([, cat]) => cat === "code").map(([ext]) => ext),
 );
 
 /**

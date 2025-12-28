@@ -16,10 +16,16 @@ export default defineConfig({
   base: "./",
   build: {
     outDir: "dist-react",
+    sourcemap: true,
+    minify: false, // Disable minification to preserve function names
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, "index.html"),
         preview: path.resolve(__dirname, "preview.html"),
+      },
+      output: {
+        // Preserve original names for better debugging
+        compact: false,
       },
     },
   },
