@@ -11,6 +11,7 @@ import { VideoPreview } from "./renderers/VideoPreview";
 import { VideoUnsupportedPreview } from "./renderers/VideoUnsupportedPreview";
 import { ArchivePreview } from "./renderers/ArchivePreview";
 import { TextPreview } from "./renderers/TextPreview";
+import { FolderPreview } from "./renderers/FolderPreview";
 import { PathHelpers } from "@common/PathHelpers";
 import { PreviewHelpers } from "./PreviewHelpers";
 import { useDebounce } from "@/lib/hooks/useDebounce";
@@ -30,13 +31,25 @@ export function PreviewApp() {
       if (event.data?.type === "preview-file") {
         const data = event.data.payload as PreviewHelpers.MessageData;
         const contentType = getContentType(data);
-
-        const ext = data.fileExt || "";
-        const shouldSkipPreview = NO_PREVIEW_EXTENSIONS.has(ext);
         const fullPath = PathHelpers.expandHome(
           event.data.payload.homePath,
           data.filePath,
         );
+
+        if (!data.isFile) {
+          setData({
+            preview: data,
+            contentType: "text",
+            fullPath,
+            shouldSkipPreview: false,
+            isTooLarge: false,
+            fileSizeLimit: Infinity,
+          });
+          return;
+        }
+
+        const ext = data.fileExt || "";
+        const shouldSkipPreview = NO_PREVIEW_EXTENSIONS.has(ext);
         const { isTooLarge, limit: fileSizeLimit } = data.fileSize
           ? fileSizeTooLarge(ext, data.fileSize)
           : { isTooLarge: false, limit: Infinity };
@@ -66,14 +79,6 @@ export function PreviewApp() {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
         No file selected
-      </div>
-    );
-  }
-
-  if (!data?.preview?.isFile) {
-    return (
-      <div className="flex items-center justify-center h-full text-gray-500">
-        Directory preview not available
       </div>
     );
   }
@@ -136,6 +141,7 @@ export function PreviewApp() {
 }
 
 function getRenderer(data: PreviewHelpers.DerivedData) {
+  if (!data.preview?.isFile) return FolderPreview;
   if (data.contentType === "image") return ImagePreview;
   if (data.contentType === "pdf") return PdfPreview;
   if (data.contentType === "docx") return DocxPreview;
@@ -146,8 +152,10 @@ function getRenderer(data: PreviewHelpers.DerivedData) {
   return TextPreview;
 }
 
-function getContentType(previewData: $Maybe<PreviewHelpers.MessageData>) {
-  if (!previewData?.filePath || !previewData.isFile) {
+function getContentType(
+  previewData: $Maybe<PreviewHelpers.MessageData>,
+): PreviewHelpers.ContentType {
+  if (!previewData?.filePath) {
     return "text";
   }
 
