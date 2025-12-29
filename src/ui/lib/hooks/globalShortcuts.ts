@@ -5,6 +5,7 @@ import {
   compileShortcuts,
   handleKeydown,
 } from "./shortcutCompilation";
+import { shortcutRegistryAPI } from "./shortcutRegistry";
 import { SequenceShortcut, ShortcutWithHandler } from "./useShortcuts";
 
 export namespace GlobalShortcuts {
@@ -57,6 +58,14 @@ export namespace GlobalShortcuts {
     if (item.enabled) {
       compiled.shortcuts.forEach((item, k) => flattened.shortcuts.set(k, item));
       flattened.sequences.push(...compiled.sequences);
+    }
+
+    for (const i of item.shortcuts) {
+      shortcutRegistryAPI.register(i.label, i);
+    }
+
+    for (const i of item.sequences) {
+      shortcutRegistryAPI.register(i.label, i);
     }
   }
 
