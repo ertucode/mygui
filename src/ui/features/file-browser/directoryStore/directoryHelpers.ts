@@ -432,46 +432,7 @@ export const directoryHelpers = {
     }
   },
 
-  handleCopy: async (
-    items: GetFilesAndFoldersInDirectoryItem[],
-    cut: boolean = false,
-    directoryId: DirectoryId | undefined,
-  ) => {
-    const paths = items.map(
-      (item) =>
-        item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId),
-    );
-    const result = await getWindowElectron().copyFiles(paths, cut);
-    if (!result.success) {
-      toast.show(result);
-    }
-  },
 
-  handlePaste: async (directoryId: DirectoryId | undefined) => {
-    const context = getActiveDirectory(
-      directoryStore.getSnapshot().context,
-      directoryId,
-    );
-    if (context.directory.type !== "path") {
-      toast.show(GenericError.Message("Cannot paste in tags view"));
-      return;
-    }
-    const result = await getWindowElectron().pasteFiles(
-      context.directory.fullPath,
-    );
-    if (result.success) {
-      // Select the first pasted item
-      if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
-        directoryHelpers.setPendingSelection(
-          result.data.pastedItems[0],
-          directoryId,
-        );
-      }
-      await directoryHelpers.reload(context.directoryId);
-    } else {
-      toast.show(result);
-    }
-  },
 
   handleDelete: async (
     items: GetFilesAndFoldersInDirectoryItem[],

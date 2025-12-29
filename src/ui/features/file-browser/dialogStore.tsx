@@ -10,7 +10,8 @@ import { ArchiveDialog } from "./components/ArchiveDialog";
 import { UnarchiveDialog } from "./components/UnarchiveDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon } from "lucide-react";
+import { PasteConflictDialog } from "./components/PasteConflictDialog";
+import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon, FileWarningIcon } from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
@@ -26,7 +27,8 @@ export type DialogType =
   | "archive"
   | "unarchive"
   | "commandPalette"
-  | "customLayouts";
+  | "customLayouts"
+  | "pasteConflict";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -40,6 +42,12 @@ export type DialogMetadata = {
   unarchive: { archiveFilePath: string; suggestedName: string; archiveType: string };
   commandPalette: {};
   customLayouts: {};
+  pasteConflict: {
+    conflictData: import("@common/Contracts").PasteConflictData;
+    destinationDir: string;
+    onResolve: (resolution: import("@common/Contracts").ConflictResolution) => void;
+    onCancel: () => void;
+  };
 };
 
 // Store context - only one dialog can be open at a time
@@ -156,6 +164,12 @@ const dialogDefinitions = [
     component: CustomLayoutsDialog,
     icon: LayoutGridIcon,
     title: "Custom Layouts",
+  },
+  {
+    type: "pasteConflict" as const,
+    component: PasteConflictDialog,
+    icon: FileWarningIcon,
+    title: "Paste Conflicts",
   },
 ] as const;
 

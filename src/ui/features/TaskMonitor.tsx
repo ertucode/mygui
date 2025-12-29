@@ -12,6 +12,8 @@ import {
   FolderIcon,
   X,
   XOctagon,
+  Copy,
+  Move,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -26,9 +28,33 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return `Creating ${task.metadata.type} archive`;
     case "unarchive":
       return `Extracting ${task.metadata.type} archive`;
+    case "paste":
+      return task.metadata.isCut ? "Moving files" : "Copying files";
     default:
       return "Processing task";
   }
+}
+
+function formatTimeRemaining(ms: number): string {
+  const seconds = Math.ceil(ms / 1000);
+
+  if (seconds < 60) {
+    return `${seconds}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (minutes < 60) {
+    return remainingSeconds > 0
+      ? `${minutes}m ${remainingSeconds}s`
+      : `${minutes}m`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 }
 
 function getTaskIcon(task: TaskDefinition) {
@@ -37,6 +63,8 @@ function getTaskIcon(task: TaskDefinition) {
       return Archive;
     case "unarchive":
       return FolderArchive;
+    case "paste":
+      return task.metadata.isCut ? Move : Copy;
     default:
       return FileIcon;
   }
@@ -164,6 +192,33 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     );
   }
 
+  if (task.type === "paste") {
+    const { fileCount, destinationDir, isEstimated } = task.metadata;
+    const itemLabel =
+      (isEstimated ? "More than " : "") +
+      (fileCount === 0
+        ? ""
+        : fileCount === 1
+          ? "1 file"
+          : `${fileCount} files`);
+
+    return (
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <FileIcon className="h-3 w-3 flex-shrink-0" />
+          {itemLabel && <span>{itemLabel}</span>}
+        </div>
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <FolderIcon className="h-3 w-3 flex-shrink-0" />
+          <span className="font-medium">Destination:</span>
+          <span className="truncate" title={destinationDir}>
+            {formatPath(destinationDir)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return null;
 }
 
@@ -177,6 +232,28 @@ function TaskItem({
   const status = getTaskStatus(task);
   const Icon = getTaskIcon(task);
   const label = getTaskTypeLabel(task);
+
+  // Calculate estimated time remaining based on createdIso and progress
+  const estimatedTimeRemaining = (() => {
+    if (status !== "running" || task.progress <= 0 || task.progress >= 100) {
+      return undefined;
+    }
+
+    const startTime = new Date(task.createdIso).getTime();
+    const now = Date.now();
+    const elapsed = now - startTime;
+
+    // Need at least 1 second of progress to make a reasonable estimate
+    if (elapsed < 1000) {
+      return undefined;
+    }
+
+    const estimatedTotal = (elapsed / task.progress) * 100;
+    const remaining = Math.max(0, estimatedTotal - elapsed);
+
+    // Only show if more than 1 second remaining
+    return remaining > 1000 ? remaining : undefined;
+  })();
 
   // Auto-dismiss successful tasks after 5 seconds
   useEffect(() => {
@@ -219,14 +296,43 @@ function TaskItem({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 justify-between">
             <div className="font-medium text-sm text-base-content">{label}</div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 relative">
               <div className="flex-shrink-0">
                 {status === "running" && (
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-primary">
-                      {Math.round(task.progress)}%
-                    </span>
-                    <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
+                    <div className="flex flex-col items-end">
+                      <span className="text-xs font-semibold text-primary">
+                        {Math.round(task.progress)}%
+                      </span>
+                      {estimatedTimeRemaining && (
+                        <span className="text-[10px] text-base-content/60">
+                          {formatTimeRemaining(estimatedTimeRemaining)} left
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center">
+                      <Loader2Icon className="h-4 w-4 text-primary animate-spin" />
+                      <div className="absolute right-0 flex items-center size-4">
+                        {status === "running" && (
+                          <button
+                            onClick={handleCancel}
+                            className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Cancel task"
+                          >
+                            <XOctagon className="h-4 w-4" />
+                          </button>
+                        )}
+                        {status !== "running" && (
+                          <button
+                            onClick={onDismiss}
+                            className="btn btn-xs size-4 btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Dismiss"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
                 {status === "success" && (
@@ -236,24 +342,6 @@ function TaskItem({
                   <XCircle className="h-4 w-4 text-error" />
                 )}
               </div>
-              {status === "running" && (
-                <button
-                  onClick={handleCancel}
-                  className="btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Cancel task"
-                >
-                  <XOctagon className="h-3 w-3" />
-                </button>
-              )}
-              {status !== "running" && (
-                <button
-                  onClick={onDismiss}
-                  className="btn btn-ghost btn-xs btn-circle opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Dismiss"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              )}
             </div>
           </div>
 

@@ -4,6 +4,7 @@ import {
   EventResponseMapping,
   StringSearchOptions,
   WindowElectron,
+  ConflictResolution,
 } from "../common/Contracts";
 import { TaskEvents } from "../common/Tasks";
 import { ArchiveTypes } from "../common/ArchiveTypes";
@@ -42,8 +43,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
   },
   copyFiles: (filePaths: string[], cut: boolean) =>
     ipcInvoke("copyFiles", { filePaths, cut }),
-  pasteFiles: (destinationDir: string) =>
-    ipcInvoke("pasteFiles", { destinationDir }),
+  pasteFiles: (destinationDir: string, resolution?: ConflictResolution) =>
+    ipcInvoke("pasteFiles", { destinationDir, resolution }),
   fuzzyFileFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFileFinder", { directory, query }),
   searchStringRecursively: (options: StringSearchOptions) =>

@@ -63,6 +63,33 @@ export type GetFilesAndFoldersInDirectoryItem = (
   permissions?: string;
 };
 
+export type PasteConflictInfo = {
+  sourcePath: string;
+  destinationPath: string;
+  suggestedName: string;
+  type: "file" | "dir";
+  sourceSize: number;
+  destSize: number;
+  sourceSizeStr: string;
+  destSizeStr: string;
+};
+
+export type PasteConflictData = {
+  conflicts: PasteConflictInfo[];
+  exceedsLimit: boolean;
+  totalConflicts: number;
+};
+
+export type ConflictResolution = {
+  globalStrategy: "override" | "trash" | "autoName" | "skip";
+  perFileOverrides?: {
+    [destinationPath: string]: {
+      action: "override" | "trash" | "customName" | "skip";
+      customName?: string;
+    };
+  };
+};
+
 export type EventResponseMapping = {
   docxToPdf: Promise<string>;
   getFilesAndFoldersInDirectory: Promise<
@@ -92,7 +119,13 @@ export type EventResponseMapping = {
   getPreviewPreloadPath: string;
   copyFiles: Promise<GenericResult<void>>;
   setClipboardCutMode: Promise<void>;
-  pasteFiles: Promise<GenericResult<{ pastedItems: string[] }>>;
+  pasteFiles: Promise<
+    | { needsResolution: true; conflictData: PasteConflictData }
+    | {
+        needsResolution: false;
+        result: GenericResult<{ pastedItems: string[] }>;
+      }
+  >;
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
@@ -158,7 +191,7 @@ export type EventRequestMapping = {
   }>;
   copyFiles: { filePaths: string[]; cut: boolean };
   setClipboardCutMode: { cut: boolean };
-  pasteFiles: { destinationDir: string };
+  pasteFiles: { destinationDir: string; resolution?: ConflictResolution };
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: StringSearchOptions;
   fuzzyFolderFinder: { directory: string; query: string };
@@ -247,7 +280,14 @@ export type WindowElectron = {
   setClipboardCutMode: (cut: boolean) => Promise<void>;
   pasteFiles: (
     destinationDir: string,
-  ) => Promise<GenericResult<{ pastedItems: string[] }>>;
+    resolution?: ConflictResolution,
+  ) => Promise<
+    | { needsResolution: true; conflictData: PasteConflictData }
+    | {
+        needsResolution: false;
+        result: GenericResult<{ pastedItems: string[] }>;
+      }
+  >;
   fuzzyFileFinder: (
     directory: string,
     query: string,

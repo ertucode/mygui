@@ -1,5 +1,10 @@
 import { ExternalStore } from "../common/external-store.js";
-import { TaskDefinition, TaskCreate, TaskEvents } from "../common/Tasks.js";
+import {
+  TaskDefinition,
+  TaskCreate,
+  TaskEvents,
+  TaskUpdate,
+} from "../common/Tasks.js";
 
 export namespace TaskManager {
   const tasks: Record<
@@ -23,6 +28,23 @@ export namespace TaskManager {
     const serializableTask = stripNonSerializable(t);
     publisher.notifyListeners({ type: "create", task: serializableTask });
     return id;
+  }
+
+  export function update<T extends TaskDefinition["type"]>(
+    id: string,
+    opts: TaskUpdate<T>,
+  ) {
+    const task = tasks[id];
+    if (!task) return;
+    const serializableTask = stripNonSerializable({
+      ...task,
+      metadata: { ...task.metadata, ...opts.metadata } as any,
+    });
+    publisher.notifyListeners({
+      type: "update",
+      id,
+      metadata: serializableTask.metadata,
+    });
   }
 
   function stripNonSerializable(

@@ -14,6 +14,7 @@
     "build:react": "tsc -b && vite build",
     "check:frontend": "tsc -b",
     "check:backend": "tsc -p ./src/electron/tsconfig.json",
+    "test:paste": "npm run transpile:electron && node --test dist-electron/electron/utils/paste-files.test.js",
     "lint": "eslint .",
     "preview": "vite preview",
     "transpile:electron": "tsc -p ./src/electron/tsconfig.json",

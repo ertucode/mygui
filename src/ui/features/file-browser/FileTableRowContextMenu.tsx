@@ -27,6 +27,7 @@ import {
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
 import { directoryHelpers, directoryStore } from "./directoryStore/directory";
+import { clipboardHelpers } from "./clipboardHelpers";
 import { selectIsFavorite, favoritesStore } from "./favorites";
 import {
   tagsStore,
@@ -92,7 +93,7 @@ export const FileTableRowContextMenu = ({
 
   const copyItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, false, directoryId);
+      clipboardHelpers.copy(selectedItems, false, directoryId);
       close();
     },
     view: (
@@ -107,7 +108,7 @@ export const FileTableRowContextMenu = ({
 
   const cutItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handleCopy(selectedItems, true, directoryId);
+      clipboardHelpers.copy(selectedItems, true, directoryId);
       close();
     },
     view: (
@@ -122,7 +123,7 @@ export const FileTableRowContextMenu = ({
 
   const pasteItem: ContextMenuItem = {
     onClick: () => {
-      directoryHelpers.handlePaste(directoryId);
+      clipboardHelpers.paste(directoryId);
       close();
     },
     view: <TextWithIcon icon={ClipboardPasteIcon}>Paste</TextWithIcon>,

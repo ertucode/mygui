@@ -1,6 +1,7 @@
 import { createStore } from "@xstate/store";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { directoryHelpers, directoryStore } from "./directoryStore/directory";
+import { clipboardHelpers } from "./clipboardHelpers";
 import { getWindowElectron } from "@/getWindowElectron";
 import { toast } from "@/lib/components/toast";
 import { DirectoryId } from "./directoryStore/DirectoryBase";
@@ -118,7 +119,7 @@ export const fileDragDropHandlers = {
   ) => {
     // Copy files to clipboard (cut=true for move by default)
     // The cut mode can be changed to false (copy) if Alt is pressed during drop
-    await directoryHelpers.handleCopy(items, true, directoryId);
+    await clipboardHelpers.copy(items, true, directoryId);
   },
 
   // Handle drag over on the table container
@@ -191,7 +192,6 @@ export const fileDragDropHandlers = {
       return;
     }
 
-    const destinationDir = directoryFullPath;
     const isCopy = e.altKey; // Alt key means copy instead of move
 
     try {
@@ -201,40 +201,23 @@ export const fileDragDropHandlers = {
       }
 
       // The files should already be in clipboard from onDragStart
-      // Use the existing paste mechanism to handle the drop
-      const result = await getWindowElectron().pasteFiles(destinationDir);
+      // Use clipboardHelpers to handle the drop with conflict resolution
+      await clipboardHelpers.paste(directoryId);
 
-      if (result.success) {
-        const itemCount = result.data?.pastedItems.length ?? 0;
-        toast.show({
-          message: isCopy
-            ? `Copied ${itemCount} item(s)`
-            : `Moved ${itemCount} item(s)`,
-          severity: "success",
-        });
+      // Activate the target directory
+      directoryStore.send({
+        type: "setActiveDirectoryId",
+        directoryId: directoryId,
+      });
 
-        // Activate the target directory
-        directoryStore.send({
-          type: "setActiveDirectoryId",
-          directoryId: directoryId,
-        });
-
-        // Reload all directory panes to reflect changes
-        const allDirectories =
-          directoryStore.getSnapshot().context.directoryOrder;
-        for (const dirId of allDirectories) {
+      // Reload all OTHER directory panes to reflect changes
+      // The active directory will be reloaded by clipboardHelpers.paste
+      const allDirectories =
+        directoryStore.getSnapshot().context.directoryOrder;
+      for (const dirId of allDirectories) {
+        if (dirId !== directoryId) {
           await directoryHelpers.reload(dirId);
         }
-
-        // Set selection on the first pasted item in the target directory
-        if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
-          directoryHelpers.setPendingSelection(
-            result.data.pastedItems[0],
-            directoryId,
-          );
-        }
-      } else {
-        toast.show(result);
       }
     } catch (error) {
       toast.show({
@@ -313,44 +296,24 @@ export const fileDragDropHandlers = {
         await getWindowElectron().setClipboardCutMode(false);
       }
 
-      const result = await getWindowElectron().pasteFiles(targetDir);
+      // Navigate to the target folder first
+      await directoryHelpers.cdFull(targetDir, directoryId);
+      directoryStore.send({
+        type: "setActiveDirectoryId",
+        directoryId: directoryId,
+      });
 
-      if (result.success) {
-        const itemCount = result.data?.pastedItems.length ?? 0;
-        toast.show({
-          message: isCopy
-            ? `Copied ${itemCount} item(s) to ${item.name}`
-            : `Moved ${itemCount} item(s) to ${item.name}`,
-          severity: "success",
-        });
+      // Now paste into this directory using clipboardHelpers
+      // This will handle conflicts and reload automatically
+      await clipboardHelpers.paste(directoryId);
 
-        // Navigate to the target folder and activate this directory
-        directoryHelpers.cdFull(targetDir, directoryId);
-        directoryStore.send({
-          type: "setActiveDirectoryId",
-          directoryId: directoryId,
-        });
-
-        // Wait a bit for navigation to complete, then set selection
-        setTimeout(() => {
-          if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
-            directoryHelpers.setPendingSelection(
-              result.data.pastedItems[0],
-              directoryId,
-            );
-          }
-        }, 100);
-
-        // Reload all OTHER directory panes to reflect changes
-        const allDirectories =
-          directoryStore.getSnapshot().context.directoryOrder;
-        for (const dirId of allDirectories) {
-          if (dirId !== directoryId) {
-            await directoryHelpers.reload(dirId);
-          }
+      // Reload all OTHER directory panes to reflect changes
+      const allDirectories =
+        directoryStore.getSnapshot().context.directoryOrder;
+      for (const dirId of allDirectories) {
+        if (dirId !== directoryId) {
+          await directoryHelpers.reload(dirId);
         }
-      } else {
-        toast.show(result);
       }
     } catch (error) {
       toast.show({

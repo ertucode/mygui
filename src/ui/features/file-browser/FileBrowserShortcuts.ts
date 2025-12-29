@@ -4,6 +4,7 @@ import {
   directoryStore,
   selectSelection,
 } from "./directoryStore/directory";
+import { clipboardHelpers } from "./clipboardHelpers";
 import { favoritesStore } from "./favorites";
 import { layoutModel } from "./initializeDirectory";
 import { Actions, TabNode } from "flexlayout-react";
@@ -177,7 +178,7 @@ export const FileBrowserShortcuts = {
             e?.preventDefault();
             if (s.indexes.size === 0) return;
             const itemsToCopy = [...s.indexes].map((i) => getData()[i]);
-            directoryHelpers.handleCopy(itemsToCopy, false, undefined);
+            clipboardHelpers.copy(itemsToCopy, false, undefined);
           },
           enabledIn: () => true,
           label: "Copy selected items",
@@ -195,7 +196,7 @@ export const FileBrowserShortcuts = {
             const s = selectSelection(undefined)(directoryStore.getSnapshot());
             if (s.indexes.size === 0) return;
             const itemsToCut = [...s.indexes].map((i) => getData()[i]);
-            directoryHelpers.handleCopy(itemsToCut, true, undefined);
+            clipboardHelpers.copy(itemsToCut, true, undefined);
           },
           enabledIn: () => true,
           label: "Cut selected items",
@@ -214,7 +215,7 @@ export const FileBrowserShortcuts = {
             }
 
             e?.preventDefault();
-            directoryHelpers.handlePaste(undefined);
+            clipboardHelpers.paste(undefined);
           },
           enabledIn: () => true,
           label: "Paste items",

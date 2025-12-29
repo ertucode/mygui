@@ -1,9 +1,15 @@
 import { ArchiveTypes } from "./ArchiveTypes.js";
 import { GenericResult } from "./GenericError.js";
 
-export type TaskDefinition = Tasks.Base & (Tasks.Archive | Tasks.Unarchive);
+export type TaskDefinition = Tasks.Base &
+  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste);
 
 export type TaskCreate = Omit<TaskDefinition, "id" | "createdIso">;
+
+export type TaskUpdate<T extends TaskDefinition["type"]> = {
+  type: T;
+  metadata: Partial<Extract<TaskDefinition, { type: T }>["metadata"]>;
+};
 
 export namespace Tasks {
   export type Base = {
@@ -27,12 +33,28 @@ export namespace Tasks {
     } & ArchiveTypes.UnarchiveOpts;
     result?: ArchiveTypes.UnarchiveResult;
   };
+
+  export type Paste = {
+    type: "paste";
+    metadata: {
+      fileCount: number;
+      destinationDir: string;
+      isCut: boolean;
+      isEstimated: boolean;
+    };
+    result?: GenericResult<{ pastedItems: string[] }>;
+  };
 }
 
 export type TaskEvents =
   | {
       type: "create";
       task: TaskDefinition;
+    }
+  | {
+      type: "update";
+      id: string;
+      metadata: Partial<TaskDefinition["metadata"]>;
     }
   | {
       type: "progress";
@@ -42,7 +64,7 @@ export type TaskEvents =
   | {
       type: "result";
       id: string;
-      result: GenericResult<void>;
+      result: GenericResult<any>;
     }
   | {
       type: "abort";

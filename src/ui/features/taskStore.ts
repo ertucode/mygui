@@ -33,7 +33,25 @@ export const taskStore = createStore({
         [event.id]: {
           ...context.tasks[event.id],
           progress: event.progress,
-        },
+        } as TaskDefinition,
+      },
+    }),
+    updateMetadata: (
+      context: TaskStoreContext,
+      event: {
+        id: string;
+        metadata: Partial<TaskDefinition["metadata"]>;
+      },
+    ) => ({
+      tasks: {
+        ...context.tasks,
+        [event.id]: {
+          ...context.tasks[event.id],
+          metadata: {
+            ...context.tasks[event.id].metadata,
+            ...event.metadata,
+          },
+        } as TaskDefinition,
       },
     }),
     setResult: (
@@ -48,7 +66,7 @@ export const taskStore = createStore({
         [event.id]: {
           ...context.tasks[event.id],
           result: event.result,
-        },
+        } as TaskDefinition,
       },
     }),
     removeTask: (
@@ -75,6 +93,8 @@ getWindowElectron().onTaskEvent((e) => {
   } else if (e.type === "abort") {
     taskStore.trigger.removeTask({ id: e.id });
     // TODO: toast maybe
+  } else if (e.type === "update") {
+    taskStore.trigger.updateMetadata({ id: e.id, metadata: e.metadata });
   } else {
     const _exhaustiveCheck: never = e;
     return _exhaustiveCheck;

@@ -197,7 +197,9 @@ app.on("ready", () => {
   ipcHandle("setClipboardCutMode", async ({ cut }) => {
     setClipboardCutMode(cut);
   });
-  ipcHandle("pasteFiles", ({ destinationDir }) => pasteFiles(destinationDir));
+  ipcHandle("pasteFiles", ({ destinationDir, resolution }) =>
+    pasteFiles(destinationDir, resolution),
+  );
   ipcHandle("fuzzyFileFinder", ({ directory, query }) =>
     fuzzyFileFinder(directory, query),
   );
