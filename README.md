@@ -5,7 +5,10 @@
 
 # TODO
 
+- find and replace
 - unarchive as file if only one file
+- pasting should show a dialog if there are conflicts, the backend should return problematic paths, a last updated date
+  - user should select don't copy or overwrite, or new name
 
 # AMBITIOUS TODO
 
