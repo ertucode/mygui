@@ -2,7 +2,7 @@ import { ArchiveTypes } from "./ArchiveTypes.js";
 import { GenericResult } from "./GenericError.js";
 
 export type TaskDefinition = Tasks.Base &
-  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste);
+  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste | Tasks.Delete);
 
 export type TaskCreate = Omit<TaskDefinition, "id" | "createdIso">;
 
@@ -43,6 +43,14 @@ export namespace Tasks {
       isEstimated: boolean;
     };
     result?: GenericResult<{ pastedItems: string[] }>;
+  };
+
+  export type Delete = {
+    type: "delete";
+    metadata: {
+      files: string[];
+    };
+    result?: GenericResult<undefined>;
   };
 }
 

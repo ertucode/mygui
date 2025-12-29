@@ -4,6 +4,11 @@ export namespace PathHelpers {
     return parts[parts.length - 1] ?? "/";
   }
 
+  export function getLastCountParts(path: string, count: number) {
+    const parts = path.split("/").filter(Boolean);
+    return parts.slice(-count).join("/");
+  }
+
   /**
    * Get the parent folder path and name from a full path
    * e.g., "/Users/john/Documents/file.txt" -> { path: "/Users/john/Documents", name: "Documents" }
