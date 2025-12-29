@@ -201,7 +201,7 @@ export const layoutJson = ((): IJsonModel => {
     );
   }
 
-  return initFromPaths(["~/dev/fullstack/backoffice", "~/dev/monorepo-ortak"]);
+  return initFromPaths(["~/Downloads", defaultPath]);
 })();
 
 export const layoutModel = Model.fromJson(layoutJson);
