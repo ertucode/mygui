@@ -7,6 +7,7 @@ import { Result } from "../../common/Result.js";
 import { TaskManager } from "../TaskManager.js";
 import { formatFileSize } from "../../common/file-size.js";
 import { moveToTrash } from "./move-to-trash.js";
+import { countFilesInPath } from "./count-files-in-path.js";
 
 /**
  * Paste file operations with conflict resolution and cancellation support
@@ -64,48 +65,6 @@ export type PasteResult =
       needsResolution: false;
       result: GenericResult<{ pastedItems: string[] }>;
     };
-
-async function countFilesInPaths(
-  filePaths: string[],
-  maxDepth: number = Infinity,
-) {
-  let totalFiles = 0;
-  let isEstimated = false;
-
-  async function countRecursive(currentPath: string, depth: number) {
-    try {
-      const stats = await fs.stat(currentPath);
-
-      if (stats.isDirectory()) {
-        // Stop recursing if we've reached max depth
-        if (depth >= maxDepth) {
-          // Count this directory as 1 item instead of recursing
-          totalFiles++;
-          isEstimated = true;
-          return;
-        }
-
-        const entries = await fs.readdir(currentPath);
-        for (const entry of entries) {
-          await countRecursive(path.join(currentPath, entry), depth + 1);
-        }
-      } else {
-        totalFiles++;
-      }
-    } catch (error) {
-      // Ignore errors (permission denied, etc.)
-    }
-  }
-
-  for (const filePath of filePaths) {
-    await countRecursive(filePath, 0);
-  }
-
-  return {
-    totalFiles,
-    isEstimated,
-  };
-}
 
 async function copyRecursive(
   src: string,
@@ -692,13 +651,13 @@ export async function pasteFiles(
         };
       }
 
-      // No conflicts, proceed with normal paste
-      // Count total files (limited depth) for progress tracking
-      const { totalFiles, isEstimated } = await countFilesInPaths(filePaths);
+      const totalFiles = (
+        await Promise.all(filePaths.map(countFilesInPath))
+      ).reduce((a, b) => a + b, 0);
 
       TaskManager.update(taskId, {
         type: "paste",
-        metadata: { fileCount: totalFiles, isEstimated },
+        metadata: { fileCount: totalFiles, isEstimated: false },
       });
 
       // Get abort signal if task was created
@@ -707,6 +666,11 @@ export async function pasteFiles(
         : undefined;
 
       let filesCopied = 0;
+      function reportProgress() {
+        filesCopied++;
+        const progress = (filesCopied / totalFiles) * 100;
+        TaskManager.progress(taskId, progress);
+      }
       const pastedItems: string[] = [];
 
       for (let i = 0; i < filePaths.length; i++) {
@@ -733,20 +697,9 @@ export async function pasteFiles(
 
         if (isCut) {
           await fs.rename(sourcePath, destPath);
-          filesCopied++;
-          if (taskId) {
-            const progress = (filesCopied / totalFiles) * 100;
-            TaskManager.progress(taskId, progress);
-          }
+          reportProgress();
         } else {
-          await copyRecursive(sourcePath, destPath, () => {
-            // Called after each file is copied
-            filesCopied++;
-            if (taskId) {
-              const progress = (filesCopied / totalFiles) * 100;
-              TaskManager.progress(taskId, progress);
-            }
-          });
+          await copyRecursive(sourcePath, destPath, reportProgress);
         }
 
         pastedItems.push(fileName);
@@ -759,10 +712,7 @@ export async function pasteFiles(
 
       const result = Result.Success({ pastedItems });
 
-      // Report task completion
-      if (taskId) {
-        TaskManager.result(taskId, result);
-      }
+      TaskManager.result(taskId, result);
 
       return {
         needsResolution: false,
@@ -770,20 +720,17 @@ export async function pasteFiles(
       };
     }
 
-    // Resolution provided, execute paste with resolutions
-    // Count total files (limited depth) for progress tracking
-    const { totalFiles, isEstimated } = await countFilesInPaths(filePaths);
+    const totalFiles = (
+      await Promise.all(filePaths.map(countFilesInPath))
+    ).reduce((a, b) => a + b, 0);
 
     TaskManager.update(taskId, {
       type: "paste",
-      metadata: { fileCount: totalFiles, isEstimated },
+      metadata: { fileCount: totalFiles, isEstimated: false },
     });
 
     try {
-      // Get abort signal if task was created
-      const abortSignal = taskId
-        ? TaskManager.getAbortSignal(taskId)
-        : undefined;
+      const abortSignal = TaskManager.getAbortSignal(taskId);
 
       const result = await executePasteWithResolutions(
         filePaths,
@@ -795,10 +742,7 @@ export async function pasteFiles(
         totalFiles,
       );
 
-      // Report task completion
-      if (taskId) {
-        TaskManager.result(taskId, result);
-      }
+      TaskManager.result(taskId, result);
 
       return {
         needsResolution: false,
@@ -806,14 +750,12 @@ export async function pasteFiles(
       };
     } catch (error) {
       // Report task failure
-      if (taskId) {
-        TaskManager.result(
-          taskId,
-          error instanceof Error
-            ? GenericError.Message(error.message)
-            : GenericError.Unknown(error),
-        );
-      }
+      TaskManager.result(
+        taskId,
+        error instanceof Error
+          ? GenericError.Message(error.message)
+          : GenericError.Unknown(error),
+      );
       throw error;
     }
   } catch (error) {
