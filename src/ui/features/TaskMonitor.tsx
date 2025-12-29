@@ -14,6 +14,8 @@ import {
   XOctagon,
   Copy,
   Move,
+  DeleteIcon,
+  FileXCornerIcon,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -30,6 +32,8 @@ function getTaskTypeLabel(task: TaskDefinition): string {
       return `Extracting ${task.metadata.type} archive`;
     case "paste":
       return task.metadata.isCut ? "Moving files" : "Copying files";
+    case "delete":
+      return "Deleting files";
     default:
       return "Processing task";
   }
@@ -65,6 +69,8 @@ function getTaskIcon(task: TaskDefinition) {
       return FolderArchive;
     case "paste":
       return task.metadata.isCut ? Move : Copy;
+    case "delete":
+      return DeleteIcon;
     default:
       return FileIcon;
   }
@@ -197,7 +203,7 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
     const itemLabel =
       (isEstimated ? "More than " : "") +
       (fileCount === 0
-        ? ""
+        ? "..."
         : fileCount === 1
           ? "1 file"
           : `${fileCount} files`);
@@ -213,6 +219,25 @@ function TaskMetadata({ task }: { task: TaskDefinition }) {
           <span className="font-medium">Destination:</span>
           <span className="truncate" title={destinationDir}>
             {formatPath(destinationDir)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (task.type === "delete") {
+    const { files } = task.metadata;
+    const label =
+      files.length === 1
+        ? `${PathHelpers.getLastCountParts(files[0], 2)}`
+        : `${files.length} files`;
+
+    return (
+      <div className="mt-2 space-y-1.5 text-xs">
+        <div className="flex items-center gap-1.5 text-base-content/70">
+          <FileXCornerIcon className="size-4 flex-shrink-0 text-error" />
+          <span className="font-medium overflow-hidden whitespace-nowrap text-ellipsis rtl text-left">
+            {label}
           </span>
         </div>
       </div>
