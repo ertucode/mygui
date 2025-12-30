@@ -7,11 +7,12 @@
 
 - find and replace
 - unarchive as file if only one file
-- command system: stdout -> call with arguments -> if missing, the script returns metadata. else runs and prints messages.
-  - for example: file picker, folder picker, just text. etc, add as required
-  - maybe script does not return metadata but add it in definition (optional fields)
+- command system: stdout ->
+
   - extension config
   - event for refreshing a directory
+
+- exclude paths not working in search string
 
 # AMBITIOUS TODO
 

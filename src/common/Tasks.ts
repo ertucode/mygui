@@ -2,9 +2,18 @@ import { ArchiveTypes } from "./ArchiveTypes.js";
 import { GenericResult } from "./GenericError.js";
 
 export type TaskDefinition = Tasks.Base &
-  (Tasks.Archive | Tasks.Unarchive | Tasks.Paste | Tasks.Delete);
+  (
+    | Tasks.Archive
+    | Tasks.Unarchive
+    | Tasks.Paste
+    | Tasks.Delete
+    | Tasks.RunCommand
+  );
 
-export type TaskCreate = Omit<TaskDefinition, "id" | "createdIso">;
+export type TaskCreate<T extends TaskDefinition["type"]> = $DistributiveOmit<
+  Extract<TaskDefinition, { type: T }>,
+  "id" | "createdIso"
+>;
 
 export type TaskUpdate<T extends TaskDefinition["type"]> = {
   type: T;
@@ -16,6 +25,7 @@ export namespace Tasks {
     id: string;
     progress: number;
     createdIso: string;
+    info?: string[];
   };
 
   export type Archive = {
@@ -52,6 +62,16 @@ export namespace Tasks {
     };
     result?: GenericResult<undefined>;
   };
+
+  export type RunCommand = {
+    type: "run-command";
+    metadata: {
+      command: string;
+      parameters: Record<string, string>;
+      fullPath: string;
+    };
+    result?: GenericResult<void>;
+  };
 }
 
 export type TaskEvents =
@@ -77,4 +97,9 @@ export type TaskEvents =
   | {
       type: "abort";
       id: string;
+    }
+  | {
+      type: "push-info";
+      id: string;
+      info: string[];
     };
