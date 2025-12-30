@@ -5,7 +5,6 @@
 
 # TODO
 
-- find and replace
 - unarchive as file if only one file
 
 # AMBITIOUS TODO
