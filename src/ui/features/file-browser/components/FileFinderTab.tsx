@@ -256,8 +256,8 @@ export function FileFinderTab({
       </div>
 
       {/* Preview Panel */}
-      {showPreview && selectedFilePath && (
-        <div className="w-[400px] h-full border-gray-200 flex flex-col flex-shrink-0">
+      <div className="w-[400px] h-full border-gray-200 flex flex-col flex-shrink-0">
+        {showPreview && selectedFilePath && (
           <div className="flex-1 min-h-0 overflow-hidden">
             {selectedFile}
             {selectedFilePath}
@@ -269,8 +269,8 @@ export function FileFinderTab({
               fileExt={selectedFileExt}
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

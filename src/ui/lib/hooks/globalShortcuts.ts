@@ -54,7 +54,6 @@ export namespace GlobalShortcuts {
       key: item.key,
     };
     shortcutsMap[item.key] = compiled;
-    console.log(compiled);
 
     if (item.enabled) {
       compiled.shortcuts.forEach((item, k) => flattened.shortcuts.set(k, item));

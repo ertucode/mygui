@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect, forwardRef, ReactNode } from "react";
 import { useShortcuts } from "@/lib/hooks/useShortcuts";
 import { Dialog } from "@/lib/components/dialog";
 import { FileIcon, SearchIcon, FolderIcon } from "lucide-react";
@@ -86,21 +86,29 @@ export const FinderDialog = forwardRef<
 
   if (!dialogOpen) return null;
 
-  const tabs: { id: FinderTab; label: string; icon: React.ReactNode }[] = [
+  const tabs: {
+    id: FinderTab;
+    label: React.ReactNode;
+    icon: React.ReactNode;
+    keys: string;
+  }[] = [
     {
       id: "files",
       label: "Find File",
       icon: <FileIcon className="w-4 h-4" />,
+      keys: "⌘ 1",
     },
     {
       id: "folders",
       label: "Find Folder",
       icon: <FolderIcon className="w-4 h-4" />,
+      keys: "⌘ 2",
     },
     {
       id: "strings",
       label: "Search in Files",
       icon: <SearchIcon className="w-4 h-4" />,
+      keys: "⌘ 3",
     },
   ];
 
@@ -120,25 +128,9 @@ export const FinderDialog = forwardRef<
               onClick={() => setActiveTab(tab.id)}
               className={`tab gap-2 ${activeTab === tab.id ? "tab-active" : ""}`}
             >
-              {tab.icon}
-              {tab.label}
+              <TabLabel label={tab.label} keys={tab.keys} icon={tab.icon} />
             </button>
           ))}
-          <div className="flex-1" />
-          <div className="flex items-center gap-3 px-4 text-xs text-base-content/50">
-            <div className="flex items-center gap-1">
-              <kbd className="kbd kbd-sm">⌘1</kbd>
-              <span>Files</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <kbd className="kbd kbd-sm">⌘2</kbd>
-              <span>Folders</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <kbd className="kbd kbd-sm">⌘3</kbd>
-              <span>Search</span>
-            </div>
-          </div>
         </div>
 
         {/* Tab Content */}
@@ -165,3 +157,13 @@ export const FinderDialog = forwardRef<
     </Dialog>
   );
 });
+
+function TabLabel(opts: { label: ReactNode; keys: string; icon: ReactNode }) {
+  return (
+    <>
+      {opts.icon}
+      {opts.label}
+      <kbd className="kbd kbd-xs rounded-1 opacity-70">{opts.keys}</kbd>
+    </>
+  );
+}

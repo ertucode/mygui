@@ -281,59 +281,61 @@ export function FolderFinderTab({
       </div>
 
       {/* Preview Panel - shows files in selected folder */}
-      {showPreview && selectedFolder && (
-        <div className="w-[400px] h-full border-gray-200 flex flex-col flex-shrink-0">
-          {/* Folder header */}
-          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 flex-shrink-0">
-            <FolderIcon className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm font-medium truncate">
-              {selectedFolderName}
-            </span>
-            <span className="text-xs text-gray-400">
-              {folderContents.length} items
-            </span>
-          </div>
+      <div className="w-[400px] h-full border-gray-200 flex flex-col flex-shrink-0">
+        {showPreview && selectedFolder && (
+          <>
+            {/* Folder header */}
+            <div className="flex items-center gap-2 pb-2 border-b border-gray-200 flex-shrink-0">
+              <FolderIcon className="w-4 h-4 text-yellow-500" />
+              <span className="text-sm font-medium truncate">
+                {selectedFolderName}
+              </span>
+              <span className="text-xs text-gray-400">
+                {folderContents.length} items
+              </span>
+            </div>
 
-          {/* Folder contents */}
-          <div className="flex-1 min-h-0 overflow-auto mt-2">
-            {isLoadingContents ? (
-              <div className="flex items-center justify-center h-full text-gray-400">
-                <span className="loading loading-spinner size-4" />
-              </div>
-            ) : folderContents.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-400 text-sm">
-                Empty folder
-              </div>
-            ) : (
-              <div className="space-y-0.5">
-                {folderContents.slice(0, 50).map((item) => (
-                  <div
-                    key={item.name}
-                    className="flex items-center gap-2 px-2 py-1 text-xs"
-                  >
-                    {item.type === "dir" ? (
-                      <FolderIcon className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
-                    ) : (
-                      <FileIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
-                    )}
-                    <span className="truncate flex-1">{item.name}</span>
-                    {item.type === "file" && item.sizeStr && (
-                      <span className="text-gray-400 flex-shrink-0">
-                        {item.sizeStr}
-                      </span>
-                    )}
-                  </div>
-                ))}
-                {folderContents.length > 50 && (
-                  <div className="text-xs text-gray-400 px-2 py-1">
-                    ...and {folderContents.length - 50} more items
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+            {/* Folder contents */}
+            <div className="flex-1 min-h-0 overflow-auto mt-2">
+              {isLoadingContents ? (
+                <div className="flex items-center justify-center h-full text-gray-400">
+                  <span className="loading loading-spinner size-4" />
+                </div>
+              ) : folderContents.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+                  Empty folder
+                </div>
+              ) : (
+                <div className="space-y-0.5">
+                  {folderContents.slice(0, 50).map((item) => (
+                    <div
+                      key={item.name}
+                      className="flex items-center gap-2 px-2 py-1 text-xs"
+                    >
+                      {item.type === "dir" ? (
+                        <FolderIcon className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
+                      ) : (
+                        <FileIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                      )}
+                      <span className="truncate flex-1">{item.name}</span>
+                      {item.type === "file" && item.sizeStr && (
+                        <span className="text-gray-400 flex-shrink-0">
+                          {item.sizeStr}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {folderContents.length > 50 && (
+                    <div className="text-xs text-gray-400 px-2 py-1">
+                      ...and {folderContents.length - 50} more items
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
