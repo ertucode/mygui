@@ -1,5 +1,4 @@
-import { test, describe, beforeEach, afterEach } from "node:test";
-import assert from "node:assert/strict";
+import { test, describe, beforeEach, afterEach, expect } from "vitest";
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
@@ -118,19 +117,19 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
         if (result.result.success) {
-          assert.equal(result.result.data.pastedItems.length, 1);
-          assert.equal(result.result.data.pastedItems[0], "test.txt");
+          expect(result.result.data.pastedItems.length).toBe(1);
+          expect(result.result.data.pastedItems[0]).toBe("test.txt");
         }
       }
 
       // Verify file was copied
       const destFile = path.join(env.destDir, "test.txt");
-      assert.equal(await env.fileExists(destFile), true);
-      assert.equal(await env.readFile(destFile), "hello");
+      expect(await env.fileExists(destFile)).toBe(true);
+      expect(await env.readFile(destFile)).toBe("hello");
     });
 
     test("should paste multiple files without conflicts", async () => {
@@ -144,27 +143,18 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
         if (result.result.success) {
-          assert.equal(result.result.data.pastedItems.length, 3);
+          expect(result.result.data.pastedItems.length).toBe(3);
         }
       }
 
       // Verify all files were copied
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file1.txt")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file2.txt")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file3.txt")),
-        true,
-      );
+      expect(await env.fileExists(path.join(env.destDir, "file1.txt"))).toBe(true,);
+      expect(await env.fileExists(path.join(env.destDir, "file2.txt"))).toBe(true,);
+      expect(await env.fileExists(path.join(env.destDir, "file3.txt"))).toBe(true,);
     });
 
     test("should paste a folder without conflicts", async () => {
@@ -177,18 +167,15 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution && result.result.success) {
-        assert.equal(result.result.data.pastedItems[0], "myfolder");
+        expect(result.result.data.pastedItems[0]).toBe("myfolder");
       }
 
       // Verify folder and contents were copied
       const destFolder = path.join(env.destDir, "myfolder");
-      assert.equal(await env.fileExists(destFolder), true);
-      assert.equal(
-        await env.fileExists(path.join(destFolder, "inside.txt")),
-        true,
-      );
+      expect(await env.fileExists(destFolder)).toBe(true);
+      expect(await env.fileExists(path.join(destFolder, "inside.txt"))).toBe(true,);
     });
 
     test("should paste nested folder structure without conflicts", async () => {
@@ -211,30 +198,18 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // Verify nested structure was copied
       const destProject = path.join(env.destDir, "project");
-      assert.equal(await env.fileExists(destProject), true);
-      assert.equal(
-        await env.fileExists(path.join(destProject, "src", "index.js")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(destProject, "src", "utils.js")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(destProject, "package.json")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(destProject, "README.md")),
-        true,
-      );
+      expect(await env.fileExists(destProject)).toBe(true);
+      expect(await env.fileExists(path.join(destProject, "src", "index.js"))).toBe(true,);
+      expect(await env.fileExists(path.join(destProject, "src", "utils.js"))).toBe(true,);
+      expect(await env.fileExists(path.join(destProject, "package.json"))).toBe(true,);
+      expect(await env.fileExists(path.join(destProject, "README.md"))).toBe(true,);
     });
   });
 
@@ -253,19 +228,16 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
-        assert.equal(result.conflictData.conflicts.length, 1);
-        assert.ok(result.conflictData.totalConflicts >= 1);
-        assert.equal(result.conflictData.exceedsLimit, false);
+        expect(result.conflictData.conflicts.length).toBe(1);
+        expect(result.conflictData.totalConflicts >= 1).toBeTruthy();
+        expect(result.conflictData.exceedsLimit).toBe(false);
 
         const conflict = result.conflictData.conflicts[0];
-        assert.equal(conflict.type, "file");
-        assert.equal(
-          conflict.destinationPath,
-          path.join(env.destDir, "conflict.txt"),
-        );
-        assert.equal(conflict.suggestedName, "conflict (1).txt");
+        expect(conflict.type).toBe("file");
+        expect(conflict.destinationPath).toBe(path.join(env.destDir, "conflict.txt"),);
+        expect(conflict.suggestedName).toBe("conflict (1).txt");
       }
     });
 
@@ -279,13 +251,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
-        assert.equal(result.conflictData.conflicts.length, 1);
+        expect(result.conflictData.conflicts.length).toBe(1);
 
         const conflict = result.conflictData.conflicts[0];
-        assert.equal(conflict.type, "dir");
-        assert.equal(conflict.suggestedName, "docs (1)");
+        expect(conflict.type).toBe("dir");
+        expect(conflict.suggestedName).toBe("docs (1)");
       }
     });
 
@@ -315,15 +287,15 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert - should only show the folder conflict, NOT nested file conflicts
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
-        assert.equal(result.conflictData.conflicts.length, 1);
-        assert.equal(result.conflictData.totalConflicts, 1);
+        expect(result.conflictData.conflicts.length).toBe(1);
+        expect(result.conflictData.totalConflicts).toBe(1);
 
         const conflict = result.conflictData.conflicts[0];
-        assert.equal(conflict.type, "dir");
-        assert.equal(conflict.destinationPath, path.join(env.destDir, "docs"));
-        assert.equal(conflict.suggestedName, "docs (1)");
+        expect(conflict.type).toBe("dir");
+        expect(conflict.destinationPath).toBe(path.join(env.destDir, "docs"));
+        expect(conflict.suggestedName).toBe("docs (1)");
       }
     });
 
@@ -358,12 +330,12 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert - parent "newproject" folder conflicts, so we should NOT see nested conflicts
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
         // Only the newproject folder should be shown as conflict, not the files inside
-        assert.equal(result.conflictData.conflicts.length, 1);
-        assert.equal(result.conflictData.conflicts[0].type, "dir");
-        assert.equal(result.conflictData.conflicts[0].destinationPath, path.join(env.destDir, "newproject"));
+        expect(result.conflictData.conflicts.length).toBe(1);
+        expect(result.conflictData.conflicts[0].type).toBe("dir");
+        expect(result.conflictData.conflicts[0].destinationPath).toBe(path.join(env.destDir, "newproject"));
       }
     });
 
@@ -382,11 +354,11 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
-        assert.equal(result.conflictData.conflicts.length, 20);
-        assert.ok(result.conflictData.totalConflicts >= 20);
-        assert.equal(result.conflictData.exceedsLimit, true);
+        expect(result.conflictData.conflicts.length).toBe(20);
+        expect(result.conflictData.totalConflicts >= 20).toBeTruthy();
+        expect(result.conflictData.exceedsLimit).toBe(true);
       }
     });
 
@@ -406,12 +378,9 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert - should suggest test (3).txt
-      assert.equal(result.needsResolution, true);
+      expect(result.needsResolution).toBe(true);
       if (result.needsResolution) {
-        assert.equal(
-          result.conflictData.conflicts[0].suggestedName,
-          "test (3).txt",
-        );
+        expect(result.conflictData.conflicts[0].suggestedName).toBe("test (3).txt",);
       }
     });
   });
@@ -429,7 +398,7 @@ describe("paste-files.ts", () => {
 
       // Get conflicts first
       const checkResult = await pasteFiles(env.destDir);
-      assert.equal(checkResult.needsResolution, true);
+      expect(checkResult.needsResolution).toBe(true);
 
       // Execute with override resolution
       const resolution = {
@@ -438,14 +407,14 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // Verify file was overridden
       const destFile = path.join(env.destDir, "file.txt");
-      assert.equal(await env.readFile(destFile), "new content");
+      expect(await env.readFile(destFile)).toBe("new content");
     });
 
     test("should auto-generate names with autoName strategy", async () => {
@@ -468,28 +437,16 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution && result.result.success) {
-        assert.equal(result.result.data.pastedItems[0], "file (1).txt");
+        expect(result.result.data.pastedItems[0]).toBe("file (1).txt");
       }
 
       // Verify both files exist
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file.txt")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file (1).txt")),
-        true,
-      );
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file.txt")),
-        "old content",
-      );
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file (1).txt")),
-        "new content",
-      );
+      expect(await env.fileExists(path.join(env.destDir, "file.txt"))).toBe(true,);
+      expect(await env.fileExists(path.join(env.destDir, "file (1).txt"))).toBe(true,);
+      expect(await env.readFile(path.join(env.destDir, "file.txt"))).toBe("old content",);
+      expect(await env.readFile(path.join(env.destDir, "file (1).txt"))).toBe("new content",);
     });
 
     test("should skip conflicting files with skip strategy", async () => {
@@ -509,22 +466,16 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution && result.result.success) {
         // Only file2 should be pasted (file1 has conflict and is skipped)
-        assert.equal(result.result.data.pastedItems.length, 1);
-        assert.equal(result.result.data.pastedItems[0], "file2.txt");
+        expect(result.result.data.pastedItems.length).toBe(1);
+        expect(result.result.data.pastedItems[0]).toBe("file2.txt");
       }
 
       // file1.txt should still have old content
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file1.txt")),
-        "existing",
-      );
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file2.txt")),
-        "two",
-      );
+      expect(await env.readFile(path.join(env.destDir, "file1.txt"))).toBe("existing",);
+      expect(await env.readFile(path.join(env.destDir, "file2.txt"))).toBe("two",);
     });
   });
 
@@ -556,20 +507,14 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution && result.result.success) {
-        assert.equal(result.result.data.pastedItems[0], "renamed.txt");
+        expect(result.result.data.pastedItems[0]).toBe("renamed.txt");
       }
 
       // Verify custom name was used
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "renamed.txt")),
-        true,
-      );
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "renamed.txt")),
-        "content",
-      );
+      expect(await env.fileExists(path.join(env.destDir, "renamed.txt"))).toBe(true,);
+      expect(await env.readFile(path.join(env.destDir, "renamed.txt"))).toBe("content",);
     });
 
     test("should override specific file while using global autoName", async () => {
@@ -596,21 +541,15 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // file1.txt should be overridden
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file1.txt")),
-        "one",
-      );
+      expect(await env.readFile(path.join(env.destDir, "file1.txt"))).toBe("one",);
       // file2.txt should have auto-generated name
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "file2 (1).txt")),
-        true,
-      );
+      expect(await env.fileExists(path.join(env.destDir, "file2 (1).txt"))).toBe(true,);
     });
 
     test("should skip specific file while using global override", async () => {
@@ -637,21 +576,15 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // file1.txt should keep old content (skipped)
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file1.txt")),
-        "existing1",
-      );
+      expect(await env.readFile(path.join(env.destDir, "file1.txt"))).toBe("existing1",);
       // file2.txt should be overridden
-      assert.equal(
-        await env.readFile(path.join(env.destDir, "file2.txt")),
-        "two",
-      );
+      expect(await env.readFile(path.join(env.destDir, "file2.txt"))).toBe("two",);
     });
 
     test("should handle custom name that also conflicts", async () => {
@@ -682,27 +615,18 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert - should auto-append number to custom name
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution && result.result.success) {
         // Should be renamed to "f2 (1)" since "f2" exists
-        assert.equal(result.result.data.pastedItems[0], "f2 (1)");
+        expect(result.result.data.pastedItems[0]).toBe("f2 (1)");
       }
 
       // Verify f2 (1) was created
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "f2 (1)")),
-        true,
-      );
+      expect(await env.fileExists(path.join(env.destDir, "f2 (1)"))).toBe(true,);
       // Original f2 should still exist
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "f2", "existing.txt")),
-        true,
-      );
+      expect(await env.fileExists(path.join(env.destDir, "f2", "existing.txt"))).toBe(true,);
       // f1 content should be in f2 (1)
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "f2 (1)", "content.txt")),
-        true,
-      );
+      expect(await env.fileExists(path.join(env.destDir, "f2 (1)", "content.txt"))).toBe(true,);
     });
   });
 
@@ -736,9 +660,9 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // Verify folder was merged (not replaced)
@@ -746,15 +670,12 @@ describe("paste-files.ts", () => {
       const files = await env.listDir(docsDir);
 
       // Should have all three files
-      assert.ok(files.includes("existing.md")); // Original file preserved
-      assert.ok(files.includes("new.md")); // New file added
-      assert.ok(files.includes("update.md")); // Conflicting file overridden
+      expect(files.includes("existing.md")).toBeTruthy(); // Original file preserved
+      expect(files.includes("new.md")).toBeTruthy(); // New file added
+      expect(files.includes("update.md")).toBeTruthy(); // Conflicting file overridden
 
       // Check update.md was overridden
-      assert.equal(
-        await env.readFile(path.join(docsDir, "update.md")),
-        "updated content",
-      );
+      expect(await env.readFile(path.join(docsDir, "update.md"))).toBe("updated content",);
     });
 
     test("should not delete destination folder when merging", async () => {
@@ -784,24 +705,15 @@ describe("paste-files.ts", () => {
 
       // Assert
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // Verify destination-only files still exist
       const projectDir = path.join(env.destDir, "project");
-      assert.equal(
-        await env.fileExists(path.join(projectDir, "important.txt")),
-        true,
-      );
-      assert.equal(
-        await env.fileExists(path.join(projectDir, "subfolder", "data.json")),
-        true,
-      );
+      expect(await env.fileExists(path.join(projectDir, "important.txt"))).toBe(true,);
+      expect(await env.fileExists(path.join(projectDir, "subfolder", "data.json"))).toBe(true,);
       // New file should also exist
-      assert.equal(
-        await env.fileExists(path.join(projectDir, "new-file.txt")),
-        true,
-      );
+      expect(await env.fileExists(path.join(projectDir, "new-file.txt"))).toBe(true,);
     });
   });
 
@@ -819,17 +731,14 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // Verify file was moved (not copied)
-      assert.equal(
-        await env.fileExists(path.join(env.destDir, "move-me.txt")),
-        true,
-      );
-      assert.equal(await env.fileExists(sourceFile), false); // Source should be deleted
+      expect(await env.fileExists(path.join(env.destDir, "move-me.txt"))).toBe(true,);
+      expect(await env.fileExists(sourceFile)).toBe(false); // Source should be deleted);
     });
 
     test("should not delete skipped files in cut operation", async () => {
@@ -854,13 +763,13 @@ describe("paste-files.ts", () => {
 
       // Assert
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
       }
 
       // file1 was skipped, should still exist at source
-      assert.equal(await env.fileExists(file1), true);
+      expect(await env.fileExists(file1)).toBe(true);
       // file2 was moved, should not exist at source
-      assert.equal(await env.fileExists(file2), false);
+      expect(await env.fileExists(file2)).toBe(false);
     });
 
     test("should prevent cut and paste in same directory", async () => {
@@ -872,13 +781,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.sourceDir);
 
       // Assert - should fail
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("Cannot cut and paste"),
-          );
+          ).toBeTruthy();
         }
       }
     });
@@ -889,11 +798,11 @@ describe("paste-files.ts", () => {
       // Don't set up any clipboard
       const result = await pasteFiles(env.destDir);
 
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(result.result.error.message.includes("No files in clipboard"));
+          expect(result.result.error.message.includes("No files in clipboard")).toBeTruthy();
         }
       }
     });
@@ -925,11 +834,11 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert - should fail validation
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(result.result.error.message.includes("Invalid name"));
+          expect(result.result.error.message.includes("Invalid name")).toBeTruthy();
         }
       }
     });
@@ -962,9 +871,9 @@ describe("paste-files.ts", () => {
 
       // Assert
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(result.result.error.message.includes("cannot be empty"));
+          expect(result.result.error.message.includes("cannot be empty")).toBeTruthy();
         }
       }
     });
@@ -983,9 +892,9 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(nonExistentDir);
 
       // Assert - should fail
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
       }
     });
   });
@@ -1011,13 +920,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("Invalid global strategy"),
-          );
+          ).toBeTruthy();
         }
       }
     });
@@ -1048,11 +957,11 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(result.result.error.message.includes("Invalid action"));
+          expect(result.result.error.message.includes("Invalid action")).toBeTruthy();
         }
       }
     });
@@ -1084,13 +993,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("Custom name required"),
-          );
+          ).toBeTruthy();
         }
       }
     });
@@ -1125,13 +1034,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("Multiple files would be pasted"),
-          );
+          ).toBeTruthy();
         }
       }
     });
@@ -1154,14 +1063,14 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("No files would be pasted") ||
               result.result.error.message.includes("all files skipped"),
-          );
+          ).toBeTruthy();
         }
       }
     });
@@ -1186,11 +1095,11 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert - should succeed (file3 was pasted)
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, true);
+        expect(result.result.success).toBe(true);
         if (result.result.success) {
-          assert.deepEqual(result.result.data.pastedItems, ["file3.txt"]);
+          expect(result.result.data.pastedItems).toEqual(["file3.txt"]);
         }
       }
     });
@@ -1219,13 +1128,13 @@ describe("paste-files.ts", () => {
       const result = await pasteFiles(env.destDir, resolution);
 
       // Assert - should fail (no files would be pasted)
-      assert.equal(result.needsResolution, false);
+      expect(result.needsResolution).toBe(false);
       if (!result.needsResolution) {
-        assert.equal(result.result.success, false);
+        expect(result.result.success).toBe(false);
         if (!result.result.success && result.result.error.type === "message") {
-          assert.ok(
+          expect(
             result.result.error.message.includes("No files would be pasted"),
-          );
+          ).toBeTruthy();
         }
       }
     });
