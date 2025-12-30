@@ -32,7 +32,7 @@ export type CreateFormDialogOpts<
     hookForm: UseFormReturn<TRequest>,
     item: TItem | undefined,
   ) => FormFieldConfig<keyof TRequest & string>[];
-  getTexts: () => {
+  getTexts: (item: TItem | undefined) => {
     title: ReactNode;
     buttonLabel: ReactNode;
     buttonIcon?: React.ComponentType<{ className?: string }>;
@@ -131,7 +131,7 @@ export function FormDialogForm<TItem, TForm extends Record<string, any>>(
     [hookForm, item],
   );
 
-  const text = opts.getTexts();
+  const text = opts.getTexts(item);
 
   const dialogButtonOpts = opts.dialogButtonOpts?.();
 
