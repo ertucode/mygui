@@ -7,7 +7,6 @@
 
 - find and replace
 - unarchive as file if only one file
-- exclude paths not working in search string
 
 # AMBITIOUS TODO
 
