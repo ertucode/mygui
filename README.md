@@ -9,7 +9,7 @@
 
 # AMBITIOUS TODO
 
-- Plugin system ( run arbitrary script with the file path as an argument)
+- Plugin system
 - File encryption
 - tree view
 - themes

@@ -24,6 +24,7 @@ import {
   HardDriveIcon,
   ExternalLinkIcon,
   TerminalIcon,
+  BoxSelectIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -336,6 +337,13 @@ export const FileTableRowContextMenu = ({
       }
     : null;
 
+  const selectItem: ContextMenuItem | null = windowArgs.isSelectAppMode
+    ? {
+        view: <TextWithIcon icon={BoxSelectIcon}>Select</TextWithIcon>,
+        onClick: () => getWindowElectron().sendSelectAppResult(fullPath),
+      }
+    : null;
+
   if (item.type === "dir") {
     const openDirectoryInNewTab: ContextMenuItem = {
       onClick: () => {
@@ -385,6 +393,7 @@ export const FileTableRowContextMenu = ({
       loadDirectorySize,
       { isSeparator: true },
       commandItem,
+      selectItem,
     ];
 
     return <ContextMenuList items={directoryMenuItems} />;
@@ -412,6 +421,7 @@ export const FileTableRowContextMenu = ({
     copyPathItem,
     { isSeparator: true },
     commandItem,
+    selectItem,
   ];
 
   return <ContextMenuList items={fileMenuItems} />;
