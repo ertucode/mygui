@@ -4,6 +4,7 @@ import { PathHelpers } from "../../common/PathHelpers.js";
 import { Result } from "../../common/Result.js";
 import { getServerConfig } from "../server-config.js";
 import { exec } from "child_process";
+import { TaskManager } from "../TaskManager.js";
 
 export async function runCommand(opts: {
   name: string;
@@ -31,7 +32,15 @@ export async function runCommand(opts: {
     }
   }
 
-  console.log(`Running command: ${command}`, parameters);
+  TaskManager.create({
+    type: "run-command",
+    metadata: {
+      command,
+      parameters,
+      fullPath: filePath,
+    },
+    progress: 0,
+  });
 
   return new Promise<GenericResult<void>>((resolve) => {
     exec(command, (error, stdout, stderr) => {

@@ -14,7 +14,9 @@ export namespace TaskManager {
 
   export const publisher = new ExternalStore<TaskEvents>();
 
-  export function create(task: TaskCreate): string {
+  export function create<T extends TaskDefinition["type"]>(
+    task: TaskCreate<T>,
+  ): string {
     const id = Math.random().toString(36).slice(2);
     const t = {
       ...task,
@@ -96,6 +98,12 @@ export namespace TaskManager {
     task.abortController.abort();
     delete tasks[id];
     publisher.notifyListeners({ type: "abort", id });
+  }
+
+  export function pushInfo(id: string, info: string[]) {
+    const task = tasks[id];
+    if (!task) return;
+    publisher.notifyListeners({ type: "push-info", id, info });
   }
 
   export function addListener(listener: (event: TaskEvents) => void) {

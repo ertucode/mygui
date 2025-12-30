@@ -80,6 +80,21 @@ export const taskStore = createStore({
         tasks,
       };
     },
+    pushInfo: (
+      context: TaskStoreContext,
+      event: {
+        id: string;
+        info: string[];
+      },
+    ) => ({
+      tasks: {
+        ...context.tasks,
+        [event.id]: {
+          ...context.tasks[event.id],
+          info: [...(context.tasks[event.id].info ?? []), ...event.info],
+        } as TaskDefinition,
+      },
+    }),
   },
 });
 
@@ -95,6 +110,7 @@ getWindowElectron().onTaskEvent((e) => {
     // TODO: toast maybe
   } else if (e.type === "update") {
     taskStore.trigger.updateMetadata({ id: e.id, metadata: e.metadata });
+  } else if (e.type === "push-info") {
   } else {
     const _exhaustiveCheck: never = e;
     return _exhaustiveCheck;
