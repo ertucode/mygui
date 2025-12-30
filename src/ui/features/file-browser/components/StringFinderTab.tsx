@@ -7,6 +7,8 @@ import {
   FileIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  Replace,
+  ReplaceAll,
 } from "lucide-react";
 import { errorResponseToMessage } from "@common/GenericError";
 import { StringSearchResult } from "@common/Contracts";
@@ -32,12 +34,16 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
     selectDirectory(activeDirectoryId),
   );
   const [query, setQuery] = useState("");
+  const [replaceText, setReplaceText] = useState("");
   const [searchResults, setSearchResults] = useState<StringSearchResult[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [_isLoading, setIsLoading] = useState(false);
   const isLoading = useDebounce(_isLoading, 100);
   const [error, setError] = useState<string | null>(null);
+  const [replaceStatus, setReplaceStatus] = useState<string | null>(null);
+  const [showReplacePreview, setShowReplacePreview] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -168,6 +174,84 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
     onClose();
   };
 
+  const handleReplace = async (replaceAll: boolean) => {
+    if (!query.trim() || !searchResults.length) {
+      setReplaceStatus("No search results to replace");
+      setTimeout(() => setReplaceStatus(null), 3000);
+      return;
+    }
+
+    setReplaceStatus(replaceAll ? "Replacing all..." : "Replacing...");
+    setError(null);
+
+    try {
+      if (replaceAll) {
+        // Get unique file paths from search results
+        const uniqueFiles = Array.from(
+          new Set(searchResults.map((r) => r.filePath)),
+        ).map((filePath) => ({ filePath }));
+
+        const result = await getWindowElectron().replaceStringInMultipleFiles({
+          files: uniqueFiles,
+          searchQuery: query,
+          replaceText,
+          useRegex,
+          caseSensitive,
+        });
+
+        if (result.success) {
+          const totalReplacements = result.data.reduce(
+            (sum, r) => sum + r.replacementCount,
+            0,
+          );
+          setReplaceStatus(
+            `Replaced ${totalReplacements} occurrence(s) in ${result.data.length} file(s)`,
+          );
+          // Re-run search to update results
+          setSearchResults([]);
+          setSelectedIndex(0);
+        } else {
+          setError(errorResponseToMessage(result.error) || "Failed to replace");
+          setReplaceStatus(null);
+        }
+      } else {
+        // Replace in selected file only
+        const selectedResult = searchResults[selectedIndex];
+        if (!selectedResult) {
+          setReplaceStatus("No file selected");
+          setTimeout(() => setReplaceStatus(null), 3000);
+          return;
+        }
+
+        const result = await getWindowElectron().replaceStringInFile({
+          filePath: selectedResult.filePath,
+          searchQuery: query,
+          replaceText,
+          useRegex,
+          caseSensitive,
+          replaceAll: false,
+        });
+
+        if (result.success) {
+          setReplaceStatus(
+            `Replaced ${result.data.replacementCount} occurrence(s) in ${selectedResult.filePath.split("/").pop()}`,
+          );
+          // Re-run search to update results
+          setSearchResults([]);
+          setSelectedIndex(0);
+        } else {
+          setError(errorResponseToMessage(result.error) || "Failed to replace");
+          setReplaceStatus(null);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to replace");
+      setReplaceStatus(null);
+    }
+
+    setTimeout(() => setReplaceStatus(null), 5000);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown" || (e.key === "j" && e.ctrlKey)) {
       e.preventDefault();
@@ -185,6 +269,12 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
       if (searchResults[selectedIndex]) {
         handleOpenContainingFolder(searchResults[selectedIndex]);
       }
+    } else if (e.key === "r" && e.ctrlKey && !e.shiftKey) {
+      e.preventDefault();
+      handleReplace(false);
+    } else if (e.key === "r" && e.ctrlKey && e.shiftKey) {
+      e.preventDefault();
+      handleReplace(true);
     }
   };
 
@@ -219,6 +309,29 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
     );
   };
 
+  const highlightReplacement = (text: string, query: string, replacement: string) => {
+    if (!query.trim()) return text;
+
+    const lowerText = text.toLowerCase();
+    const lowerQuery = query.toLowerCase();
+    const index = lowerText.indexOf(lowerQuery);
+
+    if (index === -1) return text;
+
+    return (
+      <>
+        {text.slice(0, index)}
+        <span className="bg-red-200 text-red-800 line-through">
+          {text.slice(index, index + query.length)}
+        </span>
+        <span className="bg-green-200 text-green-800">
+          {replacement}
+        </span>
+        {text.slice(index + query.length)}
+      </>
+    );
+  };
+
   const selectedResult = searchResults[selectedIndex];
 
   return (
@@ -246,6 +359,60 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
               </button>
             )}
           </div>
+
+          {/* Replace input */}
+          <div className="flex gap-2 items-center">
+            <div className="relative flex-1">
+              <input
+                ref={replaceInputRef}
+                type="text"
+                value={replaceText}
+                onChange={(e) => {
+                  setReplaceText(e.target.value);
+                  setShowReplacePreview(e.target.value.length > 0);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Replace with..."
+                className="input input-bordered w-full text-sm focus:outline-offset-[-2px]"
+              />
+              {replaceText && (
+                <button
+                  onClick={() => {
+                    setReplaceText("");
+                    setShowReplacePreview(false);
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <XIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <div className="tooltip" data-tip="Replace in selected file (Ctrl+R)">
+              <button
+                onClick={() => handleReplace(false)}
+                disabled={!query || !searchResults.length}
+                className="btn btn-sm btn-primary"
+              >
+                <Replace className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="tooltip" data-tip="Replace in all files (Ctrl+Shift+R)">
+              <button
+                onClick={() => handleReplace(true)}
+                disabled={!query || !searchResults.length}
+                className="btn btn-sm btn-primary"
+              >
+                <ReplaceAll className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Replace status message */}
+          {replaceStatus && (
+            <div className="text-xs text-success bg-success/10 px-2 py-1 rounded">
+              {replaceStatus}
+            </div>
+          )}
 
           {/* Toggle advanced options */}
           <button
@@ -397,7 +564,9 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                           )}
                         </div>
                         <div className="text-xs text-gray-600 truncate pl-6 mt-1 font-mono">
-                          {highlightMatch(result.matchContent, query)}
+                          {showReplacePreview
+                            ? highlightReplacement(result.matchContent, query, replaceText)
+                            : highlightMatch(result.matchContent, query)}
                         </div>
                       </div>
                     );
@@ -411,13 +580,19 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
         <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1 justify-center flex-shrink-0">
           <div>
             <kbd className="kbd">↑↓</kbd> or <kbd className="kbd">Ctrl+J/K</kbd>{" "}
-            to navigate
+            navigate
           </div>
           <div>
-            <kbd className="kbd">Enter</kbd> to open file
+            <kbd className="kbd">Enter</kbd> open file
           </div>
           <div>
-            <kbd className="kbd">Ctrl+O</kbd> to open containing folder
+            <kbd className="kbd">Ctrl+O</kbd> open folder
+          </div>
+          <div>
+            <kbd className="kbd">Ctrl+R</kbd> replace
+          </div>
+          <div>
+            <kbd className="kbd">Ctrl+Shift+R</kbd> replace all
           </div>
         </div>
       </div>
@@ -450,7 +625,9 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                     key={`${line.lineNumber}-${idx}`}
                     className={`flex ${
                       line.isMatch
-                        ? "bg-yellow-100 border-l-2 border-yellow-400"
+                        ? showReplacePreview
+                          ? "bg-green-50 border-l-2 border-green-400"
+                          : "bg-yellow-100 border-l-2 border-yellow-400"
                         : ""
                     }`}
                   >
@@ -463,7 +640,9 @@ export function StringFinderTab({ isOpen, onClose }: StringFinderTabProps) {
                       }`}
                     >
                       {line.isMatch
-                        ? highlightMatch(line.content, query)
+                        ? showReplacePreview
+                          ? highlightReplacement(line.content, query, replaceText)
+                          : highlightMatch(line.content, query)
                         : line.content}
                     </span>
                   </div>

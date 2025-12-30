@@ -129,6 +129,8 @@ export type EventResponseMapping = {
   >;
   fuzzyFileFinder: Promise<GenericResult<string[]>>;
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>;
+  replaceStringInFile: Promise<GenericResult<ReplaceResult>>;
+  replaceStringInMultipleFiles: Promise<GenericResult<ReplaceResult[]>>;
   fuzzyFolderFinder: Promise<GenericResult<string[]>>;
   readArchiveContents: Promise<GenericResult<ArchiveEntry[]>>;
   getDirectorySizes: Promise<Record<string, number>>;
@@ -164,6 +166,31 @@ export type StringSearchOptions = {
   searchHidden?: boolean;
 };
 
+export type ReplaceInFileOptions = {
+  filePath: string;
+  searchQuery: string;
+  replaceText: string;
+  useRegex?: boolean;
+  caseSensitive?: boolean;
+  replaceAll?: boolean;
+};
+
+export type ReplaceResult = {
+  filePath: string;
+  replacementCount: number;
+};
+
+export type ReplaceInMultipleFilesOptions = {
+  files: Array<{
+    filePath: string;
+    lineNumber?: number;
+  }>;
+  searchQuery: string;
+  replaceText: string;
+  useRegex?: boolean;
+  caseSensitive?: boolean;
+};
+
 export type EventRequestMapping = {
   docxToPdf: string;
   getFilesAndFoldersInDirectory: string;
@@ -197,6 +224,8 @@ export type EventRequestMapping = {
   pasteFiles: { destinationDir: string; resolution?: ConflictResolution };
   fuzzyFileFinder: { directory: string; query: string };
   searchStringRecursively: StringSearchOptions;
+  replaceStringInFile: ReplaceInFileOptions;
+  replaceStringInMultipleFiles: ReplaceInMultipleFilesOptions;
   fuzzyFolderFinder: { directory: string; query: string };
   readArchiveContents: {
     archivePath: string;
@@ -299,6 +328,12 @@ export type WindowElectron = {
   searchStringRecursively: (
     options: StringSearchOptions,
   ) => Promise<GenericResult<StringSearchResult[]>>;
+  replaceStringInFile: (
+    options: ReplaceInFileOptions,
+  ) => Promise<GenericResult<ReplaceResult>>;
+  replaceStringInMultipleFiles: (
+    options: ReplaceInMultipleFilesOptions,
+  ) => Promise<GenericResult<ReplaceResult[]>>;
   fuzzyFolderFinder: (
     directory: string,
     query: string,

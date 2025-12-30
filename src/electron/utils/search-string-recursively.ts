@@ -144,13 +144,13 @@ export function searchStringRecursively(
         return resolve(GenericError.Unknown(`rg exited with ${code}`));
       }
 
-      const results = parseRipgrepOutput(output);
+      const results = parseRipgrepOutput(output, searchDir);
       resolve(Result.Success(results.slice(0, 100))); // Limit to 100 results
     });
   });
 }
 
-function parseRipgrepOutput(output: string): StringSearchResult[] {
+function parseRipgrepOutput(output: string, searchDir: string): StringSearchResult[] {
   const results: StringSearchResult[] = [];
 
   // Split by context separator
@@ -194,8 +194,13 @@ function parseRipgrepOutput(output: string): StringSearchResult[] {
       // Sort context lines by line number
       contextLines.sort((a, b) => a.lineNumber - b.lineNumber);
 
+      // Convert relative path to absolute path
+      const absolutePath = path.isAbsolute(currentFilePath)
+        ? currentFilePath
+        : path.join(searchDir, currentFilePath);
+
       results.push({
-        filePath: currentFilePath,
+        filePath: absolutePath,
         matchLineNumber,
         matchContent,
         contextLines,

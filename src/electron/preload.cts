@@ -3,6 +3,8 @@ import {
   EventRequestMapping,
   EventResponseMapping,
   StringSearchOptions,
+  ReplaceInFileOptions,
+  ReplaceInMultipleFilesOptions,
   WindowElectron,
   ConflictResolution,
 } from "../common/Contracts";
@@ -50,6 +52,10 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("fuzzyFileFinder", { directory, query }),
   searchStringRecursively: (options: StringSearchOptions) =>
     ipcInvoke("searchStringRecursively", options),
+  replaceStringInFile: (options: ReplaceInFileOptions) =>
+    ipcInvoke("replaceStringInFile", options),
+  replaceStringInMultipleFiles: (options: ReplaceInMultipleFilesOptions) =>
+    ipcInvoke("replaceStringInMultipleFiles", options),
   fuzzyFolderFinder: (directory: string, query: string) =>
     ipcInvoke("fuzzyFolderFinder", { directory, query }),
   getFileInfoByPaths: (filePaths: string[]) =>

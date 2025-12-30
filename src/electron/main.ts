@@ -25,6 +25,10 @@ import { copyFiles, setClipboardCutMode } from "./utils/copy-files.js";
 import { pasteFiles } from "./utils/paste-files.js";
 import { fuzzyFileFinder } from "./utils/fuzzy-file-finder.js";
 import { searchStringRecursively } from "./utils/search-string-recursively.js";
+import {
+  replaceStringInFile,
+  replaceStringInMultipleFiles,
+} from "./utils/replace-string-in-files.js";
 import { fuzzyFolderFinder } from "./utils/fuzzy-folder-finder.js";
 import { getDirectorySizes } from "./utils/get-directory-size.js";
 import { generateVideoThumbnail } from "./utils/generate-video-thumbnail.js";
@@ -216,6 +220,10 @@ app.on("ready", () => {
   );
   ipcHandle("searchStringRecursively", (options) =>
     searchStringRecursively(options),
+  );
+  ipcHandle("replaceStringInFile", (options) => replaceStringInFile(options));
+  ipcHandle("replaceStringInMultipleFiles", (options) =>
+    replaceStringInMultipleFiles(options),
   );
   ipcHandle("fuzzyFolderFinder", ({ directory, query }) =>
     fuzzyFolderFinder(directory, query),
