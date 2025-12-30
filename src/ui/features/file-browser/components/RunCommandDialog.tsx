@@ -61,7 +61,7 @@ export const RunCommandDialog = ({
         defaultValues: {},
       })}
       getTexts={(item) => ({
-        title: item ? `Run Command: ${item.command}` : "Run Command",
+        title: item ? `Run Command: ${item.command.name}` : "Run Command",
         buttonLabel: "Run Command",
         buttonIcon: TerminalIcon,
       })}
