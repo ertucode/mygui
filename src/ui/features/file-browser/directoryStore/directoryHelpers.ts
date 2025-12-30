@@ -405,6 +405,10 @@ export const directoryHelpers = {
       }
       cd({ type: "path", fullPath }, true, directoryId);
     } else {
+      if (windowArgs.isSelectAppMode) {
+        getWindowElectron().sendSelectAppResult(fullPath);
+        return;
+      }
       const unarchiveMetadata = ArchiveHelpers.getUnarchiveMetadata(fullPath);
       if (unarchiveMetadata) {
         dialogActions.open("unarchive", unarchiveMetadata);
@@ -431,8 +435,6 @@ export const directoryHelpers = {
       directoryHelpers.openFileFull(item.fullPath);
     }
   },
-
-
 
   handleDelete: async (
     items: GetFilesAndFoldersInDirectoryItem[],
@@ -799,5 +801,15 @@ export const directoryHelpers = {
         directoryStore.send({ type: "createDirectory", ...opts });
       }
     });
+  },
+
+  getOpenedPath: (directoryId: DirectoryId | undefined) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    if (context.directory.type === "path") return context.directory.fullPath;
+
+    return undefined;
   },
 };

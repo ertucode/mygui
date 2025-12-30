@@ -142,7 +142,7 @@ export type EventResponseMapping = {
   openFileWithApplication: Promise<void>;
   openSelectAppWindow: Promise<string | null | undefined>;
   openShell: Promise<void>;
-  runCommand: Promise<void>;
+  runCommand: Promise<GenericResult<void>>;
 };
 
 export type StringSearchOptions = {
@@ -343,5 +343,5 @@ export type WindowElectron = {
     name: string;
     filePath: string;
     parameters: any;
-  }) => Promise<void>;
+  }) => Promise<GenericResult<void>>;
 };

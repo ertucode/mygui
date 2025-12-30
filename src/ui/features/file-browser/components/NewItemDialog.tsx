@@ -6,8 +6,7 @@ import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 
 export const NewItemDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
-  { name: string },
-  {}
+  { name: string }
 >({
   schema: z.object({
     name: z.string(),

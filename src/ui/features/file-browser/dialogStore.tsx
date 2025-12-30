@@ -11,10 +11,24 @@ import { UnarchiveDialog } from "./components/UnarchiveDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
 import { PasteConflictDialog } from "./components/PasteConflictDialog";
-import { FilePlusIcon, PencilIcon, TagIcon, SearchIcon, FileArchiveIcon, FolderInputIcon, KeyboardIcon, PencilLineIcon, LayoutGridIcon, FileWarningIcon } from "lucide-react";
+import {
+  FilePlusIcon,
+  PencilIcon,
+  TagIcon,
+  SearchIcon,
+  FileArchiveIcon,
+  FolderInputIcon,
+  KeyboardIcon,
+  PencilLineIcon,
+  LayoutGridIcon,
+  FileWarningIcon,
+  TerminalIcon,
+} from "lucide-react";
 import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
+import { CommandMetadata } from "@common/Command";
+import { RunCommandDialog } from "./components/RunCommandDialog";
 
 // Define the dialog types that can be opened
 export type DialogType =
@@ -28,7 +42,8 @@ export type DialogType =
   | "unarchive"
   | "commandPalette"
   | "customLayouts"
-  | "pasteConflict";
+  | "pasteConflict"
+  | "runCommand";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -39,14 +54,24 @@ export type DialogMetadata = {
   multiFileTags: string[];
   finder: { initialTab?: FinderTab };
   archive: { filePaths: string[]; suggestedName?: string };
-  unarchive: { archiveFilePath: string; suggestedName: string; archiveType: string };
+  unarchive: {
+    archiveFilePath: string;
+    suggestedName: string;
+    archiveType: string;
+  };
   commandPalette: {};
   customLayouts: {};
   pasteConflict: {
     conflictData: import("@common/Contracts").PasteConflictData;
     destinationDir: string;
-    onResolve: (resolution: import("@common/Contracts").ConflictResolution) => void;
+    onResolve: (
+      resolution: import("@common/Contracts").ConflictResolution,
+    ) => void;
     onCancel: () => void;
+  };
+  runCommand: {
+    command: CommandMetadata;
+    fullPath: string;
   };
 };
 
@@ -170,6 +195,12 @@ const dialogDefinitions = [
     component: PasteConflictDialog,
     icon: FileWarningIcon,
     title: "Paste Conflicts",
+  },
+  {
+    type: "runCommand" as const,
+    component: RunCommandDialog,
+    icon: TerminalIcon,
+    title: "Run Command",
   },
 ] as const;
 

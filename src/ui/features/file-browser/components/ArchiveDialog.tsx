@@ -9,14 +9,13 @@ type ArchiveDialogItem = { filePaths: string[]; suggestedName?: string };
 
 export const ArchiveDialog = createFormDialog<
   ArchiveDialogItem,
-  { archiveName: string; archiveType: string },
-  {}
+  { archiveName: string; archiveType: string }
 >({
   schema: z.object({
     archiveName: z.string().min(1, "Archive name is required"),
     archiveType: z.string(),
   }),
-  action: async (body, _, item) => {
+  action: async (body, item) => {
     if (!item?.filePaths || item.filePaths.length === 0) {
       return Promise.resolve(
         GenericError.Message("No files selected for archiving"),

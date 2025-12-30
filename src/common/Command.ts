@@ -1,6 +1,6 @@
 import z from "zod";
 
-export const CommandParameter = z
+export const CommandParameterType = z
   .object({
     type: z.enum(["string", "path"]),
   })
@@ -15,6 +15,13 @@ export const CommandParameter = z
       ),
     }),
   );
+
+export const CommandParameter = z
+  .object({
+    name: z.string(),
+    label: z.string().nullish(),
+  })
+  .and(CommandParameterType);
 
 export const CommandMetadata = z.object({
   name: z.string(),

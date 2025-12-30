@@ -12,13 +12,12 @@ type UnarchiveDialogItem = {
 
 export const UnarchiveDialog = createFormDialog<
   UnarchiveDialogItem,
-  { folderName: string },
-  {}
+  { folderName: string }
 >({
   schema: z.object({
     folderName: z.string().min(1, "Folder name is required"),
   }),
-  action: async (body, _, item) => {
+  action: async (body, item) => {
     if (!item?.archiveFilePath) {
       return Promise.resolve(GenericError.Message("No archive file selected"));
     }

@@ -297,18 +297,19 @@ app.on("ready", () => {
       if (window) {
         const resolver = selectAppPromises.get(window.id);
         if (resolver) {
-          if (
-            appPath &&
-            appPath.endsWith(".app") &&
-            appPath.startsWith("/Applications")
-          ) {
-            const actualFolder = `${appPath}/Contents/MacOS`;
-            if (!fs.existsSync(actualFolder)) {
-              throw new Error(`App at ${appPath} does not exist`);
-            }
+          if (appPath) {
+            if (
+              appPath.endsWith(".app") &&
+              appPath.startsWith("/Applications")
+            ) {
+              const actualFolder = `${appPath}/Contents/MacOS`;
+              if (!fs.existsSync(actualFolder)) {
+                throw new Error(`App at ${appPath} does not exist`);
+              }
 
-            const itemFromFolder = fs.readdirSync(actualFolder)[0];
-            appPath = `${appPath}/Contents/MacOS/${itemFromFolder}`;
+              const itemFromFolder = fs.readdirSync(actualFolder)[0];
+              appPath = `${appPath}/Contents/MacOS/${itemFromFolder}`;
+            }
           }
           resolver(appPath);
           selectAppPromises.delete(window.id);

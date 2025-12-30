@@ -6,13 +6,12 @@ import { directoryHelpers, directoryStore } from "../directoryStore/directory";
 
 export const RenameDialog = createFormDialog<
   GetFilesAndFoldersInDirectoryItem,
-  { name: string },
-  {}
+  { name: string }
 >({
   schema: z.object({
     name: z.string(),
   }),
-  action: (body, _, item) =>
+  action: (body, item) =>
     directoryHelpers.renameItem(
       item,
       body.name,

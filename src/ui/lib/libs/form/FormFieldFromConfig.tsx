@@ -6,6 +6,7 @@ import {
   LabeledFormFieldNonInputProps,
 } from "./LabeledFormField";
 import { clsx } from "@/lib/functions/clsx";
+import { PathInput } from "./PathInput";
 
 export type FormFieldConfig<TKey extends string = string> = {
   label: React.ReactNode;
@@ -75,6 +76,19 @@ function Inside({
     );
   }
 
+  if (config.type === "path") {
+    const className = clsx("input w-full", config.props?.className);
+    return (
+      <PathInput
+        id={config.field}
+        name={config.field}
+        {...contextValue?.register?.(config.field)}
+        {...config.props}
+        className={className}
+      />
+    );
+  }
+
   // @ts-expect-error
   return `Unknown type: ${config.type}`;
 }
@@ -126,7 +140,7 @@ function getKey(config: FormFieldConfig) {
 }
 
 namespace FormFieldFromConfigProps {
-  export type SingleFieldAll = Input | TextArea | Select;
+  export type SingleFieldAll = Input | TextArea | Select | PathInput;
   export type All<TKey extends string> = ({
     field: TKey;
   } & SingleFieldAll) & {
@@ -148,5 +162,10 @@ namespace FormFieldFromConfigProps {
     type: "select";
     options: { value: string; label: string }[];
     props?: Omit<React.ComponentProps<"select">, "children">;
+  };
+
+  export type PathInput = {
+    type: "path";
+    props?: React.ComponentProps<"input">;
   };
 }
