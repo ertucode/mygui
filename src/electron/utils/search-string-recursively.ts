@@ -82,14 +82,18 @@ export function searchStringRecursively(
     // Include patterns (glob)
     for (const pattern of includePatterns) {
       if (pattern.trim()) {
-        args.push(`--glob=${pattern.trim()}`);
+        // Remove leading ./ if present (ripgrep doesn't need it)
+        const cleanPattern = pattern.trim().replace(/^\.\//, '');
+        args.push(`--glob=${cleanPattern}`);
       }
     }
 
     // Exclude patterns (glob with !)
     for (const pattern of excludePatterns) {
       if (pattern.trim()) {
-        args.push(`--glob=!${pattern.trim()}`);
+        // Remove leading ./ if present (ripgrep doesn't need it)
+        const cleanPattern = pattern.trim().replace(/^\.\//, '');
+        args.push(`--glob=!${cleanPattern}`);
       }
     }
 
