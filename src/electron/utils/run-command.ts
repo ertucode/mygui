@@ -52,27 +52,27 @@ export async function runCommand(opts: {
 
     child.stdout?.on("data", (data) => {
       const output = data.toString();
-      const lines = output.split("\n");
+      const lines = output.split("\n").filter((line: string) => line.trim());
       for (const line of lines) {
         const report = parseLine(line);
         if (report) {
           handleCommandReport(report);
         }
       }
-      TaskManager.pushInfo(taskId, output);
+      TaskManager.pushInfo(taskId, lines);
     });
 
     child.stderr?.on("data", (data) => {
       const output = data.toString();
       stderrData += output;
-      const lines = output.split("\n");
+      const lines = output.split("\n").filter((line: string) => line.trim());
       for (const line of lines) {
         const report = parseLine(line);
         if (report) {
           handleCommandReport(report);
         }
       }
-      TaskManager.pushInfo(taskId, output);
+      TaskManager.pushInfo(taskId, lines);
     });
 
     child.on("error", (error) => {
