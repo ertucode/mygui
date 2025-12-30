@@ -8,6 +8,7 @@ import {
 } from "../common/Contracts";
 import { TaskEvents } from "../common/Tasks";
 import { ArchiveTypes } from "../common/ArchiveTypes";
+import { GenericEvent } from "../common/GenericEvent";
 
 electron.contextBridge.exposeInMainWorld("electron", {
   isSelectAppMode: () => getArgv("--mode=") === "select-app",
@@ -70,6 +71,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
   ) => ipcInvoke("batchRenameFiles", items),
   onTaskEvent: (cb: (e: TaskEvents) => void) => {
     const off = ipcOn("task:event", (e: TaskEvents) => cb(e));
+    return () => {
+      off();
+    };
+  },
+  onGenericEvent: (cb: (e: GenericEvent) => void) => {
+    const off = ipcOn("generic:event", (e: GenericEvent) => cb(e));
     return () => {
       off();
     };

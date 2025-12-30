@@ -812,4 +812,23 @@ export const directoryHelpers = {
 
     return undefined;
   },
+  checkAndReloadDirectories(path: string, fileToSelect: string | undefined) {
+    const directories = directoryStore.getSnapshot().context.directoriesById;
+
+    for (const dir of Object.values(directories)) {
+      if (dir.directory.type === "tags") continue;
+
+      if (
+        PathHelpers.expandHome(homeDirectory, dir.directory.fullPath) === path
+      ) {
+        directoryHelpers.reload(dir.directoryId).then(() => {
+          if (fileToSelect) {
+            directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);
+          }
+        });
+
+        return;
+      }
+    }
+  },
 };

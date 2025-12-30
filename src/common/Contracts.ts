@@ -1,6 +1,7 @@
 import { type GenericResult } from "./GenericError.js";
 import { TaskEvents } from "./Tasks.js";
 import { type ArchiveTypes } from "./ArchiveTypes.js";
+import { GenericEvent } from "./GenericEvent.js";
 
 export type ContextLine = {
   lineNumber: number;
@@ -134,6 +135,7 @@ export type EventResponseMapping = {
   generateVideoThumbnail: Promise<string>;
   generateAppIcon: Promise<string>;
   "task:event": TaskEvents;
+  "generic:event": GenericEvent;
   "window:focus": void;
   startArchive: Promise<void>;
   startUnarchive: Promise<void>;
@@ -315,6 +317,7 @@ export type WindowElectron = {
   generateVideoThumbnail: (filePath: string) => Promise<string>;
   generateAppIcon: (filePath: string) => Promise<string>;
   onTaskEvent: (cb: (e: TaskEvents) => void) => void;
+  onGenericEvent: (cb: (e: GenericEvent) => void) => void;
   onWindowFocus: (cb: () => void) => UnsubscribeFunction;
   startArchive: (
     archiveType: ArchiveTypes.ArchiveType,

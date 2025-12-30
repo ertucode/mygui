@@ -111,6 +111,7 @@ getWindowElectron().onTaskEvent((e) => {
   } else if (e.type === "update") {
     taskStore.trigger.updateMetadata({ id: e.id, metadata: e.metadata });
   } else if (e.type === "push-info") {
+    taskStore.trigger.pushInfo({ id: e.id, info: e.info });
   } else {
     const _exhaustiveCheck: never = e;
     return _exhaustiveCheck;

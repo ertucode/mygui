@@ -1,6 +1,5 @@
 import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
 import { taskStore } from "./taskStore";
-import { directoryStore } from "./file-browser/directoryStore/directory";
 import { directoryHelpers } from "./file-browser/directoryStore/directoryHelpers";
 import { PathHelpers } from "@common/PathHelpers";
 
@@ -17,7 +16,7 @@ export function subscribeToTasks() {
         const elapsed = new Date().getTime() - start.getTime();
         const fileToSelect =
           elapsed < 1000 ? PathHelpers.getLastPathPart(destination) : undefined;
-        return checkAndReloadDirectories(
+        return directoryHelpers.checkAndReloadDirectories(
           PathHelpers.getParentFolder(
             PathHelpers.expandHome(homeDirectory, destination),
           ).path,
@@ -26,27 +25,4 @@ export function subscribeToTasks() {
       }
     }
   });
-
-  function checkAndReloadDirectories(
-    path: string,
-    fileToSelect: string | undefined,
-  ) {
-    const directories = directoryStore.getSnapshot().context.directoriesById;
-
-    for (const dir of Object.values(directories)) {
-      if (dir.directory.type === "tags") continue;
-
-      if (
-        PathHelpers.expandHome(homeDirectory, dir.directory.fullPath) === path
-      ) {
-        directoryHelpers.reload(dir.directoryId).then(() => {
-          if (fileToSelect) {
-            directoryHelpers.setPendingSelection(fileToSelect, dir.directoryId);
-          }
-        });
-
-        return;
-      }
-    }
-  }
 }

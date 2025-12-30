@@ -31,3 +31,10 @@ export const CommandMetadata = z.object({
 
 export type CommandMetadata = z.infer<typeof CommandMetadata>;
 export type CommandParameter = z.infer<typeof CommandParameter>;
+
+export const CommandReport = z.object({
+  type: z.literal("reload-path"),
+  path: z.string(),
+  fileToSelect: z.string().nullish(),
+});
+export type CommandReport = z.infer<typeof CommandReport>;
