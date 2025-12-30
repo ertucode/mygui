@@ -142,6 +142,7 @@ export type EventResponseMapping = {
   openFileWithApplication: Promise<void>;
   openSelectAppWindow: Promise<string | null | undefined>;
   openShell: Promise<void>;
+  runCommand: Promise<void>;
 };
 
 export type StringSearchOptions = {
@@ -217,6 +218,7 @@ export type EventRequestMapping = {
   openFileWithApplication: { filePath: string; applicationPath: string };
   openSelectAppWindow: { initialPath: string };
   openShell: string;
+  runCommand: { name: string; filePath: string; parameters: any };
 };
 
 export type EventRequest<Key extends keyof EventResponseMapping> =
@@ -337,4 +339,9 @@ export type WindowElectron = {
   isSelectAppMode: () => boolean;
   sendSelectAppResult: (appPath: string | null | undefined) => void;
   getWindowArgs: () => string;
+  runCommand: (opts: {
+    name: string;
+    filePath: string;
+    parameters: any;
+  }) => Promise<void>;
 };

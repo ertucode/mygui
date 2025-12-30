@@ -41,6 +41,8 @@ import {
   serializeWindowArguments,
   WindowArguments,
 } from "../common/WindowArguments.js";
+import { runCommand } from "./utils/run-command.js";
+import { getServerConfig } from "./server-config.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -61,12 +63,21 @@ type WindowArgsWithoutHome = Omit<WindowArguments, "homeDir">;
 
 const homeDir = os.homedir();
 
-function createWindow(args?: WindowArgsWithoutHome) {
+async function createWindow(args?: WindowArgsWithoutHome) {
   const windowArgs: WindowArguments = {
     ...args,
     homeDir,
   };
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+
+  const config = await getServerConfig();
+  windowArgs.commands = config.commands?.map((s) => {
+    return {
+      name: s.name,
+      parameters: s.parameters,
+      glob: s.glob,
+    };
+  });
 
   const isSelectMode = windowArgs.mode === "select-app";
   const mainWindow = new BrowserWindow({
@@ -244,6 +255,8 @@ app.on("ready", () => {
     await shell.openExternal(url);
   });
 
+  ipcHandle("runCommand", runCommand);
+
   // Store pending select-app promises
   const selectAppPromises = new Map<
     number,
@@ -251,8 +264,11 @@ app.on("ready", () => {
   >();
 
   function openSelectAppWindow(initialPath: string) {
-    return new Promise<string | null | undefined>((resolve) => {
-      const selectWindow = createWindow({ initialPath, mode: "select-app" });
+    return new Promise<string | null | undefined>(async (resolve) => {
+      const selectWindow = await createWindow({
+        initialPath,
+        mode: "select-app",
+      });
       const windowId = selectWindow.id;
 
       // Store the resolve function

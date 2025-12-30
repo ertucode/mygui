@@ -96,6 +96,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
   openSelectAppWindow: (initialPath: string) =>
     ipcInvoke("openSelectAppWindow", { initialPath }),
   openShell: (url: string) => ipcInvoke("openShell", url),
+  runCommand: (opts: { name: string; filePath: string }) =>
+    ipcInvoke("runCommand", opts),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

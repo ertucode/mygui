@@ -33,7 +33,7 @@ function getTaskTypeLabel(task: TaskDefinition): string {
     case "paste":
       return task.metadata.isCut ? "Moving files" : "Copying files";
     case "delete":
-      return "Deleting files";
+      return "File Deletion";
     default:
       return "Processing task";
   }

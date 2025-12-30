@@ -23,6 +23,7 @@ import {
   FolderInputIcon,
   HardDriveIcon,
   ExternalLinkIcon,
+  TerminalIcon,
 } from "lucide-react";
 import { setDefaultPath } from "./defaultPath";
 import { dialogActions } from "./dialogStore";
@@ -38,10 +39,12 @@ import {
 } from "./tags";
 import { useDirectoryContext } from "./DirectoryContext";
 import { toast } from "@/lib/components/toast";
-import { getWindowElectron } from "@/getWindowElectron";
+import { getWindowElectron, windowArgs } from "@/getWindowElectron";
 import { useState, useEffect } from "react";
 import { ApplicationInfo } from "@common/Contracts";
 import { ArchiveHelpers } from "@common/ArchiveHelpers";
+import { CommandHelpers } from "./CommandHelpers";
+import { checkGlob } from "@/lib/functions/checkGlob";
 
 export const FileTableRowContextMenu = ({
   item,
@@ -319,6 +322,20 @@ export const FileTableRowContextMenu = ({
         }
       : null;
 
+  const filteredCommands = windowArgs.commands?.filter(
+    (c) => !c.glob || checkGlob(c.glob, fullPath),
+  );
+
+  const commandItem: ContextMenuItem | null = filteredCommands?.length
+    ? {
+        view: <TextWithIcon icon={TerminalIcon}>Run Command</TextWithIcon>,
+        submenu: filteredCommands.map((script) => ({
+          onClick: () => CommandHelpers.runCommand(script, fullPath),
+          view: script.name,
+        })),
+      }
+    : null;
+
   if (item.type === "dir") {
     const openDirectoryInNewTab: ContextMenuItem = {
       onClick: () => {
@@ -366,6 +383,8 @@ export const FileTableRowContextMenu = ({
       { isSeparator: true },
       copyPathItem,
       loadDirectorySize,
+      { isSeparator: true },
+      commandItem,
     ];
 
     return <ContextMenuList items={directoryMenuItems} />;
@@ -391,6 +410,8 @@ export const FileTableRowContextMenu = ({
     newFileItem,
     { isSeparator: true },
     copyPathItem,
+    { isSeparator: true },
+    commandItem,
   ];
 
   return <ContextMenuList items={fileMenuItems} />;
