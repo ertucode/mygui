@@ -7,10 +7,7 @@
 
 - find and replace
 - unarchive as file if only one file
-- command system: stdout ->
-
-  - event for refreshing a directory
-
+- fix shift arrow select
 - exclude paths not working in search string
 
 # AMBITIOUS TODO

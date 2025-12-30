@@ -16,6 +16,7 @@ import {
   Move,
   DeleteIcon,
   FileXCornerIcon,
+  Info,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { clsx } from "@/lib/functions/clsx";
@@ -23,6 +24,7 @@ import { errorResponseToMessage } from "@common/GenericError";
 import { PathHelpers } from "@common/PathHelpers";
 import { directoryHelpers } from "./file-browser/directoryStore/directory";
 import { getWindowElectron } from "@/getWindowElectron";
+import { Dialog } from "@/lib/components/dialog";
 
 function getTaskTypeLabel(task: TaskDefinition): string {
   switch (task.type) {
@@ -257,6 +259,9 @@ function TaskItem({
   const status = getTaskStatus(task);
   const Icon = getTaskIcon(task);
   const label = getTaskTypeLabel(task);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const hasInfo = task.info && task.info.length > 0;
 
   // Calculate estimated time remaining based on createdIso and progress
   const estimatedTimeRemaining = (() => {
@@ -280,15 +285,15 @@ function TaskItem({
     return remaining > 1000 ? remaining : undefined;
   })();
 
-  // Auto-dismiss successful tasks after 5 seconds
+  // Auto-dismiss successful tasks after 5 seconds (unless info dialog is open or item is hovered)
   useEffect(() => {
-    if (status === "success") {
+    if (status === "success" && !showInfoDialog && !isHovered) {
       const timer = setTimeout(() => {
         onDismiss();
       }, 5000);
       return () => clearTimeout(timer);
     }
-  }, [status, onDismiss]);
+  }, [status, onDismiss, showInfoDialog, isHovered]);
 
   const handleCancel = async () => {
     const electron = getWindowElectron();
@@ -296,33 +301,47 @@ function TaskItem({
   };
 
   return (
-    <div className="p-3 bg-base-200 rounded-lg border border-base-300 hover:border-primary/30 transition-colors group">
-      <div className="flex items-start gap-2.5">
-        <div className="flex-shrink-0 mt-0.5">
-          <div
-            className={clsx(
-              "p-1.5 rounded-md",
-              status === "running" && "bg-primary/10",
-              status === "success" && "bg-success/10",
-              status === "error" && "bg-error/10",
-            )}
-          >
-            <Icon
+    <>
+      <div 
+        className="p-3 bg-base-200 rounded-lg border border-base-300 hover:border-primary/30 transition-colors group"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div className="flex items-start gap-2.5">
+          <div className="flex-shrink-0 mt-0.5">
+            <div
               className={clsx(
-                "h-4 w-4",
-                status === "running" && "text-primary",
-                status === "success" && "text-success",
-                status === "error" && "text-error",
+                "p-1.5 rounded-md",
+                status === "running" && "bg-primary/10",
+                status === "success" && "bg-success/10",
+                status === "error" && "bg-error/10",
               )}
-            />
+            >
+              <Icon
+                className={clsx(
+                  "h-4 w-4",
+                  status === "running" && "text-primary",
+                  status === "success" && "text-success",
+                  status === "error" && "text-error",
+                )}
+              />
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 justify-between">
-            <div className="font-medium text-sm text-base-content">{label}</div>
-            <div className="flex items-center gap-1.5 relative">
-              <div className="flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 justify-between">
+              <div className="font-medium text-sm text-base-content">{label}</div>
+              <div className="flex items-center gap-1.5 relative">
+                {hasInfo && (
+                  <button
+                    onClick={() => setShowInfoDialog(true)}
+                    className="btn btn-ghost btn-xs btn-circle opacity-60 hover:opacity-100 transition-opacity"
+                    title="View task info"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                )}
+                <div className="flex-shrink-0">
                 {status === "running" && (
                   <div className="flex items-center gap-1.5">
                     <div className="flex flex-col items-end">
@@ -363,14 +382,14 @@ function TaskItem({
                 {status === "success" && (
                   <CheckCircle2 className="h-4 w-4 text-success" />
                 )}
-                {status === "error" && (
-                  <XCircle className="h-4 w-4 text-error" />
-                )}
+                  {status === "error" && (
+                    <XCircle className="h-4 w-4 text-error" />
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <TaskMetadata task={task} />
+            <TaskMetadata task={task} />
 
           {status === "running" && (
             <div className="w-full bg-base-300 rounded-full h-1.5 mt-2.5 overflow-hidden">
@@ -387,14 +406,34 @@ function TaskItem({
             </div>
           )}
 
-          {status === "success" && (
-            <div className="mt-2 text-xs text-success font-medium">
-              Completed successfully
-            </div>
-          )}
+            {status === "success" && (
+              <div className="mt-2 text-xs text-success font-medium">
+                Completed successfully
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+
+      {showInfoDialog && hasInfo && (
+        <Dialog
+          title="Task Information"
+          onClose={() => setShowInfoDialog(false)}
+          footer={
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowInfoDialog(false)}
+            >
+              Close
+            </button>
+          }
+        >
+          <pre className="text-xs bg-base-200 p-4 rounded overflow-auto max-h-96">
+            {task.info!.join("\n")}
+          </pre>
+        </Dialog>
+      )}
+    </>
   );
 }
 
