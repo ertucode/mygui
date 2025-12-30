@@ -9,8 +9,10 @@ import { useCallback } from "react";
 import { useWindowFocus } from "./lib/hooks/useWindowFocus";
 import { directoryStore } from "./features/file-browser/directoryStore/directory";
 import { directoryHelpers } from "./features/file-browser/directoryStore/directoryHelpers";
+import { subscribeToGenericEvents } from "./features/genericEventListener";
 
 subscribeToTasks();
+subscribeToGenericEvents();
 
 function App() {
   const handleWindowFocus = useCallback(() => {

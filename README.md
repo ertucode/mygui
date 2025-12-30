@@ -9,7 +9,6 @@
 - unarchive as file if only one file
 - command system: stdout ->
 
-  - extension config
   - event for refreshing a directory
 
 - exclude paths not working in search string

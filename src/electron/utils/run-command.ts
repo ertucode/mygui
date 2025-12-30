@@ -34,6 +34,7 @@ export async function runCommand(opts: {
     }
   }
 
+  console.log(`Running command: ${command}`, parameters);
   const taskId = TaskManager.create({
     type: "run-command",
     metadata: {
@@ -51,12 +52,26 @@ export async function runCommand(opts: {
 
     child.stdout?.on("data", (data) => {
       const output = data.toString();
+      const lines = output.split("\n");
+      for (const line of lines) {
+        const report = parseLine(line);
+        if (report) {
+          handleCommandReport(report);
+        }
+      }
       TaskManager.pushInfo(taskId, output);
     });
 
     child.stderr?.on("data", (data) => {
       const output = data.toString();
       stderrData += output;
+      const lines = output.split("\n");
+      for (const line of lines) {
+        const report = parseLine(line);
+        if (report) {
+          handleCommandReport(report);
+        }
+      }
       TaskManager.pushInfo(taskId, output);
     });
 
@@ -68,15 +83,17 @@ export async function runCommand(opts: {
     child.on("close", (code) => {
       if (code !== 0) {
         console.error(`Script ${name} exited with code ${code}:`, stderrData);
-        resolve(
-          GenericError.Unknown(
-            stderrData || `Process exited with code ${code}`,
-          ),
+        const result = GenericError.Unknown(
+          stderrData || `Process exited with code ${code}`,
         );
+        TaskManager.result(taskId, result);
+        resolve(result);
         return;
       }
       console.log(`Script ${name} ran successfully:`);
-      resolve(Result.Success(undefined));
+      const result = Result.Success(undefined);
+      TaskManager.result(taskId, result);
+      resolve(result);
     });
   });
 }
@@ -96,6 +113,7 @@ function parseLine(line: string) {
 }
 
 function handleCommandReport(report: CommandReport) {
+  // Example report: "echo '[koda]: {\"type\":\"reload-path\",\"path\":\"/Users/cavitertugrulsirt/Downloads\"}'"
   if (report.type === "reload-path") {
     sendGenericEvent({
       type: "reload-path",

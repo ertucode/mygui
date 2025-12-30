@@ -812,7 +812,7 @@ export const directoryHelpers = {
 
     return undefined;
   },
-  checkAndReloadDirectories(path: string, fileToSelect: string | undefined) {
+  checkAndReloadDirectories(path: string, fileToSelect: $Maybe<string>) {
     const directories = directoryStore.getSnapshot().context.directoriesById;
 
     for (const dir of Object.values(directories)) {

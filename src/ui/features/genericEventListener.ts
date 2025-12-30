@@ -1,11 +1,17 @@
 import { getWindowElectron } from "@/getWindowElectron";
 import { directoryHelpers } from "./file-browser/directoryStore/directoryHelpers";
+import { PathHelpers } from "@common/PathHelpers";
 
-getWindowElectron().onGenericEvent((e) => {
-  if (e.type === "reload-path") {
-    directoryHelpers.checkAndReloadDirectories(e.path, undefined);
-  } else {
-    const _exhaustiveCheck: never = e?.type;
-    return _exhaustiveCheck;
-  }
-});
+export function subscribeToGenericEvents() {
+  getWindowElectron().onGenericEvent((e) => {
+    if (e.type === "reload-path") {
+      directoryHelpers.checkAndReloadDirectories(
+        e.path,
+        e.fileToSelect && PathHelpers.getLastPathPart(e.fileToSelect),
+      );
+    } else {
+      const _exhaustiveCheck: never = e?.type;
+      return _exhaustiveCheck;
+    }
+  });
+}
