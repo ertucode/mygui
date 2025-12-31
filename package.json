@@ -12,6 +12,7 @@
     "dev:react": "vite",
     "dev:electron": "npm run transpile:electron; cross-env NODE_ENV=development electron .",
     "build:react": "tsc -b && vite build",
+    "vitebuild": "vite build",
     "check:frontend": "tsc -b",
     "check:backend": "tsc -p ./src/electron/tsconfig.json",
     "test": "vitest",
