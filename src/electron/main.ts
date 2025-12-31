@@ -47,6 +47,7 @@ import {
 } from "../common/WindowArguments.js";
 import { runCommand } from "./utils/run-command.js";
 import { getServerConfig } from "./server-config.js";
+import { getAudioMetadata } from "./utils/get-audio-metadata.js";
 
 // Handle folders/files opened via "open with" or as default app
 let pendingOpenPath: string | undefined;
@@ -236,6 +237,7 @@ app.on("ready", () => {
     generateVideoThumbnail(filePath),
   );
   ipcHandle("generateAppIcon", (filePath) => generateAppIcon(filePath));
+  ipcHandle("getAudioMetadata", (filePath) => getAudioMetadata(filePath));
   ipcHandle("startArchive", (request) => startArchive(request));
   ipcHandle("startUnarchive", (request) => startUnarchive(request));
   ipcHandle("abortTask", async (taskId) => {

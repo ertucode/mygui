@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { fileSizeTooLarge } from "@common/file-size-too-large";
-import { isImageExtension, isVideoExtension } from "@common/file-category";
+import {
+  getCategoryFromExtension,
+  isImageExtension,
+  isVideoExtension,
+} from "@common/file-category";
 import { NO_PREVIEW_EXTENSIONS } from "@common/no-preview-extensions";
 import { ArchiveTypes } from "@common/ArchiveTypes";
 import { ImagePreview } from "./renderers/ImagePreview";
@@ -10,6 +14,7 @@ import { XlsxPreview } from "./renderers/XlsxPreview";
 import { VideoPreview } from "./renderers/VideoPreview";
 import { VideoUnsupportedPreview } from "./renderers/VideoUnsupportedPreview";
 import { ArchivePreview } from "./renderers/ArchivePreview";
+import { AudioPreview } from "./renderers/AudioPreview";
 import { TextPreview } from "./renderers/TextPreview";
 import { FolderPreview } from "./renderers/FolderPreview";
 import { PathHelpers } from "@common/PathHelpers";
@@ -149,6 +154,7 @@ function getRenderer(data: PreviewHelpers.DerivedData) {
   if (data.contentType === "video") return VideoPreview;
   if (data.contentType === "video-unsupported") return VideoUnsupportedPreview;
   if (data.contentType === "archive") return ArchivePreview;
+  if (data.contentType === "audio") return AudioPreview;
   return TextPreview;
 }
 
@@ -163,23 +169,19 @@ function getContentType(
 
   const ext = PathHelpers.ensureDot(previewData.fileExt);
 
-  if (isImageExtension(ext)) {
-    return "image";
-  } else if (PreviewHelpers.PDF_EXTENSIONS.has(ext)) {
-    return "pdf";
-  } else if (PreviewHelpers.DOCX_EXTENSIONS.has(ext)) {
-    return "docx";
-  } else if (PreviewHelpers.XLSX_EXTENSIONS.has(ext)) {
-    return "xlsx";
-  } else if (isVideoExtension(ext)) {
+  if (isImageExtension(ext)) return "image";
+  if (PreviewHelpers.PDF_EXTENSIONS.has(ext)) return "pdf";
+  if (PreviewHelpers.DOCX_EXTENSIONS.has(ext)) return "docx";
+  if (PreviewHelpers.XLSX_EXTENSIONS.has(ext)) return "xlsx";
+  if (isVideoExtension(ext))
     return PreviewHelpers.PLAYABLE_VIDEO_EXTENSIONS.has(ext)
       ? "video"
       : "video-unsupported";
-  } else if (
-    ArchiveTypes.SupportedExtensions.has(ext as ArchiveTypes.ArchiveType)
-  ) {
+  if (ArchiveTypes.SupportedExtensions.has(ext as ArchiveTypes.ArchiveType))
     return "archive";
-  } else {
-    return "text";
-  }
+
+  const c = getCategoryFromExtension(ext);
+  if (c === "audio") return "audio";
+
+  return "text";
 }

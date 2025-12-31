@@ -45,6 +45,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
     archivePath: string,
     archiveType: ArchiveTypes.ArchiveType,
   ) => ipcInvoke("readArchiveContents", { archivePath, archiveType }),
+  getAudioMetadata: (filePath: string) =>
+    ipcInvoke("getAudioMetadata", filePath),
 } satisfies Partial<WindowElectron>);
 
 function getArgv(key: string) {

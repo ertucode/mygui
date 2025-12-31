@@ -111,6 +111,8 @@ electron.contextBridge.exposeInMainWorld("electron", {
   openShell: (url: string) => ipcInvoke("openShell", url),
   runCommand: (opts: { name: string; filePath: string; parameters: any }) =>
     ipcInvoke("runCommand", opts),
+  getAudioMetadata: (filePath: string) =>
+    ipcInvoke("getAudioMetadata", filePath),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(

@@ -22,7 +22,8 @@ export namespace PreviewHelpers {
     | "video"
     | "video-unsupported"
     | "archive"
-    | "folder";
+    | "folder"
+    | "audio";
 
   export type MessageData = {
     filePath: string;
