@@ -30,6 +30,22 @@ export type ApplicationInfo = {
   isDefault?: boolean;
 };
 
+export type AudioMetadata = {
+  title?: string;
+  artist?: string;
+  album?: string;
+  year?: number;
+  genre?: string[];
+  duration?: number;
+  bitrate?: number;
+  sampleRate?: number;
+  numberOfChannels?: number;
+  picture?: {
+    data: string; // base64 encoded
+    format: string;
+  };
+};
+
 export type FileCategory =
   | "image"
   | "video"
@@ -136,6 +152,7 @@ export type EventResponseMapping = {
   getDirectorySizes: Promise<Record<string, number>>;
   generateVideoThumbnail: Promise<string>;
   generateAppIcon: Promise<string>;
+  getAudioMetadata: Promise<AudioMetadata | { error: string }>;
   "task:event": TaskEvents;
   "generic:event": GenericEvent;
   "window:focus": void;
@@ -234,6 +251,7 @@ export type EventRequestMapping = {
   getDirectorySizes: { parentPath: string; specificDirName?: string };
   generateVideoThumbnail: string;
   generateAppIcon: string;
+  getAudioMetadata: string;
   startArchive: {
     archiveType: ArchiveTypes.ArchiveType;
     source: string[];
@@ -351,6 +369,9 @@ export type WindowElectron = {
   ) => Promise<Record<string, number>>;
   generateVideoThumbnail: (filePath: string) => Promise<string>;
   generateAppIcon: (filePath: string) => Promise<string>;
+  getAudioMetadata: (
+    filePath: string,
+  ) => Promise<AudioMetadata | { error: string }>;
   onTaskEvent: (cb: (e: TaskEvents) => void) => void;
   onGenericEvent: (cb: (e: GenericEvent) => void) => void;
   onWindowFocus: (cb: () => void) => UnsubscribeFunction;
