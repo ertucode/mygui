@@ -1,5 +1,5 @@
 :where(.btn) {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     width: unset;
   }
 }
@@ -10,7 +10,7 @@
 }
 
 .btn {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     @apply inline-flex shrink-0 cursor-pointer flex-nowrap items-center justify-center gap-1.5 text-center align-middle outline-offset-2 select-none;
     padding-inline: var(--btn-p);
     color: var(--btn-fg);
@@ -107,7 +107,7 @@
 .btn-disabled,
 .btn:disabled,
 .btn[disabled] {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     &:not(.btn-link, .btn-ghost) {
       @apply bg-base-content/10;
       box-shadow: none;
@@ -121,7 +121,7 @@
 }
 
 .btn-active {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --btn-bg: color-mix(
       in oklab,
       var(--btn-color, var(--color-base-200)),
@@ -133,56 +133,56 @@
 }
 
 .btn-primary {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-primary);
     --btn-fg: var(--color-primary-content);
   }
 }
 
 .btn-secondary {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-secondary);
     --btn-fg: var(--color-secondary-content);
   }
 }
 
 .btn-accent {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-accent);
     --btn-fg: var(--color-accent-content);
   }
 }
 
 .btn-neutral {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-neutral);
     --btn-fg: var(--color-neutral-content);
   }
 }
 
 .btn-info {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-info);
     --btn-fg: var(--color-info-content);
   }
 }
 
 .btn-success {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-success);
     --btn-fg: var(--color-success-content);
   }
 }
 
 .btn-warning {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-warning);
     --btn-fg: var(--color-warning-content);
   }
 }
 
 .btn-error {
-  @layer daisyui.l1.l2.l3 {
+  @layer daisyui.l1 {
     --btn-color: var(--color-error);
     --btn-fg: var(--color-error-content);
   }
@@ -338,7 +338,7 @@
 }
 
 .btn-xs {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --fontsize: 0.6875rem;
     --btn-p: 0.5rem;
     --size: calc(var(--size-field, 0.25rem) * 6);
@@ -346,7 +346,7 @@
 }
 
 .btn-sm {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --fontsize: 0.75rem;
     --btn-p: 0.75rem;
     --size: calc(var(--size-field, 0.25rem) * 8);
@@ -354,7 +354,7 @@
 }
 
 .btn-md {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --fontsize: 0.875rem;
     --btn-p: 1rem;
     --size: calc(var(--size-field, 0.25rem) * 10);
@@ -362,7 +362,7 @@
 }
 
 .btn-lg {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --fontsize: 1.125rem;
     --btn-p: 1.25rem;
     --size: calc(var(--size-field, 0.25rem) * 12);
@@ -370,7 +370,7 @@
 }
 
 .btn-xl {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     --fontsize: 1.375rem;
     --btn-p: 1.5rem;
     --size: calc(var(--size-field, 0.25rem) * 14);
@@ -378,7 +378,7 @@
 }
 
 .btn-square {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     @apply px-0;
     width: var(--size);
     height: var(--size);
@@ -386,7 +386,7 @@
 }
 
 .btn-circle {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     @apply rounded-full px-0;
     width: var(--size);
     height: var(--size);
@@ -394,13 +394,13 @@
 }
 
 .btn-wide {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     @apply w-full max-w-64;
   }
 }
 
 .btn-block {
-  @layer daisyui.l1.l2 {
+  @layer daisyui.l1 {
     @apply w-full;
   }
 }

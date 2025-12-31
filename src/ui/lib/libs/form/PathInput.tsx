@@ -1,8 +1,14 @@
 import { directoryHelpers } from "@/features/file-browser/directoryStore/directory";
 import { getWindowElectron } from "@/getWindowElectron";
 import { Button } from "@/lib/components/button";
-import { FileSearchIcon, FolderIcon } from "lucide-react";
-import React, { useEffect, useRef, useState, useMemo, useDeferredValue } from "react";
+import { FileSearchIcon, FolderIcon, Loader2Icon } from "lucide-react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useDeferredValue,
+} from "react";
 import { createPortal } from "react-dom";
 import { FileBrowserCache } from "@/features/file-browser/FileBrowserCache";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
@@ -58,8 +64,6 @@ export function PathInput(props: React.ComponentProps<"input">) {
     setPortalTarget(dialogElement || document.body);
   }, []);
 
-
-
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -67,7 +71,8 @@ export function PathInput(props: React.ComponentProps<"input">) {
       const isOutsideContainer =
         containerRef.current && !containerRef.current.contains(target);
       const isOutsideDropdown =
-        completionListRef.current && !completionListRef.current.contains(target);
+        completionListRef.current &&
+        !completionListRef.current.contains(target);
 
       if (isOutsideContainer && isOutsideDropdown) {
         setRawCompletionItems([]);
@@ -263,13 +268,14 @@ export function PathInput(props: React.ComponentProps<"input">) {
           />
           {isLoadingCompletions && (
             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-              <span className="text-gray-400 text-[10px]">Loading...</span>
+              <Loader2Icon className="size-4 stroke-current" />
             </div>
           )}
         </div>
         <Button icon={FileSearchIcon} onClick={pickFile} type="button"></Button>
       </div>
-      {dropdownContent && portalTarget &&
+      {dropdownContent &&
+        portalTarget &&
         createPortal(dropdownContent, portalTarget)}
     </>
   );

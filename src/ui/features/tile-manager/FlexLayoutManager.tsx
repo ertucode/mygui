@@ -4,7 +4,6 @@ import { BottomToolbar } from "../file-browser/components/BottomToolbar";
 import { CustomTitleBar } from "../file-browser/components/CustomTitleBar";
 import { FileBrowserShortcuts } from "../file-browser/FileBrowserShortcuts";
 import { useDialogStoreRenderer } from "../file-browser/dialogStore";
-// import "./FlexLayoutManager.css";
 import { layoutModel } from "../file-browser/initializeDirectory";
 import { layoutFactory } from "./layoutFactory";
 import { onRenderTab } from "./onRenderTab";

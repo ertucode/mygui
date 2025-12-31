@@ -13,11 +13,10 @@ import {
 } from "../file-browser/directoryStore/directory";
 import { directoryDerivedStores } from "../file-browser/directoryStore/directorySubscriptions";
 
+const paneClassName = "w-full h-full flex flex-col overflow-auto";
 export const layoutFactory = (node: TabNode) => {
   const component = node.getComponent();
   const config = node.getConfig();
-
-  const paneClassName = "w-full h-full flex flex-col overflow-auto";
 
   switch (component) {
     case "favorites":

@@ -33,19 +33,24 @@
   --noise: 0;
 }
 
-@import "./styles/_flex-layout.css";
+@layer components {
+  @import "./styles/_flex-layout.css";
 
-@import "./styles/button.css";
-@import "./styles/input.css";
-@import "./styles/table.css";
-@import "./styles/textarea.css";
-@import "./styles/alert.css";
-@import "./styles/menu.css";
-@import "./styles/modal.css";
-@import "./styles/checkbox.css";
-@import "./styles/label.css";
-@import "./styles/loading.css";
-@import "./styles/select.css";
+  @import "./styles/button.css";
+  @import "./styles/input.css";
+  @import "./styles/table.css";
+  @import "./styles/textarea.css";
+  @import "./styles/alert.css";
+  @import "./styles/menu.css";
+  @import "./styles/modal.css";
+  @import "./styles/checkbox.css";
+  @import "./styles/label.css";
+  @import "./styles/loading.css";
+  @import "./styles/select.css";
+  @import "./styles/tab.css";
+  @import "./styles/kbd.css";
+  @import "./styles/join.css";
+}
 
 html,
 body,
