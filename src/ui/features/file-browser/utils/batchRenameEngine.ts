@@ -1,4 +1,6 @@
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { PathHelpers } from "@common/PathHelpers";
+import { replacePlaceholders } from "@common/PlaceholderHelpers";
 
 export type CaseConversion = "none" | "upper" | "lower" | "sentence" | "title";
 
@@ -34,7 +36,7 @@ export type RenamePreview = {
  * - [d]: Current date (YYYY-MM-DD)
  * - [t]: Current time (HH-MM-SS)
  * - [P]: Parent folder name
- * 
+ *
  * Escaping: Use \[N\] to get literal "[N]" in the output
  */
 export function applyMask(
@@ -43,66 +45,19 @@ export function applyMask(
   counterValue: number,
   counterPadding: number,
 ): string {
-  const itemPath = item.fullPath || "";
-  // Extract parent folder name from path
-  const pathParts = itemPath.split(/[/\\]/).filter(p => p); // Remove empty parts
-  const parentFolder = pathParts.length > 1 ? pathParts[pathParts.length - 2] : "";
-  const nameWithoutExt = item.type === "file" 
-    ? item.name.substring(0, item.name.length - item.ext.length)
-    : item.name;
-  const extension = item.type === "file" ? item.ext : "";
-
-  // Temporarily replace escaped brackets with placeholders
-  const ESCAPED_OPEN = "___ESCAPED_OPEN___";
-  const ESCAPED_CLOSE = "___ESCAPED_CLOSE___";
-  let result = mask
-    .replace(/\\\[/g, ESCAPED_OPEN)
-    .replace(/\\\]/g, ESCAPED_CLOSE);
-
-  // Parse [N] with optional ranges
-  result = result.replace(/\[N(\d+)?(?:-(\d+)|,(\d+))?\]/g, (_match, start, end, count) => {
-    if (!start) {
-      return nameWithoutExt; // Plain [N]
-    }
-
-    const startIdx = parseInt(start, 10) - 1; // Convert to 0-based index
-    
-    if (end) {
-      // [N1-5] format - range
-      const endIdx = parseInt(end, 10);
-      return nameWithoutExt.substring(startIdx, endIdx);
-    } else if (count) {
-      // [N2,3] format - start position and count
-      const length = parseInt(count, 10);
-      return nameWithoutExt.substring(startIdx, startIdx + length);
-    } else {
-      // [N1] format - single character
-      return nameWithoutExt.charAt(startIdx);
-    }
+  // Use the common placeholder replacement for base placeholders
+  let result = replacePlaceholders(mask, {
+    name: item.name,
+    fullPath: item.fullPath,
+    ext: item.ext as PathHelpers.DottedExtension,
+    type: item.type,
   });
 
-  // [E] - Extension
-  result = result.replace(/\[E\]/g, extension);
-
-  // [C] - Counter with padding
-  result = result.replace(/\[C\]/g, counterValue.toString().padStart(counterPadding, "0"));
-
-  // [d] - Current date
-  const now = new Date();
-  const dateStr = now.toISOString().split("T")[0]; // YYYY-MM-DD
-  result = result.replace(/\[d\]/g, dateStr);
-
-  // [t] - Current time
-  const timeStr = now.toTimeString().split(" ")[0].replace(/:/g, "-"); // HH-MM-SS
-  result = result.replace(/\[t\]/g, timeStr);
-
-  // [P] - Parent folder
-  result = result.replace(/\[P\]/g, parentFolder);
-
-  // Restore escaped brackets
-  result = result
-    .replace(new RegExp(ESCAPED_OPEN, "g"), "[")
-    .replace(new RegExp(ESCAPED_CLOSE, "g"), "]");
+  // [C] - Counter with padding (specific to batch rename)
+  result = result.replace(
+    /\[C\]/g,
+    counterValue.toString().padStart(counterPadding, "0"),
+  );
 
   return result;
 }
@@ -125,14 +80,21 @@ export function applyFindReplace(
   const { find, replace, useRegex, multiString } = findReplace;
 
   // Helper function to process replacement text with masks
-  const processReplacement = (replacementText: string, matchedText?: string, ...captureGroups: string[]): string => {
+  const processReplacement = (
+    replacementText: string,
+    matchedText?: string,
+    ...captureGroups: string[]
+  ): string => {
     let processed = replacementText;
-    
+
     // First, replace regex capture groups ($1, $2, etc.) if in regex mode
     if (useRegex && captureGroups.length > 0) {
       captureGroups.forEach((group, index) => {
         if (group !== undefined) {
-          processed = processed.replace(new RegExp(`\\$${index + 1}`, "g"), group);
+          processed = processed.replace(
+            new RegExp(`\\$${index + 1}`, "g"),
+            group,
+          );
         }
       });
       // Also support $0 for the full match
@@ -140,12 +102,12 @@ export function applyFindReplace(
         processed = processed.replace(/\$0/g, matchedText);
       }
     }
-    
+
     // Then apply mask placeholders to the replacement string
     // We create a temporary item with the current name for mask processing
     const tempItem = { ...item, name: matchedText || name };
     processed = applyMask(tempItem, processed, counterValue, counterPadding);
-    
+
     return processed;
   };
 
@@ -180,7 +142,10 @@ export function applyFindReplace(
 /**
  * Apply case conversion
  */
-export function applyCaseConversion(name: string, caseType: CaseConversion): string {
+export function applyCaseConversion(
+  name: string,
+  caseType: CaseConversion,
+): string {
   switch (caseType) {
     case "upper":
       return name.toUpperCase();
@@ -191,7 +156,9 @@ export function applyCaseConversion(name: string, caseType: CaseConversion): str
     case "title":
       return name
         .split(" ")
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+        .map(
+          (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase(),
+        )
         .join(" ");
     case "none":
     default:
@@ -209,12 +176,23 @@ export function generateRenamePreview(
   return items.map((item, index) => {
     try {
       const counterValue = options.counterStart + index * options.counterStep;
-      
+
       // Step 1: Apply mask
-      let newName = applyMask(item, options.mask, counterValue, options.counterPadding);
+      let newName = applyMask(
+        item,
+        options.mask,
+        counterValue,
+        options.counterPadding,
+      );
 
       // Step 2: Apply find/replace (now with mask support)
-      newName = applyFindReplace(newName, options.findReplace, item, counterValue, options.counterPadding);
+      newName = applyFindReplace(
+        newName,
+        options.findReplace,
+        item,
+        counterValue,
+        options.counterPadding,
+      );
 
       // Step 3: Apply case conversion
       newName = applyCaseConversion(newName, options.caseConversion);

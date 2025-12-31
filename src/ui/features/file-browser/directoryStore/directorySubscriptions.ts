@@ -141,7 +141,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
           );
           if (newItemIndex !== -1) {
             directorySelection.selectManually(newItemIndex, directoryId);
-            scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex, "center");
+            scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex);
           }
           directoryHelpers.setPendingSelection(null, directoryId);
         }

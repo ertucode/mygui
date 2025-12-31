@@ -72,6 +72,7 @@ export type DialogMetadata = {
   runCommand: {
     command: CommandMetadata;
     fullPath: string;
+    fileType: "dir" | "file";
   };
 };
 

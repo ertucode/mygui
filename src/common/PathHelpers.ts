@@ -17,18 +17,30 @@ export namespace PathHelpers {
     path: string;
     name: string;
   } {
+    if (fullPath === "/") return { path: "", name: "" };
     const parts = fullPath.split("/");
     // Remove empty parts but keep track of leading slash
     const filteredParts = parts.filter(Boolean);
 
+    if (filteredParts.length === 1) {
+      if (filteredParts[0] === "~") {
+        return { path: "/", name: "" };
+      }
+
+      return { path: "/", name: "/" };
+    }
+
     if (filteredParts.length >= 2) {
       const parentParts = filteredParts.slice(0, -1);
-      const parentPath = "/" + parentParts.join("/");
+      const parentPath =
+        filteredParts[0][0] === "~"
+          ? parentParts.join("/")
+          : "/" + parentParts.join("/");
       const parentName = parentParts[parentParts.length - 1];
       return { path: parentPath, name: parentName };
     }
 
-    return { path: "/", name: "" };
+    return { path: "/", name: "/" };
   }
 
   export function reconstructDirectoryUntilIndex(parts: string[], idx: number) {
@@ -50,7 +62,7 @@ export namespace PathHelpers {
 
   export function revertExpandedHome(home: string, filePath: string): string {
     if (filePath.startsWith(home)) {
-      return "~/" + filePath.slice(home.length);
+      return "~" + filePath.slice(home.length);
     }
     return filePath;
   }
@@ -89,6 +101,13 @@ export namespace PathHelpers {
       return "";
     }
     return filePath.slice(lastDot + 1);
+  }
+
+  export type DottedExtension = `.${string}` | "";
+  export function getDottedExtension(filePath: string): DottedExtension {
+    const ext = getExtension(filePath);
+    if (!ext) return ".";
+    return ("." + ext) as DottedExtension;
   }
 
   export function ensureDot(ext: string) {

@@ -50,6 +50,7 @@
   @import "./styles/tab.css";
   @import "./styles/kbd.css";
   @import "./styles/join.css";
+  @import "./styles/toast.css";
 }
 
 html,

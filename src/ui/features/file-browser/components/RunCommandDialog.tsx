@@ -7,8 +7,15 @@ import z from "zod";
 import { TerminalIcon } from "lucide-react";
 import { CommandHelpers } from "../CommandHelpers";
 import { FormFieldConfig } from "@/lib/libs/form/FormFieldFromConfig";
+import { replacePlaceholders } from "@common/PlaceholderHelpers";
+import { PathHelpers } from "@common/PathHelpers";
+import { windowArgs } from "@/getWindowElectron";
 
-type Item = { command: CommandMetadata; fullPath: string };
+type Item = {
+  command: CommandMetadata;
+  fullPath: string;
+  fileType: "dir" | "file";
+};
 
 export const RunCommandDialog = ({
   ref,
@@ -46,7 +53,7 @@ export const RunCommandDialog = ({
             return {
               field: p.name,
               label,
-              type: "path",
+              type: "input",
             };
           }
           return {
@@ -57,9 +64,30 @@ export const RunCommandDialog = ({
           };
         })
       }
-      getFormParams={(_) => ({
-        defaultValues: {},
-      })}
+      getFormParams={(item) => {
+        const values: Record<string, string> = {};
+
+        if (item && parameters) {
+          parameters.forEach((p) => {
+            if (p.initialValue) {
+              // Replace placeholders with file information
+              values[p.name] = replacePlaceholders(p.initialValue, {
+                name: PathHelpers.getLastPathPart(item.fullPath),
+                fullPath: PathHelpers.revertExpandedHome(
+                  windowArgs.homeDir,
+                  item.fullPath,
+                ),
+                ext: PathHelpers.getDottedExtension(item.fullPath),
+                type: item.fileType,
+              });
+            }
+          });
+        }
+
+        return {
+          values,
+        };
+      }}
       getTexts={(item) => ({
         title: item ? `Run Command: ${item.command.name}` : "Run Command",
         buttonLabel: "Run Command",

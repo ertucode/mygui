@@ -17,8 +17,8 @@ export const taskStore = createStore({
       },
     ) => ({
       tasks: {
-        ...context.tasks,
         [event.task.id]: event.task,
+        ...context.tasks,
       },
     }),
     progressTask: (

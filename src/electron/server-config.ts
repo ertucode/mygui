@@ -28,7 +28,7 @@ async function loadConfig(): Promise<ServerConfig> {
       }
     }
 
-    console.log("Loaded config:", parsed);
+    console.log("Loaded config:", JSON.stringify(parsed, null, 2));
     return parsed;
   } catch (error) {
     console.error(error);

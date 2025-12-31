@@ -106,9 +106,7 @@ const ToastItem: React.FC<{ toast: Toast; onClose: (id: string) => void }> = ({
   onClose,
 }) => {
   return (
-    <div
-      className={`alert alert-vertical sm:alert-horizontal shadow-lg min-w-[300px] max-w-md`}
-    >
+    <div className={`alert shadow-lg min-w-[300px] max-w-md`}>
       {getSeverityIcon(toast.severity, toast.customIcon)}
       <div>
         <h3 className="font-bold">

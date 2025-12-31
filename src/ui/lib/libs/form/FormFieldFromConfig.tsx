@@ -78,6 +78,11 @@ function Inside({
 
   if (config.type === "path") {
     const className = clsx("input w-full", config.props?.className);
+    console.log(
+      config.field,
+      contextValue?.register?.(config.field),
+      config.props,
+    );
     return (
       <PathInput
         id={config.field}

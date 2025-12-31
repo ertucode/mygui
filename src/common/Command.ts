@@ -16,10 +16,17 @@ export const CommandParameterType = z
     }),
   );
 
+export const CommandMenuConfig = z.object({
+  placement: z.enum(["inline", "menu"]).default("menu"),
+  priority: z.number().default(0),
+});
+export type CommandMenuConfig = z.infer<typeof CommandMenuConfig>;
+
 export const CommandParameter = z
   .object({
     name: z.string(),
     label: z.string().nullish(),
+    initialValue: z.string().nullish(),
   })
   .and(CommandParameterType);
 
@@ -27,6 +34,7 @@ export const CommandMetadata = z.object({
   name: z.string(),
   parameters: CommandParameter.array().nullish(),
   glob: z.string().nullish(),
+  menu: CommandMenuConfig.nullish(),
 });
 
 export type CommandMetadata = z.infer<typeof CommandMetadata>;

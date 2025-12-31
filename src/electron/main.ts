@@ -76,11 +76,8 @@ async function createWindow(args?: WindowArgsWithoutHome) {
 
   const config = await getServerConfig();
   windowArgs.commands = config.commands?.map((s) => {
-    return {
-      name: s.name,
-      parameters: s.parameters,
-      glob: s.glob,
-    };
+    const { command, ...others } = s;
+    return others;
   });
 
   const isSelectMode = windowArgs.mode === "select-app";

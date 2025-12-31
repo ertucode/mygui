@@ -327,15 +327,40 @@ export const FileTableRowContextMenu = ({
     (c) => !c.glob || checkGlob(c.glob, fullPath),
   );
 
-  const commandItem: ContextMenuItem | null = filteredCommands?.length
+  const inMenuCommands = filteredCommands?.filter((c) => {
+    return !c.menu || c.menu?.placement === "menu";
+  });
+
+  if (inMenuCommands?.length) {
+    inMenuCommands.sort(
+      (a, b) => (a.menu?.priority ?? 0) - (b.menu?.priority ?? 0),
+    );
+  }
+
+  const inlineCommands = filteredCommands?.filter((c) => {
+    return c.menu?.placement === "inline";
+  });
+
+  if (inlineCommands?.length) {
+    inlineCommands.sort(
+      (a, b) => (a.menu?.priority ?? 0) - (b.menu?.priority ?? 0),
+    );
+  }
+
+  const commandItem: ContextMenuItem | null = inMenuCommands?.length
     ? {
         view: <TextWithIcon icon={TerminalIcon}>Run Command</TextWithIcon>,
-        submenu: filteredCommands.map((script) => ({
-          onClick: () => CommandHelpers.runCommand(script, fullPath),
+        submenu: inMenuCommands.map((script) => ({
+          onClick: () => CommandHelpers.runCommand(script, fullPath, item),
           view: script.name,
         })),
       }
     : null;
+
+  const inlineCommandItems = inlineCommands?.map((script) => ({
+    onClick: () => CommandHelpers.runCommand(script, fullPath, item),
+    view: <TextWithIcon icon={TerminalIcon}>{script.name}</TextWithIcon>,
+  }));
 
   const selectItem: ContextMenuItem | null = windowArgs.isSelectAppMode
     ? {
@@ -363,6 +388,7 @@ export const FileTableRowContextMenu = ({
     };
 
     const directoryMenuItems: (ContextMenuItem | null)[] = [
+      ...(inlineCommandItems || []),
       openDirectoryInNewTab,
       { isSeparator: true },
       {
@@ -400,6 +426,7 @@ export const FileTableRowContextMenu = ({
   }
 
   const fileMenuItems: (ContextMenuItem | null)[] = [
+    ...(inlineCommandItems || []),
     openWithApplicationItem,
     { isSeparator: true },
     favoriteItem,

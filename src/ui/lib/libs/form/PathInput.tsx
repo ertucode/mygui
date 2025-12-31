@@ -53,9 +53,9 @@ export function PathInput(props: React.ComponentProps<"input">) {
   }, [rawCompletionItems, deferredSearchQuery]);
 
   useEffect(() => {
-    if (!props.value) {
-      setValue(directoryHelpers.getOpenedPath(undefined) || "/");
-    }
+    // if (!props.value) {
+    //   setValue(directoryHelpers.getOpenedPath(undefined) || "/");
+    // }
   }, []);
 
   // Find the dialog element to portal into
