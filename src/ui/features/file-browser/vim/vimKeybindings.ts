@@ -1,102 +1,96 @@
-import {
-  compileSequences,
-  compileShortcuts,
-  handleKeydown,
-} from "@/lib/hooks/shortcutCompilation";
-import { VimEngine } from "@common/VimEngine";
-import { vimStore } from "./vimStore";
-import { directoryStore } from "../directoryStore/directory";
+import { compileSequences, compileShortcuts, handleKeydown } from '@/lib/hooks/shortcutCompilation'
+import { VimEngine } from '@common/VimEngine'
+import { vimStore } from './vimStore'
+import { directoryStore } from '../directoryStore/directory'
 
 function createHandler(updater: (state: VimEngine.State) => VimEngine.State) {
   return (e: KeyboardEvent | undefined) => {
-    e?.preventDefault();
-    const directoryId = directoryStore.getSnapshot().context.activeDirectoryId;
-    const state =
-      vimStore.getSnapshot().context.vimStatesByDirectoryId[directoryId];
-    if (!state) return;
+    e?.preventDefault()
+    const directoryId = directoryStore.getSnapshot().context.activeDirectoryId
+    if (!directoryId) return
+
+    const activeVim = vimStore.getSnapshot().context.vimStatesByDirectoryId[directoryId]
+    if (!activeVim || activeVim.disabled) return
+
     vimStore.send({
-      type: "updateVimState",
+      type: 'updateVimState',
       directoryId,
       updater,
-    });
-  };
+    })
+  }
 }
 
 const shortcuts = compileShortcuts([
   {
-    key: "p",
+    key: 'p',
     handler: createHandler(VimEngine.p),
-    label: "Paste [VIM]",
+    label: 'Paste [VIM]',
   },
   {
-    key: "P",
+    key: 'P',
     handler: createHandler(VimEngine.P),
-    label: "Paste Before [VIM]",
+    label: 'Paste Before [VIM]',
   },
   {
-    key: "u",
+    key: 'u',
     handler: createHandler(VimEngine.u),
-    label: "Undo [VIM]",
+    label: 'Undo [VIM]',
   },
   {
-    key: "C",
+    key: 'C',
     handler: createHandler(VimEngine.C),
-    label: "Change to end of line [VIM]",
+    label: 'Change to end of line [VIM]',
   },
-]);
+])
 
 const sequences = compileSequences([
   {
-    sequence: ["d", "d"],
+    sequence: ['d', 'd'],
     handler: createHandler(VimEngine.dd),
-    label: "Delete line(s) [VIM]",
+    label: 'Delete line(s) [VIM]',
   },
   {
-    sequence: ["c", "c"],
+    sequence: ['c', 'c'],
     handler: createHandler(VimEngine.cc),
-    label: "Change line(s) [VIM]",
+    label: 'Change line(s) [VIM]',
   },
   {
-    sequence: ["y", "y"],
+    sequence: ['y', 'y'],
     handler: createHandler(VimEngine.yy),
-    label: "Yank line(s) [VIM]",
+    label: 'Yank line(s) [VIM]',
   },
   {
-    sequence: ["c", "i", "w"],
+    sequence: ['c', 'i', 'w'],
     handler: createHandler(VimEngine.ciw),
-    label: "Paste [VIM]",
+    label: 'Paste [VIM]',
   },
-]);
+])
 
 function getNumberFromEvent(e: KeyboardEvent) {
-  return e.key.length === 1 && e.key >= "0" && e.key <= "9" && parseInt(e.key);
+  return e.key.length === 1 && e.key >= '0' && e.key <= '9' && parseInt(e.key)
 }
 
 export function addVimShortcuts() {
   const listener = (e: KeyboardEvent) => {
     const activeVim =
-      vimStore.getSnapshot().context.vimStatesByDirectoryId[
-        directoryStore.getSnapshot().context.activeDirectoryId
-      ];
-    if (!activeVim) return;
+      vimStore.getSnapshot().context.vimStatesByDirectoryId[directoryStore.getSnapshot().context.activeDirectoryId]
+    if (!activeVim) return
     // insert modu rowlarda handle edicez
-    if (activeVim.mode !== "normal") return;
+    if (activeVim.mode !== 'normal') return
 
-    const number = getNumberFromEvent(e);
+    const number = getNumberFromEvent(e)
     if (number) {
-      const handler = createHandler((state) =>
-        VimEngine.addToCount(state, number),
-      );
-      handler(e);
-      return;
+      const handler = createHandler(state => VimEngine.addToCount(state, number))
+      handler(e)
+      return
     }
 
-    handleKeydown(shortcuts, sequences, e);
-  };
+    handleKeydown(shortcuts, sequences, e)
+  }
 
-  window.addEventListener("keydown", listener);
+  window.addEventListener('keydown', listener)
 
   return () => {
-    window.removeEventListener("keydown", listener);
-  };
+    window.removeEventListener('keydown', listener)
+  }
 }

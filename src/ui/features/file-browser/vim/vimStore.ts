@@ -1,4 +1,4 @@
-import { createStore } from "@xstate/store";
+import { createStore, StoreSnapshot } from "@xstate/store";
 import { VimEngine } from "@common/VimEngine";
 import { DirectoryId } from "../directoryStore/DirectoryBase";
 
@@ -52,3 +52,15 @@ export const vimStore = createStore({
     },
   },
 });
+
+export function selectCursor(directoryId: DirectoryId, index: number) {
+  return (state: StoreSnapshot<VimStoreContext>) => {
+    const vimState = state.context.vimStatesByDirectoryId[directoryId];
+    if (!vimState) return undefined;
+    if (vimState.cursor.line !== index) return undefined;
+    return {
+      column: vimState.cursor.column,
+      mode: vimState.mode,
+    };
+  };
+}

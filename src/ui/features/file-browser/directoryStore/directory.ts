@@ -110,6 +110,12 @@ export const directoryStore = createStore({
       directoryId: DirectoryId;
     }) => {},
     directoryCreated: (_: { directoryId: DirectoryId; tabId?: string }) => {},
+    directoryAdded: (_: { directoryId: DirectoryId }) => {},
+    directoryRemoved: (_: { directoryId: DirectoryId }) => {},
+    directoryNavigated: (_: {
+      directoryId: DirectoryId;
+      directory: DirectoryInfo;
+    }) => {},
   },
   on: {
     focusFuzzyInput: (
@@ -147,33 +153,61 @@ export const directoryStore = createStore({
     setDirectory: (
       context,
       event: { directory: DirectoryInfo; directoryId: DirectoryId },
+      enqueue,
     ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
-        ...d,
-        directory: event.directory,
-      })),
+      updateDirectory(context, event.directoryId, (d) => {
+        enqueue.emit.directoryNavigated({
+          directoryId: event.directoryId,
+          directory: event.directory,
+        });
+        return {
+          ...d,
+          directory: event.directory,
+        };
+      }),
 
     historyGoNew: (
       context,
       event: { directory: DirectoryInfo; directoryId: DirectoryId | undefined },
+      enqueue,
     ) =>
       updateDirectory(context, event.directoryId, (d) => {
         d.historyStack.goNew(event.directory);
+        enqueue.emit.directoryNavigated({
+          directoryId: d.directoryId,
+          directory: event.directory,
+        });
         return d;
       }),
 
-    historyGoNext: (context, event: { directoryId: DirectoryId | undefined }) =>
+    historyGoNext: (
+      context,
+      event: { directoryId: DirectoryId | undefined },
+      enqueue,
+    ) =>
       updateDirectory(context, event.directoryId, (d) => {
         const nextDir = d.historyStack.goNext();
+        enqueue.emit.directoryNavigated({
+          directoryId: d.directoryId,
+          directory: nextDir,
+        });
         return {
           ...d,
           directory: nextDir,
         };
       }),
 
-    historyGoPrev: (context, event: { directoryId: DirectoryId | undefined }) =>
+    historyGoPrev: (
+      context,
+      event: { directoryId: DirectoryId | undefined },
+      enqueue,
+    ) =>
       updateDirectory(context, event.directoryId, (d) => {
         const prevDir = d.historyStack.goPrev();
+        enqueue.emit.directoryNavigated({
+          directoryId: d.directoryId,
+          directory: prevDir,
+        });
         return {
           ...d,
           directory: prevDir,
@@ -294,6 +328,10 @@ export const directoryStore = createStore({
         tabId: event.tabId,
       });
 
+      enqueue.emit.directoryAdded({
+        directoryId,
+      });
+
       setupSubscriptions(directoryId);
       const directory: DirectoryInfo = event.fullPath
         ? { type: "path", fullPath: event.fullPath }
@@ -325,6 +363,10 @@ export const directoryStore = createStore({
         tabId: event.tabId,
       });
 
+      enqueue.emit.directoryAdded({
+        directoryId,
+      });
+
       setupSubscriptions(directoryId);
       const directory: DirectoryInfo = {
         type: "path",
@@ -344,11 +386,19 @@ export const directoryStore = createStore({
         directoryOrder: [...context.directoryOrder, directoryId],
       };
     },
-    removeDirectory: (context, event: { directoryId: DirectoryId }) => {
+    removeDirectory: (
+      context,
+      event: { directoryId: DirectoryId },
+      enqueue,
+    ) => {
       const newItemOrder = context.directoryOrder.filter(
         (id) => id !== event.directoryId,
       );
       if (newItemOrder.length === context.directoryOrder.length) return context;
+
+      enqueue.emit.directoryRemoved({
+        directoryId: event.directoryId,
+      });
 
       delete context.directoriesById[event.directoryId];
       unsubscribeDirectorySubscriptions(event.directoryId);
@@ -364,12 +414,16 @@ export const directoryStore = createStore({
     onDirectoriesMayHaveBeenRemoved: (
       context,
       event: { directoryIds: DirectoryId[] },
+      enqueue,
     ) => {
       const newItemOrder = context.directoryOrder.filter(
         (id) => !event.directoryIds.includes(id),
       );
       if (newItemOrder.length === event.directoryIds.length) return context;
       for (const directoryId of event.directoryIds) {
+        enqueue.emit.directoryRemoved({
+          directoryId,
+        });
         delete context.directoriesById[directoryId];
         unsubscribeDirectorySubscriptions(directoryId);
       }
