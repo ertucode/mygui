@@ -199,8 +199,8 @@ export const directoryStore = createStore({
       updateDirectory(context, event.directoryId, d => ({
         ...d,
         selection: {
-          indexes: new Set<number>(),
-          last: undefined,
+          indexes: new Set<number>([0]),
+          last: 0,
         },
       })),
 
