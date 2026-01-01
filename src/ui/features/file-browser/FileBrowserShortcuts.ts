@@ -1,55 +1,49 @@
-import { dialogActions, dialogStore } from "./dialogStore";
-import {
-  directoryHelpers,
-  directoryStore,
-  selectSelection,
-} from "./directoryStore/directory";
-import { clipboardHelpers } from "./clipboardHelpers";
-import { favoritesStore } from "./favorites";
-import { layoutModel } from "./initializeDirectory";
-import { Actions, TabNode } from "flexlayout-react";
-import { LayoutHelpers } from "./utils/LayoutHelpers";
-import { DirectoryId } from "./directoryStore/DirectoryBase";
-import { directoryDerivedStores } from "./directoryStore/directorySubscriptions";
-import { directorySelection } from "./directoryStore/directorySelection";
-import { GlobalShortcuts } from "@/lib/hooks/globalShortcuts";
-import { subscribeToStores } from "@/lib/functions/storeHelpers";
-import { confirmation } from "@/lib/components/confirmation";
+import { dialogActions, dialogStore } from './dialogStore'
+import { directoryHelpers, directoryStore, selectSelection } from './directoryStore/directory'
+import { clipboardHelpers } from './clipboardHelpers'
+import { favoritesStore } from './favorites'
+import { layoutModel } from './initializeDirectory'
+import { Actions, TabNode } from 'flexlayout-react'
+import { LayoutHelpers } from './utils/LayoutHelpers'
+import { DirectoryId } from './directoryStore/DirectoryBase'
+import { directoryDerivedStores } from './directoryStore/directorySubscriptions'
+import { directorySelection } from './directoryStore/directorySelection'
+import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
+import { subscribeToStores } from '@/lib/functions/storeHelpers'
+import { confirmation } from '@/lib/components/confirmation'
 
 function getData() {
-  return directoryDerivedStores
-    .get(getActiveDirectoryId())
-    ?.getFilteredDirectoryData()!;
+  return directoryDerivedStores.get(getActiveDirectoryId())?.getFilteredDirectoryData()!
 }
 
 function getActiveDirectoryId() {
-  return directoryStore.getSnapshot().context.activeDirectoryId;
+  return directoryStore.getSnapshot().context.activeDirectoryId
 }
 
-const SHORTCUTS_KEY = "file-browser";
+const SHORTCUTS_KEY = 'file-browser'
 
 function getNthLayoutDirectory(n: number) {
-  let dir: DirectoryId | undefined = undefined;
-  let count = 0;
-  const nodes: DirectoryId[] = [];
+  let dir: DirectoryId | undefined = undefined
+  let count = 0
+  const nodes: DirectoryId[] = []
 
-  layoutModel.visitNodes((node) => {
+  layoutModel.visitNodes(node => {
     // if (dir) return;
-    if (node instanceof TabNode && node.getComponent() === "directory") {
+    if (node instanceof TabNode && node.getComponent() === 'directory') {
       if (node.getConfig()?.directoryId) {
-        count++;
-        nodes.push(node.getConfig()?.directoryId);
+        count++
+        nodes.push(node.getConfig()?.directoryId)
         if (count === n) {
-          dir = node.getConfig()?.directoryId;
+          dir = node.getConfig()?.directoryId
         }
       }
     }
-  });
+  })
 
-  return dir;
+  return dir
 }
 
-let subscription: (() => void) | undefined = undefined;
+let subscription: (() => void) | undefined = undefined
 
 export const FileBrowserShortcuts = {
   init: () => {
@@ -57,272 +51,258 @@ export const FileBrowserShortcuts = {
       key: SHORTCUTS_KEY,
       shortcuts: [
         {
-          key: ["Enter", "l"],
-          handler: (e) =>
-            directoryHelpers.openSelectedItem(getData(), e, undefined),
-          label: "Open selected item",
+          key: ['Enter'],
+          handler: e => directoryHelpers.openSelectedItem(getData(), e, undefined),
+          label: 'Open selected item',
         },
         {
-          key: { key: "p", ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("finder", { initialTab: "files" });
+          key: { key: 'p', ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('finder', { initialTab: 'files' })
           },
-          label: "Find file",
+          label: 'Find file',
         },
         {
-          key: { key: "k", ctrlKey: true, metaKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("commandPalette", {});
+          key: { key: 'k', ctrlKey: true, metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('commandPalette', {})
           },
-          label: "Show keyboard shortcuts",
+          label: 'Show keyboard shortcuts',
         },
         {
-          key: { key: "l", ctrlKey: true, metaKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("customLayouts", {});
+          key: { key: 'l', ctrlKey: true, metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('customLayouts', {})
           },
-          label: "Manage custom layouts",
+          label: 'Manage custom layouts',
         },
         {
-          key: { key: "s", ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("finder", { initialTab: "strings" });
+          key: { key: 's', ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('finder', { initialTab: 'strings' })
           },
-          label: "Find string",
+          label: 'Find string',
         },
         {
-          key: { key: "f", ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("finder", { initialTab: "folders" });
+          key: { key: 'f', ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('finder', { initialTab: 'folders' })
           },
-          label: "Find folder",
+          label: 'Find folder',
         },
         {
-          key: { key: "o", ctrlKey: true },
-          handler: (_) => {
-            directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, undefined);
+          key: { key: 'o', ctrlKey: true },
+          handler: _ => {
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goPrev, undefined)
           },
-          label: "Go to previous directory",
+          label: 'Go to previous directory',
         },
         {
-          key: { key: "i", ctrlKey: true },
-          handler: (_) => {
-            directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, undefined);
+          key: { key: 'i', ctrlKey: true },
+          handler: _ => {
+            directoryHelpers.onGoUpOrPrev(directoryHelpers.goNext, undefined)
           },
-          label: "Go to next directory",
+          label: 'Go to next directory',
         },
         {
-          key: ["-", "h"],
-          handler: () =>
-            directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, undefined),
-          label: "Go up to parent directory",
+          key: ['-'],
+          handler: () => directoryHelpers.onGoUpOrPrev(directoryHelpers.goUp, undefined),
+          label: 'Go up to parent directory',
         },
         {
-          key: { key: "Backspace", metaKey: true },
+          key: { key: 'Backspace', metaKey: true },
           handler: () => {
-            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            const s = selectSelection(undefined)(directoryStore.getSnapshot())
             // Command+Delete on macOS
-            if (s.indexes.size === 0) return;
-            const data = getData();
-            const itemsToDelete = [...s.indexes].map((i) => data[i]);
-            directoryHelpers.handleDelete(itemsToDelete, data, undefined);
+            if (s.indexes.size === 0) return
+            const data = getData()
+            const itemsToDelete = [...s.indexes].map(i => data[i])
+            directoryHelpers.handleDelete(itemsToDelete, data, undefined)
           },
           enabledIn: () => true,
-          label: "Delete selected items",
+          label: 'Delete selected items',
         },
         {
-          key: { key: "n", ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            dialogActions.open("newItem", {});
+          key: { key: 'n', ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
+            dialogActions.open('newItem', {})
           },
-          label: "Create new item",
+          label: 'Create new item',
         },
         {
-          key: "r",
-          notKey: { key: "r", metaKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            directoryHelpers.reload(undefined);
+          key: 'r',
+          notKey: { key: 'r', metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            directoryHelpers.reload(undefined)
           },
-          label: "Reload directory",
+          label: 'Reload directory',
         },
         {
-          key: { key: "r", metaKey: true, shiftKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            const data = getData();
-            const s = selectSelection(undefined)(directoryStore.getSnapshot());
-            const itemsToRename =
-              s.indexes.size < 1 ? data : [...s.indexes].map((i) => data[i]);
-            dialogActions.open("batchRename", itemsToRename);
+          key: { key: 'r', metaKey: true, shiftKey: true },
+          handler: e => {
+            e?.preventDefault()
+            const data = getData()
+            const s = selectSelection(undefined)(directoryStore.getSnapshot())
+            const itemsToRename = s.indexes.size < 1 ? data : [...s.indexes].map(i => data[i])
+            dialogActions.open('batchRename', itemsToRename)
           },
           enabledIn: () => true,
-          label: "Batch rename selected items",
+          label: 'Batch rename selected items',
         },
         {
-          key: { key: "c", metaKey: true },
-          handler: (e) => {
+          key: { key: 'c', metaKey: true },
+          handler: e => {
             // Check if user is selecting text
-            const selection = window.getSelection();
-            const s = selectSelection(undefined)(directoryStore.getSnapshot());
+            const selection = window.getSelection()
+            const s = selectSelection(undefined)(directoryStore.getSnapshot())
             if (selection && selection.toString().length > 0) {
-              return; // Allow default text copy
+              return // Allow default text copy
             }
 
-            e?.preventDefault();
-            if (s.indexes.size === 0) return;
-            const itemsToCopy = [...s.indexes].map((i) => getData()[i]);
-            clipboardHelpers.copy(itemsToCopy, false, undefined);
+            e?.preventDefault()
+            if (s.indexes.size === 0) return
+            const itemsToCopy = [...s.indexes].map(i => getData()[i])
+            clipboardHelpers.copy(itemsToCopy, false, undefined)
           },
           enabledIn: () => true,
-          label: "Copy selected items",
+          label: 'Copy selected items',
         },
         {
-          key: { key: "x", metaKey: true },
-          handler: (e) => {
+          key: { key: 'x', metaKey: true },
+          handler: e => {
             // Check if user is selecting text
-            const selection = window.getSelection();
+            const selection = window.getSelection()
             if (selection && selection.toString().length > 0) {
-              return; // Allow default text cut
+              return // Allow default text cut
             }
 
-            e?.preventDefault();
-            const s = selectSelection(undefined)(directoryStore.getSnapshot());
-            if (s.indexes.size === 0) return;
-            const itemsToCut = [...s.indexes].map((i) => getData()[i]);
-            clipboardHelpers.copy(itemsToCut, true, undefined);
+            e?.preventDefault()
+            const s = selectSelection(undefined)(directoryStore.getSnapshot())
+            if (s.indexes.size === 0) return
+            const itemsToCut = [...s.indexes].map(i => getData()[i])
+            clipboardHelpers.copy(itemsToCut, true, undefined)
           },
           enabledIn: () => true,
-          label: "Cut selected items",
+          label: 'Cut selected items',
         },
         {
-          key: { key: "v", metaKey: true },
-          handler: (e) => {
+          key: { key: 'v', metaKey: true },
+          handler: e => {
             // Check if user is in an input field
-            const target = e?.target as HTMLElement;
-            if (
-              target.tagName === "INPUT" ||
-              target.tagName === "TEXTAREA" ||
-              target.isContentEditable
-            ) {
-              return; // Allow default paste in inputs
+            const target = e?.target as HTMLElement
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+              return // Allow default paste in inputs
             }
 
-            e?.preventDefault();
-            clipboardHelpers.paste(undefined);
+            e?.preventDefault()
+            clipboardHelpers.paste(undefined)
           },
           enabledIn: () => true,
-          label: "Paste items",
+          label: 'Paste items',
         },
         {
-          key: { key: "v", metaKey: true, ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
+          key: { key: 'v', metaKey: true, ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
             directoryStore.send({
-              type: "toggleViewMode",
+              type: 'toggleViewMode',
               directoryId: undefined,
-            });
+            })
           },
-          label: "Toggle view mode (list/grid)",
+          label: 'Toggle view mode (list/grid)',
         },
         {
-          key: { key: "0", ctrlKey: true },
-          handler: (_) => {
+          key: { key: '0', ctrlKey: true },
+          handler: _ => {
             // @ts-ignore
-            document.querySelector("webview")?.openDevTools();
+            document.querySelector('webview')?.openDevTools()
           },
-          label: "Open dev tools",
+          label: 'Open dev tools',
           enabledIn: () => true,
         },
         {
-          key: { key: "/" },
-          handler: (e) => {
-            directoryStore.trigger.focusFuzzyInput({ e });
+          key: { key: '/' },
+          handler: e => {
+            directoryStore.trigger.focusFuzzyInput({ e })
           },
-          label: "Focus search",
+          label: 'Focus search',
         },
         {
-          key: { key: "l", ctrlKey: true, metaKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            directoryHelpers.loadDirectorySizes(undefined);
+          key: { key: 'l', ctrlKey: true, metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            directoryHelpers.loadDirectorySizes(undefined)
           },
-          label: "Load directory sizes",
+          label: 'Load directory sizes',
         },
         {
-          key: { key: "t", metaKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            const activeTabSet =
-              LayoutHelpers.getActiveTabsetThatHasDirectory();
-            if (!activeTabSet) return;
+          key: { key: 't', metaKey: true },
+          handler: e => {
+            e?.preventDefault()
+            const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory()
+            if (!activeTabSet) return
 
             directoryHelpers.createDirectory({
               tabId: activeTabSet.getId(),
-            });
+            })
           },
-          label: "New tab",
+          label: 'New tab',
         },
         {
-          key: { key: "m", ctrlKey: true },
-          handler: (e) => {
-            e?.preventDefault();
-            const activeTabSet =
-              LayoutHelpers.getActiveTabsetThatHasDirectory();
-            if (!activeTabSet) return;
+          key: { key: 'm', ctrlKey: true },
+          handler: e => {
+            e?.preventDefault()
+            const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory()
+            if (!activeTabSet) return
 
-            layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()));
+            layoutModel.doAction(Actions.maximizeToggle(activeTabSet.getId()))
           },
-          label: "Maximize/Minimize",
+          label: 'Maximize/Minimize',
         },
         {
-          key: { key: "w", metaKey: true },
-          handler: (e) => {
-            if (
-              directoryStore.getSnapshot().context.directoryOrder.length === 1
-            ) {
+          key: { key: 'w', metaKey: true },
+          handler: e => {
+            if (directoryStore.getSnapshot().context.directoryOrder.length === 1) {
               // Close the window
-              return;
+              return
             }
-            e?.preventDefault();
-            const activeTabSet =
-              LayoutHelpers.getActiveTabsetThatHasDirectory();
-            if (!activeTabSet) return;
+            e?.preventDefault()
+            const activeTabSet = LayoutHelpers.getActiveTabsetThatHasDirectory()
+            if (!activeTabSet) return
 
-            const activeTab =
-              LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode();
-            if (!activeTab) return;
-            if (!LayoutHelpers.isDirectory(activeTab)) return;
+            const activeTab = LayoutHelpers.getActiveTabsetThatHasDirectory()?.getSelectedNode()
+            if (!activeTab) return
+            if (!LayoutHelpers.isDirectory(activeTab)) return
 
-            layoutModel.doAction(Actions.deleteTab(activeTab.getId()));
+            layoutModel.doAction(Actions.deleteTab(activeTab.getId()))
           },
-          label: "Close tab",
+          label: 'Close tab',
         },
         {
-          key: "Escape",
+          key: 'Escape',
           handler: () => {
-            directorySelection.resetSelection(undefined);
+            directorySelection.resetSelection(undefined)
           },
-          label: "Reset selection",
+          label: 'Reset selection',
         },
         ...directorySelection.getSelectionShortcuts(),
         // Option+1 through Option+9 to open favorites
         ...Array.from({ length: 9 }, (_, i) => ({
           key: { key: `Digit${i + 1}`, isCode: true, altKey: true },
           handler: (e: KeyboardEvent | undefined) => {
-            e?.preventDefault();
-            const favorite = favoritesStore.get().context.favorites[i];
+            e?.preventDefault()
+            const favorite = favoritesStore.get().context.favorites[i]
             if (favorite) {
               // Use the current active directory, not the one from the closure
-              const currentActiveId =
-                directoryStore.getSnapshot().context.activeDirectoryId;
-              directoryHelpers.openItemFull(favorite, currentActiveId);
+              const currentActiveId = directoryStore.getSnapshot().context.activeDirectoryId
+              directoryHelpers.openItemFull(favorite, currentActiveId)
             }
           },
           label: `Open favorite ${i + 1}`,
@@ -330,33 +310,33 @@ export const FileBrowserShortcuts = {
         ...new Array(10).fill(0).map((_, i) => ({
           key: { key: (i + 1).toString(), metaKey: true },
           handler: (e: KeyboardEvent | undefined) => {
-            e?.preventDefault();
-            const dir = getNthLayoutDirectory(i + 1);
-            if (!dir) return;
+            e?.preventDefault()
+            const dir = getNthLayoutDirectory(i + 1)
+            if (!dir) return
 
             directoryStore.send({
-              type: "setActiveDirectoryId",
+              type: 'setActiveDirectoryId',
               directoryId: dir,
-            });
+            })
           },
           label: `Switch to pane ${i + 1}`,
         })),
       ],
       enabled: true,
       sequences: directorySelection.getSelectionSequenceShortcuts(),
-    });
+    })
 
     subscription = subscribeToStores(
       [dialogStore, confirmation],
       ([dialog, confirmation]) => [!dialog.openDialog, confirmation.isOpen],
       ([dialog, confirmation]) => {
-        const enabled = !dialog.openDialog && !confirmation.isOpen;
-        GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled);
-      },
-    );
+        const enabled = !dialog.openDialog && !confirmation.isOpen
+        GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, enabled)
+      }
+    )
   },
   deinit: () => {
-    GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false);
-    subscription?.();
+    GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false)
+    subscription?.()
   },
-};
+}
