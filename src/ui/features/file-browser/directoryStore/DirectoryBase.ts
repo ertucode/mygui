@@ -3,6 +3,7 @@ import { HistoryStack } from "@common/history-stack";
 import { TagColor } from "../tags";
 import { SortState } from "../schemas";
 import { GenericError } from "@common/GenericError";
+import { VimEngine } from "@common/VimEngine";
 
 export type DirectoryInfo =
   | { type: "path"; fullPath: string }
@@ -48,6 +49,7 @@ export type DirectoryContextDirectory = {
   fuzzyQuery: string;
   viewMode: "list" | "grid";
   localSort: DirectoryLocalSort | undefined;
+  vimState: VimEngine.State;
 };
 
 export type DirectoryContext = {

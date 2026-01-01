@@ -93,23 +93,23 @@ export function setupSubscriptions(directoryId: DirectoryId) {
       ([d, settings, columnPrefs]) => {
         const dir = d.directoriesById[directoryId];
         return [
-          dir?.directoryData,
-          settings.settings,
+          dir?.vimState,
           dir?.fuzzyQuery,
-          JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
+          JSON.stringify(settings.settings),
         ];
       },
       ([d, settings, columnPrefs]) => {
         const dir = d.directoriesById[directoryId];
-        const sort = resolveSortFromStores(dir, columnPrefs);
-        const directoryData = DirectoryDataFromSettings.getDirectoryData(
-          dir?.directoryData,
-          settings.settings,
-          sort,
-        );
+        if (!dir || !dir.vimState) return [];
+
+        const items = dir.vimState.currentBuffer.items;
+        // Map buffer items to GetFilesAndFoldersInDirectoryItem
+        const mappedItems = items.map(directoryHelpers.toContractsItem);
+
+        // Apply fuzzy search if query exists
         const filteredDirectoryData = filterByQuery(
-          directoryData,
-          d.directoriesById[directoryId]?.fuzzyQuery,
+          mappedItems,
+          dir.fuzzyQuery,
         );
 
         return filteredDirectoryData;

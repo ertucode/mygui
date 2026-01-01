@@ -334,6 +334,22 @@ export namespace VimEngine {
   function getEffectiveCount(state: State): number {
     return state.count || 1
   }
+
+  export function i(state: State): State {
+    return {
+      ...state,
+      mode: 'insert',
+      count: 0,
+    }
+  }
+
+  export function esc(state: State): State {
+    return {
+      ...state,
+      mode: 'normal',
+      count: 0,
+    }
+  }
 }
 
 const isWordChar = (ch: string) => /[A-Za-z0-9]/.test(ch)

@@ -35,6 +35,7 @@ import { initialDirectoryInfo } from "../defaultPath";
 import { columnPreferencesStore } from "../columnPreferences";
 import { resolveSortFromStores } from "../schemas";
 import { ArchiveHelpers } from "@common/ArchiveHelpers";
+import { VimEngine } from "@common/VimEngine";
 import { confirmation } from "@/lib/components/confirmation";
 
 export const cd = async (
@@ -517,6 +518,75 @@ export const directoryHelpers = {
     });
   },
 
+  saveVimChanges: async (directoryId: DirectoryId) => {
+    const context = getActiveDirectory(
+      directoryStore.getSnapshot().context,
+      directoryId,
+    );
+    const originalData = context.directoryData;
+    const bufferItems = context.vimState.currentBuffer.items;
+
+    // 1. Identify Deletions
+    // Map of fullPath -> originalItem
+    const bufferRealItemPaths = new Set<string>();
+    bufferItems.forEach((bi) => {
+      if (bi.type === "real" && bi.item.fullPath) {
+        bufferRealItemPaths.add(bi.item.fullPath);
+      }
+    });
+
+    const deletions = originalData.filter(
+      (i) => i.fullPath && !bufferRealItemPaths.has(i.fullPath),
+    );
+
+    // 2. Identify Renames
+    const renames: { item: GetFilesAndFoldersInDirectoryItem; newName: string }[] = [];
+    for (const bi of bufferItems) {
+      if (bi.type === "real" && bi.str !== bi.item.name) {
+        renames.push({ item: bi.item, newName: bi.str });
+      }
+    }
+
+    if (deletions.length === 0 && renames.length === 0) {
+      toast.show({ message: "No changes to save.", severity: "info" });
+      return;
+    }
+
+    dialogActions.open("savePreview", {
+      deletions,
+      renames,
+      onConfirm: async () => {
+        try {
+          // Execute Deletions
+          if (deletions.length > 0) {
+             const paths = deletions.map((i) => i.fullPath!);
+             await getWindowElectron().deleteFiles(paths);
+          }
+    
+          // Execute Renames
+          for (const ren of renames) {
+             const oldPath = ren.item.fullPath ?? directoryHelpers.getFullPath(ren.item.name, directoryId);
+             await getWindowElectron().renameFileOrFolder(oldPath, ren.newName);
+          }
+    
+          toast.show({ message: "Changes saved.", severity: "success" });
+          await directoryHelpers.reload(directoryId);
+    
+        } catch (err) {
+          console.error("Error saving changes:", err);
+           toast.show({
+            message: err instanceof Error ? err.message : "Error saving changes",
+            severity: "error",
+          });
+        }
+      },
+      onCancel: () => {
+        // Optional: clear changes or just close dialog? 
+        // Typically cancel just closes the dialog and keeps the buffer dirty.
+      }
+    });
+  },
+
   onGoUpOrPrev: async (
     fn: (directoryId: DirectoryId | undefined) => ReturnOfGoPrev,
     directoryId: DirectoryId | undefined,
@@ -524,7 +594,7 @@ export const directoryHelpers = {
     const metadata = await fn(directoryId);
     if (!metadata) return;
     const { directoryData, beforeNavigation } = metadata;
-
+    
     setTimeout(() => {
       if (!directoryData) return;
       if (beforeNavigation.type !== "path") return;
@@ -828,5 +898,25 @@ export const directoryHelpers = {
         return;
       }
     }
+  },
+
+  toContractsItem: (
+    item: VimEngine.BufferItem,
+  ): GetFilesAndFoldersInDirectoryItem => {
+    if (item.type === "real") {
+      return { ...item.item, name: item.str };
+    }
+    return {
+      name: item.str,
+      fullPath: `virtual-${item.str}`,
+      type: "file",
+      category: "other",
+      ext: "",
+      modifiedAt: null,
+      modifiedTimestamp: Date.now(),
+      sizeStr: "0 B",
+      size: 0,
+      permissions: "",
+    };
   },
 };

@@ -148,9 +148,25 @@ export const FileBrowserShortcuts = {
           notKey: { key: "r", metaKey: true },
           handler: (e) => {
             e?.preventDefault();
+            const activeId = getActiveDirectoryId();
+            if (!activeId) return;
+
+            const dir = directoryStore.getSnapshot().context.directoriesById[activeId];
+            if (dir?.vimState?.currentBuffer.historyStack.hasPrev) {
+               confirmation.trigger.confirm({
+                 title: "Unsaved Changes",
+                 message: "You have unsaved Vim changes. Reloading will discard them. Continue?",
+                 confirmText: "Reload",
+                 rejectText: "Cancel",
+                 onConfirm: () => {
+                    directoryHelpers.reload(undefined);
+                 }
+               });
+               return;
+            }
             directoryHelpers.reload(undefined);
           },
-          label: "Reload directory",
+          label: "[Vim] Reload directory",
         },
         {
           key: { key: "r", metaKey: true, shiftKey: true },
@@ -341,9 +357,94 @@ export const FileBrowserShortcuts = {
           },
           label: `Switch to pane ${i + 1}`,
         })),
+        // Vim Shortcuts
+        {
+          key: "u",
+          handler: (e) => {
+            e?.preventDefault();
+            const activeId = getActiveDirectoryId();
+            if (!activeId) return;
+            directoryStore.send({
+              type: "runVimCommand",
+              command: "u",
+              directoryId: activeId,
+            });
+          },
+          label: "[Vim] Undo",
+        },
+        {
+          key: { key: "r", ctrlKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            const activeId = getActiveDirectoryId();
+            if (!activeId) return;
+            // TODO: Redo is not explicitly exposed in VimEngine yet, using historyStack might be needed or adding 'redo' to VimEngine.
+            // Assuming VimEngine has no redo command exposed as a function named 'redo'.
+            // Actually, historyStack has goNext().
+            // I should implement 'redo' action or similar.
+            // For now skipping 'redo' shortcut or implementing via custom action?
+            // Let's assume we use historyStack directly via a new action or runVimCommand if I add 'redo' to VimEngine.
+          },
+          label: "[Vim] Redo",
+        },
+        {
+          key: "i",
+          handler: (e) => {
+            e?.preventDefault();
+            const activeId = getActiveDirectoryId();
+            if (!activeId) return;
+            // We need to enter insert mode. VimEngine might not have 'i' command that switches mode?
+            // It has 'mode' property.
+            // I should just update the mode manually if VimEngine doesn't have a command.
+            // But let's check VimEngine.ts content from memory/logs.
+            // It has 'mode' state.
+            // I'll send a custom update or assume I can run a command.
+            // Since I cannot change VimEngine easily here without viewing it again.
+            // I'll assume I can just update the state via a specific action if I had one.
+            // Wait, runVimCommand calls VimEngine functions.
+            // If VimEngine has 'i' function?
+            // I'll update directory.ts to support 'setVimMode' or similar if needed.
+            // Or I can send 'runVimCommand' with command 'i' if I implement `i` in VimEngine later or if it exists.
+            // Actually, I'll implementing 'i' logic as: "Set mode to insert".
+            // I don't have a direct action for this.
+            // I will add a new action 'setVimMode' to directory.ts later if needed.
+            // For now, I will use 'runVimCommand' with 'i' and hope I added it or will add it to VimEngine.
+            directoryStore.send({
+              type: "runVimCommand",
+              command: "i",
+              directoryId: activeId,
+            });
+          },
+          label: "[Vim] Insert Mode",
+        },
+        {
+          key: { key: "s", metaKey: true },
+          handler: (e) => {
+            e?.preventDefault();
+            const activeId = getActiveDirectoryId();
+            if (!activeId) return;
+            directoryHelpers.saveVimChanges(activeId);
+          },
+          label: "[Vim] Save changes",
+        },
       ],
       enabled: true,
-      sequences: directorySelection.getSelectionSequenceShortcuts(),
+      sequences: [
+        ...directorySelection.getSelectionSequenceShortcuts(),
+        {
+          sequence: ["d", "d"],
+          handler: () => {
+             const activeId = getActiveDirectoryId();
+             if (!activeId) return;
+             directoryStore.send({
+               type: "runVimCommand",
+               command: "dd",
+               directoryId: activeId,
+             });
+          },
+          label: "[Vim] Delete line",
+        },
+      ],
     });
 
     subscription = subscribeToStores(

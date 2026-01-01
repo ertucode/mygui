@@ -29,6 +29,7 @@ import {
 } from "./DirectoryBase";
 import { errorResponseToMessage, GenericError } from "@common/GenericError";
 import { useSelector } from "@xstate/store/react";
+import { VimEngine } from "@common/VimEngine";
 
 function updateDirectory(
   context: DirectoryContext,
@@ -70,6 +71,18 @@ export function createDirectoryContext(
     fuzzyQuery: "",
     viewMode: "list",
     localSort: undefined,
+    vimState: {
+      buffers: {},
+      currentBuffer: {
+        fullPath: directory.type === "path" ? directory.fullPath : "",
+        items: [],
+        historyStack: new HistoryStack([]),
+      },
+      cursor: { line: 0, column: 0 },
+      registry: [],
+      mode: "normal",
+      count: 0,
+    },
   };
 }
 
@@ -98,7 +111,20 @@ export const directoryStore = createStore({
         // View mode
         viewMode: "list" as "list" | "grid",
         // Local sort state
+        // Local sort state
         localSort: undefined,
+        vimState: {
+          buffers: {},
+          currentBuffer: {
+            fullPath: "",
+            items: [],
+            historyStack: new HistoryStack([]),
+          },
+          cursor: { line: 0, column: 0 },
+          registry: [],
+          mode: "normal",
+          count: 0,
+        },
       },
     },
     directoryOrder: [dummyDirectoryId],
@@ -136,11 +162,40 @@ export const directoryStore = createStore({
         directoryId: DirectoryId;
       },
     ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
-        ...d,
-        directoryData: event.data,
-        error: undefined,
-      })),
+      updateDirectory(context, event.directoryId, (d) => {
+        // Check if the buffer is dirty (has history)
+        // We assume that if there is history, the user has manipulated the buffer
+        const isDirty = d.vimState.currentBuffer.historyStack.hasPrev;
+
+        if (isDirty) {
+          return {
+            ...d,
+            directoryData: event.data,
+            error: undefined,
+          };
+        }
+
+        const bufferItems: VimEngine.BufferItem[] = event.data.map((item) => ({
+          type: "real",
+          item,
+          str: item.name,
+        }));
+
+        return {
+          ...d,
+          directoryData: event.data,
+          error: undefined,
+          vimState: {
+            ...d.vimState,
+            currentBuffer: {
+              ...d.vimState.currentBuffer,
+              items: bufferItems,
+              // Reset history on new data load
+              historyStack: new HistoryStack([]),
+            },
+          },
+        };
+      }),
     setError: (
       context,
       event: { error: GenericError | undefined; directoryId: DirectoryId },
@@ -236,6 +291,13 @@ export const directoryStore = createStore({
           indexes: event.indexes,
           last: event.last,
         },
+        vimState: {
+          ...d.vimState,
+          cursor: {
+            ...d.vimState.cursor,
+            line: event.last ?? d.vimState.cursor.line,
+          },
+        },
       })),
 
     resetSelection: (
@@ -267,6 +329,13 @@ export const directoryStore = createStore({
             indexes: new Set([event.index]),
             last: event.index,
           },
+          vimState: {
+            ...d.vimState,
+            cursor: {
+              ...d.vimState.cursor,
+              line: event.index,
+            },
+          },
         }),
         (d) => !d.selection.indexes.has(event.index),
       );
@@ -285,6 +354,13 @@ export const directoryStore = createStore({
               last: 0,
             }
           : d.selection,
+        vimState: {
+          ...d.vimState,
+          cursor: {
+            ...d.vimState.cursor,
+            line: event.query ? 0 : d.vimState.cursor.line,
+          },
+        },
       })),
     clearFuzzyQuery: (context, event: { directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, (d) => ({
@@ -465,6 +541,18 @@ export const directoryStore = createStore({
               viewMode: "list" as "list" | "grid",
               // Local sort state
               localSort: undefined,
+              vimState: {
+                buffers: {},
+                currentBuffer: {
+                  fullPath: directory.type === "path" ? directory.fullPath : "",
+                  items: [],
+                  historyStack: new HistoryStack([]),
+                },
+                cursor: { line: 0, column: 0 },
+                registry: [],
+                mode: "normal",
+                count: 0,
+              },
             };
             return acc;
           },
@@ -480,6 +568,54 @@ export const directoryStore = createStore({
       }
       return result;
     },
+    runVimCommand: (
+      context,
+      event: {
+        command: keyof typeof VimEngine;
+        args?: any[];
+        directoryId: DirectoryId;
+      },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => {
+        const fn = VimEngine[event.command];
+        if (typeof fn !== "function") return d;
+
+        // @ts-ignore
+        const newState = fn(d.vimState, ...(event.args || []));
+        return {
+          ...d,
+          vimState: newState,
+        };
+      }),
+
+    updateVimBufferItem: (
+      context,
+      event: {
+        index: number;
+        str: string;
+        directoryId: DirectoryId;
+      },
+    ) =>
+      updateDirectory(context, event.directoryId, (d) => {
+        const items = [...d.vimState.currentBuffer.items];
+        if (!items[event.index]) return d;
+
+        items[event.index] = {
+          ...items[event.index],
+          str: event.str,
+        };
+
+        return {
+          ...d,
+          vimState: {
+            ...d.vimState,
+            currentBuffer: {
+              ...d.vimState.currentBuffer,
+              items,
+            },
+          },
+        };
+      }),
   },
 });
 

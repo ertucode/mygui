@@ -1,4 +1,5 @@
 import type { ColumnDef } from "@/lib/libs/table/table-types";
+import { useSelector } from "@xstate/store/react";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
 import { FileCategory } from "@common/file-category";
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from "../tags";
@@ -163,7 +164,6 @@ function DirectoryNameColumn({
   idx: number;
 }) {
   const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
-  const tags = ctx.fileTags[fullPath];
   // Show folder name when fullPath is available (tags view)
   const parentFolder = row.fullPath ? PathHelpers.parent(row.fullPath) : null;
 
@@ -192,7 +192,7 @@ function DirectoryNameColumn({
           {row.name}
         </span>
       )}
-      {tags && <TagCircles tags={tags} />}
+      <VimInputOrTags row={row} ctx={ctx} idx={idx} />
       {parentFolder && parentFolder.name && ctx.directoryType === "tags" && (
         <span
           className="text-gray-400 text-xs truncate flex-shrink-0"
@@ -202,6 +202,99 @@ function DirectoryNameColumn({
         </span>
       )}
     </div>
+  );
+}
+
+function VimInputOrTags({
+  row,
+  ctx,
+  idx,
+}: {
+  row: GetFilesAndFoldersInDirectoryItem;
+  ctx: ColumnsContext;
+  idx: number;
+}) {
+  const isVimInput = useSelector(directoryStore, (s) => {
+    const dir = s.context.directoriesById[ctx.directoryId];
+    if (!dir?.vimState) return false;
+    return (
+      dir.vimState.mode === "insert" && dir.vimState.cursor.line === idx
+    );
+  });
+
+  const fullPath = row.fullPath ?? ctx.getFullPath(row.name);
+  const tags = ctx.fileTags[fullPath];
+
+  if (isVimInput) {
+    return <VimInput row={row} ctx={ctx} idx={idx} />;
+  }
+
+  return tags && <TagCircles tags={tags} />;
+}
+
+function VimInput({
+  row,
+  ctx,
+  idx,
+}: {
+  row: GetFilesAndFoldersInDirectoryItem;
+  ctx: ColumnsContext;
+  idx: number;
+}) {
+  const [value, setValue] = useState(row.name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const commit = () => {
+    if (value !== row.name) {
+      directoryStore.send({
+        type: "updateVimBufferItem",
+        index: idx,
+        str: value,
+        directoryId: ctx.directoryId,
+      });
+    }
+  };
+
+  const exit = () => {
+    directoryStore.send({
+      type: "runVimCommand",
+      command: "esc",
+      directoryId: ctx.directoryId,
+    });
+  };
+
+  const handleBlur = () => {
+    commit();
+    exit();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
+      exit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      commit(); // Save on escape
+      exit();
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      className="absolute inset-0 w-full h-full bg-base-100 px-1 z-10"
+      value={value}
+      onChange={(e) => setValue(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      onClick={(e) => e.stopPropagation()}
+    />
   );
 }
 

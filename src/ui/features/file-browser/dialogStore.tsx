@@ -1,5 +1,6 @@
 import { createStore } from "@xstate/store";
 import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
+import { SavePreviewDialog } from "./components/SavePreviewDialog";
 import { RenameDialog } from "./components/RenameDialog";
 import { BatchRenameDialog } from "./components/BatchRenameDialog";
 import { NewItemDialog } from "./components/NewItemDialog";
@@ -11,6 +12,7 @@ import { UnarchiveDialog } from "./components/UnarchiveDialog";
 import { CommandPalette } from "./components/CommandPalette";
 import { CustomLayoutsDialog } from "./components/CustomLayoutsDialog";
 import { PasteConflictDialog } from "./components/PasteConflictDialog";
+import { RunCommandDialog } from "./components/RunCommandDialog";
 import {
   FilePlusIcon,
   PencilIcon,
@@ -28,7 +30,6 @@ import { useRef, useEffect, Ref } from "react";
 import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
 import { CommandMetadata } from "@common/Command";
-import { RunCommandDialog } from "./components/RunCommandDialog";
 
 // Define the dialog types that can be opened
 export type DialogType =
@@ -43,7 +44,8 @@ export type DialogType =
   | "commandPalette"
   | "customLayouts"
   | "pasteConflict"
-  | "runCommand";
+  | "runCommand"
+  | "savePreview";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -74,6 +76,12 @@ export type DialogMetadata = {
     fullPath: string;
     fileType: "dir" | "file";
   };
+  savePreview: {
+    deletions: GetFilesAndFoldersInDirectoryItem[];
+    renames: { item: GetFilesAndFoldersInDirectoryItem; newName: string }[];
+    onConfirm: () => void;
+    onCancel: () => void;
+  };
 };
 
 // Store context - only one dialog can be open at a time
@@ -81,6 +89,9 @@ type DialogStoreContext = {
   openDialog: DialogType | null;
   metadata: DialogMetadata[DialogType] | null;
 };
+
+
+// Create the initial context
 
 // Create the initial context
 const initialContext: DialogStoreContext = {
@@ -202,6 +213,12 @@ const dialogDefinitions = [
     component: RunCommandDialog,
     icon: TerminalIcon,
     title: "Run Command",
+  },
+  {
+    type: "savePreview" as const,
+    component: SavePreviewDialog,
+    icon: FileWarningIcon,
+    title: "Save Preview",
   },
 ] as const;
 
