@@ -3,7 +3,7 @@ import { VimEngine } from '@common/VimEngine'
 import { vimStore } from './vimStore'
 import { directoryStore } from '../directoryStore/directory'
 
-function createHandler(updater: (state: VimEngine.State) => VimEngine.State) {
+function createHandler(updater: (state: VimEngine.PerDirectoryState) => VimEngine.PerDirectoryState) {
   return (e: KeyboardEvent | undefined) => {
     e?.preventDefault()
     const directoryId = directoryStore.getSnapshot().context.activeDirectoryId
