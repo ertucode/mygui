@@ -41,11 +41,12 @@ export type DirectoryContextDirectory = {
   fuzzyQuery: string
   viewMode: 'list' | 'grid'
   localSort: DirectoryLocalSort | undefined
-  vim?: VimEngine.PerDirectoryState
+  vim: VimEngine.PerDirectoryState
 }
 
 export type DirectoryContext = {
   directoriesById: { [id: DirectoryId]: DirectoryContextDirectory }
   directoryOrder: DirectoryId[]
   activeDirectoryId: DirectoryId
+  vimGlobal: VimEngine.GlobalState
 }

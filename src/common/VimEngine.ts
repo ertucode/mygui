@@ -379,6 +379,21 @@ export namespace VimEngine {
   function getEffectiveCount(globalState: GlobalState): number {
     return globalState.count || 1
   }
+
+  export function defaultState(): PerDirectoryState {
+    return {
+      cursor: { line: 0, column: 0 },
+    }
+  }
+
+  export function defaultGlobalState(): GlobalState {
+    return {
+      buffers: {},
+      mode: 'normal',
+      count: 0,
+      registry: [],
+    }
+  }
 }
 
 // const isWordChar = (ch: string) => /[A-Za-z0-9]/.test(ch)

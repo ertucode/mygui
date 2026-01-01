@@ -1,24 +1,17 @@
-import { createStore, StoreSnapshot } from "@xstate/store";
-import { HistoryStack } from "@common/history-stack";
-import { errorToString } from "@common/errorToString";
-import {
-  fileBrowserSettingsStore,
-  selectSettings as selectSettingsFromStore,
-  FileBrowserSettings,
-} from "../settings";
-import { GetFilesAndFoldersInDirectoryItem } from "@common/Contracts";
-import { getWindowElectron, homeDirectory } from "@/getWindowElectron";
-import { TagColor, tagsStore } from "../tags";
-import { PathHelpers } from "@common/PathHelpers";
-import { defaultPath, initialDirectoryInfo } from "../defaultPath";
-import { toast } from "@/lib/components/toast";
-import { directoryHelpers as dh } from "./directoryHelpers";
-import { FileBrowserCache } from "../FileBrowserCache";
-import { directoryLoadingHelpers } from "./directoryLoadingStore";
-import {
-  setupSubscriptions,
-  unsubscribeDirectorySubscriptions,
-} from "./directorySubscriptions";
+import { createStore, StoreSnapshot } from '@xstate/store'
+import { HistoryStack } from '@common/history-stack'
+import { errorToString } from '@common/errorToString'
+import { fileBrowserSettingsStore, selectSettings as selectSettingsFromStore, FileBrowserSettings } from '../settings'
+import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
+import { getWindowElectron, homeDirectory } from '@/getWindowElectron'
+import { TagColor, tagsStore } from '../tags'
+import { PathHelpers } from '@common/PathHelpers'
+import { defaultPath, initialDirectoryInfo } from '../defaultPath'
+import { toast } from '@/lib/components/toast'
+import { directoryHelpers as dh } from './directoryHelpers'
+import { FileBrowserCache } from '../FileBrowserCache'
+import { directoryLoadingHelpers } from './directoryLoadingStore'
+import { setupSubscriptions, unsubscribeDirectorySubscriptions } from './directorySubscriptions'
 import {
   DirectoryContext,
   DirectoryId,
@@ -26,35 +19,33 @@ import {
   getActiveDirectory,
   DirectoryInfo,
   DirectoryLocalSort,
-} from "./DirectoryBase";
-import { errorResponseToMessage, GenericError } from "@common/GenericError";
-import { useSelector } from "@xstate/store/react";
+} from './DirectoryBase'
+import { errorResponseToMessage, GenericError } from '@common/GenericError'
+import { useSelector } from '@xstate/store/react'
+import { VimEngine } from '@common/VimEngine'
 
 function updateDirectory(
   context: DirectoryContext,
   directoryId: DirectoryId | undefined,
   fn: (d: DirectoryContextDirectory) => DirectoryContextDirectory,
-  needsUpdate?: (d: DirectoryContextDirectory) => boolean,
+  needsUpdate?: (d: DirectoryContextDirectory) => boolean
 ) {
-  const activeDirectory = getActiveDirectory(context, directoryId);
-  if (directoryId && !activeDirectory) return context;
+  const activeDirectory = getActiveDirectory(context, directoryId)
+  if (directoryId && !activeDirectory) return context
 
-  if (needsUpdate && !needsUpdate(activeDirectory)) return context;
+  if (needsUpdate && !needsUpdate(activeDirectory)) return context
 
-  const newItem = fn(activeDirectory);
+  const newItem = fn(activeDirectory)
   return {
     ...context,
     directoriesById: {
       ...context.directoriesById,
       [activeDirectory.directoryId]: newItem,
     },
-  };
+  }
 }
 
-export function createDirectoryContext(
-  directoryId: DirectoryId,
-  directory: DirectoryInfo,
-): DirectoryContextDirectory {
+export function createDirectoryContext(directoryId: DirectoryId, directory: DirectoryInfo): DirectoryContextDirectory {
   return {
     directoryId,
     directory,
@@ -67,26 +58,25 @@ export function createDirectoryContext(
       indexes: new Set<number>(),
       last: undefined as number | undefined,
     },
-    fuzzyQuery: "",
-    viewMode: "list",
+    fuzzyQuery: '',
+    viewMode: 'list',
     localSort: undefined,
-  };
+    vim: VimEngine.defaultState(),
+  }
 }
 
-const dummyDirectoryId = "dummmyy" as DirectoryId; // kimse dokunmadan initialize edilmeli zaten
+const dummyDirectoryId = 'dummmyy' as DirectoryId // kimse dokunmadan initialize edilmeli zaten
 
 export const directoryStore = createStore({
   context: {
     directoriesById: {
       [dummyDirectoryId]: {
         directoryId: dummyDirectoryId,
-        directory: { color: "red", type: "tags" },
+        directory: { color: 'red', type: 'tags' },
         loading: false,
         directoryData: [] as GetFilesAndFoldersInDirectoryItem[],
         error: undefined as string | undefined,
-        historyStack: new HistoryStack<DirectoryInfo>([
-          { color: "red", type: "tags" },
-        ]),
+        historyStack: new HistoryStack<DirectoryInfo>([{ color: 'red', type: 'tags' }]),
         pendingSelection: null as string | string[] | null,
         // Selection state
         selection: {
@@ -94,9 +84,9 @@ export const directoryStore = createStore({
           last: undefined as number | undefined,
         },
         // Fuzzy finder state
-        fuzzyQuery: "",
+        fuzzyQuery: '',
         // View mode
-        viewMode: "list" as "list" | "grid",
+        viewMode: 'list' as 'list' | 'grid',
         // Local sort state
         localSort: undefined,
       },
@@ -105,132 +95,100 @@ export const directoryStore = createStore({
     activeDirectoryId: dummyDirectoryId,
   } as DirectoryContext,
   emits: {
-    focusFuzzyInput: (_: {
-      e: KeyboardEvent | undefined;
-      directoryId: DirectoryId;
-    }) => {},
+    focusFuzzyInput: (_: { e: KeyboardEvent | undefined; directoryId: DirectoryId }) => {},
     directoryCreated: (_: { directoryId: DirectoryId; tabId?: string }) => {},
     directoryAdded: (_: { directoryId: DirectoryId }) => {},
     directoryRemoved: (_: { directoryId: DirectoryId }) => {},
-    directoryNavigated: (_: {
-      directoryId: DirectoryId;
-      directory: DirectoryInfo;
-    }) => {},
+    directoryNavigated: (_: { directoryId: DirectoryId; directory: DirectoryInfo }) => {},
   },
   on: {
-    focusFuzzyInput: (
-      context,
-      event: { e: KeyboardEvent | undefined },
-      enqueue,
-    ) => {
+    focusFuzzyInput: (context, event: { e: KeyboardEvent | undefined }, enqueue) => {
       enqueue.emit.focusFuzzyInput({
         e: event.e,
         directoryId: context.activeDirectoryId,
-      });
-      return context;
+      })
+      return context
     },
     setDirectoryData: (
       context,
       event: {
-        data: GetFilesAndFoldersInDirectoryItem[];
-        directoryId: DirectoryId;
-      },
+        data: GetFilesAndFoldersInDirectoryItem[]
+        directoryId: DirectoryId
+      }
     ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         directoryData: event.data,
         error: undefined,
       })),
-    setError: (
-      context,
-      event: { error: GenericError | undefined; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    setError: (context, event: { error: GenericError | undefined; directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         error: event.error,
       })),
 
-    setDirectory: (
-      context,
-      event: { directory: DirectoryInfo; directoryId: DirectoryId },
-      enqueue,
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => {
+    setDirectory: (context, event: { directory: DirectoryInfo; directoryId: DirectoryId }, enqueue) =>
+      updateDirectory(context, event.directoryId, d => {
         enqueue.emit.directoryNavigated({
           directoryId: event.directoryId,
           directory: event.directory,
-        });
+        })
         return {
           ...d,
           directory: event.directory,
-        };
+        }
       }),
 
-    historyGoNew: (
-      context,
-      event: { directory: DirectoryInfo; directoryId: DirectoryId | undefined },
-      enqueue,
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => {
-        d.historyStack.goNew(event.directory);
+    historyGoNew: (context, event: { directory: DirectoryInfo; directoryId: DirectoryId | undefined }, enqueue) =>
+      updateDirectory(context, event.directoryId, d => {
+        d.historyStack.goNew(event.directory)
         enqueue.emit.directoryNavigated({
           directoryId: d.directoryId,
           directory: event.directory,
-        });
-        return d;
+        })
+        return d
       }),
 
-    historyGoNext: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-      enqueue,
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => {
-        const nextDir = d.historyStack.goNext();
+    historyGoNext: (context, event: { directoryId: DirectoryId | undefined }, enqueue) =>
+      updateDirectory(context, event.directoryId, d => {
+        const nextDir = d.historyStack.goNext()
         enqueue.emit.directoryNavigated({
           directoryId: d.directoryId,
           directory: nextDir,
-        });
+        })
         return {
           ...d,
           directory: nextDir,
-        };
+        }
       }),
 
-    historyGoPrev: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-      enqueue,
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => {
-        const prevDir = d.historyStack.goPrev();
+    historyGoPrev: (context, event: { directoryId: DirectoryId | undefined }, enqueue) =>
+      updateDirectory(context, event.directoryId, d => {
+        const prevDir = d.historyStack.goPrev()
         enqueue.emit.directoryNavigated({
           directoryId: d.directoryId,
           directory: prevDir,
-        });
+        })
         return {
           ...d,
           directory: prevDir,
-        };
+        }
       }),
 
     setPendingSelection: (
       context,
       event: {
-        name: string | string[] | null;
-        directoryId: DirectoryId | undefined;
-      },
+        name: string | string[] | null
+        directoryId: DirectoryId | undefined
+      }
     ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         pendingSelection: event.name,
       })),
 
-    setSelection: (
-      context,
-      event: { indexes: Set<number>; last?: number; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         selection: {
           indexes: event.indexes,
@@ -238,11 +196,8 @@ export const directoryStore = createStore({
         },
       })),
 
-    resetSelection: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    resetSelection: (context, event: { directoryId: DirectoryId | undefined }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         selection: {
           indexes: new Set<number>(),
@@ -253,30 +208,27 @@ export const directoryStore = createStore({
     selectManually: (
       context,
       event: {
-        index: number;
-        directoryId: DirectoryId | undefined;
-        dontTouchWhenSelected?: boolean;
-      },
+        index: number
+        directoryId: DirectoryId | undefined
+        dontTouchWhenSelected?: boolean
+      }
     ) => {
       return updateDirectory(
         context,
         event.directoryId,
-        (d) => ({
+        d => ({
           ...d,
           selection: {
             indexes: new Set([event.index]),
             last: event.index,
           },
         }),
-        (d) => !d.selection.indexes.has(event.index),
-      );
+        d => !d.selection.indexes.has(event.index)
+      )
     },
     // Fuzzy finder events
-    setFuzzyQuery: (
-      context,
-      event: { query: string; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    setFuzzyQuery: (context, event: { query: string; directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         fuzzyQuery: event.query,
         selection: event.query
@@ -287,56 +239,46 @@ export const directoryStore = createStore({
           : d.selection,
       })),
     clearFuzzyQuery: (context, event: { directoryId: DirectoryId }) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
-        fuzzyQuery: "",
+        fuzzyQuery: '',
       })),
-    toggleViewMode: (
-      context,
-      event: { directoryId: DirectoryId | undefined },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    toggleViewMode: (context, event: { directoryId: DirectoryId | undefined }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
-        viewMode: d.viewMode === "list" ? "grid" : "list",
+        viewMode: d.viewMode === 'list' ? 'grid' : 'list',
       })),
 
-    setLocalSort: (
-      context,
-      event: { sort: DirectoryLocalSort | undefined; directoryId: DirectoryId },
-    ) =>
-      updateDirectory(context, event.directoryId, (d) => ({
+    setLocalSort: (context, event: { sort: DirectoryLocalSort | undefined; directoryId: DirectoryId }) =>
+      updateDirectory(context, event.directoryId, d => ({
         ...d,
         localSort: event.sort,
       })),
 
     setActiveDirectoryId: (context, event: { directoryId: DirectoryId }) => {
-      if (context.activeDirectoryId === event.directoryId) return context;
+      if (context.activeDirectoryId === event.directoryId) return context
       return {
         ...context,
         activeDirectoryId: event.directoryId,
-      };
+      }
     },
-    createDirectory: (
-      context,
-      event: { tabId?: string; fullPath?: string },
-      enqueue,
-    ) => {
-      const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
+    createDirectory: (context, event: { tabId?: string; fullPath?: string }, enqueue) => {
+      const directoryId = Math.random().toString(36).slice(2) as DirectoryId
 
       enqueue.emit.directoryCreated({
         directoryId,
         tabId: event.tabId,
-      });
+      })
 
       enqueue.emit.directoryAdded({
         directoryId,
-      });
+      })
 
-      setupSubscriptions(directoryId);
+      setupSubscriptions(directoryId)
       const directory: DirectoryInfo = event.fullPath
-        ? { type: "path", fullPath: event.fullPath }
-        : initialDirectoryInfo;
-      loadDirectoryPath(event.fullPath ?? defaultPath, directoryId);
+        ? { type: 'path', fullPath: event.fullPath }
+        : initialDirectoryInfo
+      loadDirectoryPath(event.fullPath ?? defaultPath, directoryId)
 
       return {
         ...context,
@@ -345,36 +287,36 @@ export const directoryStore = createStore({
           [directoryId]: createDirectoryContext(directoryId, directory),
         },
         directoryOrder: [...context.directoryOrder, directoryId],
-      };
+      }
     },
     createLoadedDirectory: (
       context,
       event: {
-        tabId?: string;
-        fullPath: string;
-        directoryData: GetFilesAndFoldersInDirectoryItem[];
+        tabId?: string
+        fullPath: string
+        directoryData: GetFilesAndFoldersInDirectoryItem[]
       },
-      enqueue,
+      enqueue
     ) => {
-      const directoryId = Math.random().toString(36).slice(2) as DirectoryId;
+      const directoryId = Math.random().toString(36).slice(2) as DirectoryId
 
       enqueue.emit.directoryCreated({
         directoryId,
         tabId: event.tabId,
-      });
+      })
 
       enqueue.emit.directoryAdded({
         directoryId,
-      });
+      })
 
-      setupSubscriptions(directoryId);
+      setupSubscriptions(directoryId)
       const directory: DirectoryInfo = {
-        type: "path",
+        type: 'path',
         fullPath: event.fullPath,
-      };
+      }
 
-      const directoryContext = createDirectoryContext(directoryId, directory);
-      directoryContext.directoryData = event.directoryData;
+      const directoryContext = createDirectoryContext(directoryId, directory)
+      directoryContext.directoryData = event.directoryData
 
       return {
         ...context,
@@ -384,48 +326,36 @@ export const directoryStore = createStore({
           [directoryId]: directoryContext,
         },
         directoryOrder: [...context.directoryOrder, directoryId],
-      };
+      }
     },
-    removeDirectory: (
-      context,
-      event: { directoryId: DirectoryId },
-      enqueue,
-    ) => {
-      const newItemOrder = context.directoryOrder.filter(
-        (id) => id !== event.directoryId,
-      );
-      if (newItemOrder.length === context.directoryOrder.length) return context;
+    removeDirectory: (context, event: { directoryId: DirectoryId }, enqueue) => {
+      const newItemOrder = context.directoryOrder.filter(id => id !== event.directoryId)
+      if (newItemOrder.length === context.directoryOrder.length) return context
 
       enqueue.emit.directoryRemoved({
         directoryId: event.directoryId,
-      });
+      })
 
-      delete context.directoriesById[event.directoryId];
-      unsubscribeDirectorySubscriptions(event.directoryId);
+      delete context.directoriesById[event.directoryId]
+      unsubscribeDirectorySubscriptions(event.directoryId)
       return {
         ...context,
         directoriesById: {
           ...context.directoriesById,
         },
         directoryOrder: newItemOrder,
-      };
+      }
     },
 
-    onDirectoriesMayHaveBeenRemoved: (
-      context,
-      event: { directoryIds: DirectoryId[] },
-      enqueue,
-    ) => {
-      const newItemOrder = context.directoryOrder.filter(
-        (id) => !event.directoryIds.includes(id),
-      );
-      if (newItemOrder.length === event.directoryIds.length) return context;
+    onDirectoriesMayHaveBeenRemoved: (context, event: { directoryIds: DirectoryId[] }, enqueue) => {
+      const newItemOrder = context.directoryOrder.filter(id => !event.directoryIds.includes(id))
+      if (newItemOrder.length === event.directoryIds.length) return context
       for (const directoryId of event.directoryIds) {
         enqueue.emit.directoryRemoved({
           directoryId,
-        });
-        delete context.directoriesById[directoryId];
-        unsubscribeDirectorySubscriptions(directoryId);
+        })
+        delete context.directoriesById[directoryId]
+        unsubscribeDirectorySubscriptions(directoryId)
       }
       return {
         ...context,
@@ -433,19 +363,19 @@ export const directoryStore = createStore({
           ...context.directoriesById,
         },
         directoryOrder: newItemOrder,
-      };
+      }
     },
     initDirectories: (
       _,
       event: {
-        directories: (DirectoryInfo & { id: string })[];
-        activeDirectoryId: string;
-      },
+        directories: (DirectoryInfo & { id: string })[]
+        activeDirectoryId: string
+      }
     ) => {
       const result: DirectoryContext = {
         directoriesById: event.directories.reduce(
           (acc, directory) => {
-            const directoryId = directory.id as DirectoryId;
+            const directoryId = directory.id as DirectoryId
             acc[directoryId] = {
               directoryId,
               directory: directory,
@@ -460,190 +390,154 @@ export const directoryStore = createStore({
                 last: undefined as number | undefined,
               },
               // Fuzzy finder state
-              fuzzyQuery: "",
+              fuzzyQuery: '',
               // View mode
-              viewMode: "list" as "list" | "grid",
+              viewMode: 'list' as 'list' | 'grid',
               // Local sort state
               localSort: undefined,
-            };
-            return acc;
+              vim: VimEngine.defaultState(),
+            }
+            return acc
           },
-          {} as Record<DirectoryId, DirectoryContextDirectory>,
+          {} as Record<DirectoryId, DirectoryContextDirectory>
         ),
-        directoryOrder: event.directories.map((d) => d.id as DirectoryId),
+        directoryOrder: event.directories.map(d => d.id as DirectoryId),
         activeDirectoryId: event.activeDirectoryId as DirectoryId,
-      };
-      for (const directory of event.directories) {
-        const directoryId = directory.id as DirectoryId;
-        setupSubscriptions(directoryId);
-        loadDirectoryInfo(directory, directoryId);
+        vimGlobal: VimEngine.defaultGlobalState(),
       }
-      return result;
+      for (const directory of event.directories) {
+        const directoryId = directory.id as DirectoryId
+        setupSubscriptions(directoryId)
+        loadDirectoryInfo(directory, directoryId)
+      }
+      return result
     },
   },
-});
+})
 
-export const loadDirectoryPath = async (
-  dir: string,
-  _directoryId: DirectoryId | undefined,
-) => {
-  const directoryId =
-    _directoryId ??
-    getActiveDirectory(directoryStore.getSnapshot().context, _directoryId)
-      .directoryId;
-  directoryLoadingHelpers.startLoading(directoryId);
+export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId | undefined) => {
+  const directoryId = _directoryId ?? getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
+  directoryLoadingHelpers.startLoading(directoryId)
   try {
-    const result = await FileBrowserCache.load(dir);
+    const result = await FileBrowserCache.load(dir)
 
     if (!result.success) {
       directoryStore.send({
-        type: "setError",
+        type: 'setError',
         error: result.error,
         directoryId,
-      });
+      })
       toast.show({
         message: errorResponseToMessage(result.error),
-        severity: "error",
-      });
-      return undefined;
+        severity: 'error',
+      })
+      return undefined
     }
 
     directoryStore.send({
-      type: "setDirectoryData",
+      type: 'setDirectoryData',
       data: result.data,
       directoryId,
-    });
-    return result.data;
+    })
+    return result.data
   } catch (e) {
     toast.show({
       message: errorToString(e),
-      severity: "error",
-    });
+      severity: 'error',
+    })
   } finally {
-    directoryLoadingHelpers.endLoading(directoryId);
+    directoryLoadingHelpers.endLoading(directoryId)
   }
-};
+}
 
-export const loadTaggedFiles = async (
-  color: TagColor,
-  _directoryId: DirectoryId | undefined,
-) => {
-  const directoryId = getActiveDirectory(
-    directoryStore.getSnapshot().context,
-    _directoryId,
-  ).directoryId;
+export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId | undefined) => {
+  const directoryId = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
   const getFilesWithTag = (color: TagColor) =>
     Object.entries(tagsStore.get().context.fileTags)
       .filter(([_, tags]) => tags.includes(color))
-      .map(([path]) => path);
+      .map(([path]) => path)
 
-  directoryLoadingHelpers.startLoading(directoryId);
+  directoryLoadingHelpers.startLoading(directoryId)
   try {
-    const filePaths = getFilesWithTag(color);
+    const filePaths = getFilesWithTag(color)
     if (filePaths.length === 0) {
-      directoryStore.send({ type: "setDirectoryData", data: [], directoryId });
-      return [];
+      directoryStore.send({ type: 'setDirectoryData', data: [], directoryId })
+      return []
     }
-    const result = await getWindowElectron().getFileInfoByPaths(filePaths);
+    const result = await getWindowElectron().getFileInfoByPaths(filePaths)
 
-    const staleItems = filePaths.filter((item) => {
-      const normalized = PathHelpers.expandHome(homeDirectory, item);
-      return !result.find((i) => i.fullPath === normalized);
-    });
+    const staleItems = filePaths.filter(item => {
+      const normalized = PathHelpers.expandHome(homeDirectory, item)
+      return !result.find(i => i.fullPath === normalized)
+    })
     if (staleItems.length > 0) {
       tagsStore.trigger.removeFilesFromAllTags({
         fullPaths: staleItems,
-      });
+      })
     }
     directoryStore.send({
-      type: "setDirectoryData",
+      type: 'setDirectoryData',
       data: result,
       directoryId,
-    });
-    return result;
+    })
+    return result
   } catch (e) {
     toast.show({
       message: errorToString(e),
-      severity: "error",
-    });
+      severity: 'error',
+    })
   } finally {
-    directoryLoadingHelpers.endLoading(directoryId);
+    directoryLoadingHelpers.endLoading(directoryId)
   }
-};
+}
 
-export const loadDirectoryInfo = async (
-  info: DirectoryInfo,
-  directoryId: DirectoryId | undefined,
-) => {
-  if (info.type === "path") {
-    return loadDirectoryPath(info.fullPath, directoryId);
+export const loadDirectoryInfo = async (info: DirectoryInfo, directoryId: DirectoryId | undefined) => {
+  if (info.type === 'path') {
+    return loadDirectoryPath(info.fullPath, directoryId)
   } else {
-    return loadTaggedFiles(info.color, directoryId);
+    return loadTaggedFiles(info.color, directoryId)
   }
-};
+}
 
-export const directoryHelpers = dh;
+export const directoryHelpers = dh
 
 // Selectors
-export const selectDirectory =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).directory;
+export const selectDirectory = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).directory
 
-export const selectLoading =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).loading;
+export const selectLoading = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).loading
 
 export const selectRawDirectoryData =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).directoryData;
+  (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).directoryData
 
-export const selectHasNext =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).historyStack.hasNext;
+export const selectHasNext = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).historyStack.hasNext
 
-export const selectHasPrev =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).historyStack.hasPrev;
+export const selectHasPrev = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).historyStack.hasPrev
 
 export const selectSettings = (): FileBrowserSettings => {
-  return selectSettingsFromStore(fileBrowserSettingsStore.get());
-};
+  return selectSettingsFromStore(fileBrowserSettingsStore.get())
+}
 
 export const selectPendingSelection =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).pendingSelection;
+  (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+    getActiveDirectory(state.context, directoryId).pendingSelection
 
-export const selectSelection =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).selection;
+export const selectSelection = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).selection
 
-export const selectFuzzyQuery =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).fuzzyQuery;
+export const selectFuzzyQuery = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).fuzzyQuery
 
-export const selectViewMode =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).viewMode;
+export const selectViewMode = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).viewMode
 
-export const selectError =
-  (directoryId: DirectoryId | undefined) =>
-  (state: StoreSnapshot<DirectoryContext>) =>
-    getActiveDirectory(state.context, directoryId).error;
+export const selectError = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
+  getActiveDirectory(state.context, directoryId).error
 
-export function useRowIsSelected(
-  index: number,
-  directoryId: DirectoryId | undefined,
-) {
-  return useSelector(directoryStore, (s) =>
-    s.context.directoriesById[directoryId!].selection.indexes.has(index),
-  );
+export function useRowIsSelected(index: number, directoryId: DirectoryId | undefined) {
+  return useSelector(directoryStore, s => s.context.directoriesById[directoryId!].selection.indexes.has(index))
 }
