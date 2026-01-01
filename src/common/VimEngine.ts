@@ -61,26 +61,28 @@ export namespace VimEngine {
   export type Mode = "normal" | "insert";
 
   // cc - dd - yy - p - P - u - ciw - C
+  // History stack not supported for line updates
 
   export function cc(state: State): State {
-    const idxs: number[] = [];
-    for (
-      let i = state.cursor.line;
-      i < getEffectiveCount(state) + state.cursor.line;
-      i++
-    ) {
-      idxs.push(i);
-    }
     const currentItems = [...state.currentBuffer.items];
     const deletedItems = currentItems.splice(
       state.cursor.line,
       getEffectiveCount(state),
+      {
+        type: "str",
+        str: "",
+      },
     );
     const currentBuffer: Buffer = {
       fullPath: state.currentBuffer.fullPath,
       items: currentItems,
       historyStack: state.currentBuffer.historyStack.withNew({
         reversions: [
+          {
+            type: "remove",
+            count: 1,
+            index: state.cursor.line,
+          },
           {
             type: "add",
             items: deletedItems,
@@ -106,19 +108,11 @@ export namespace VimEngine {
         line: state.cursor.line,
         column: 0,
       },
-      registry: idxs.map((i) => state.currentBuffer.items[i]),
+      registry: deletedItems,
     };
   }
 
   export function dd(state: State): State {
-    const idxs: number[] = [];
-    for (
-      let i = state.cursor.line;
-      i < getEffectiveCount(state) + state.cursor.line;
-      i++
-    ) {
-      idxs.push(i);
-    }
     const currentItems = [...state.currentBuffer.items];
     const deletedItems = currentItems.splice(
       state.cursor.line,
@@ -141,6 +135,102 @@ export namespace VimEngine {
         ],
       }),
     };
+    if (currentItems.length === 0) {
+      currentItems.push({ type: "str", str: "" });
+    }
+    const line = Math.min(state.cursor.line, currentItems.length - 1);
+    return {
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: "normal",
+      currentBuffer,
+      cursor: {
+        line,
+        column: Math.min(state.cursor.column, currentItems[line].str.length),
+      },
+      registry: deletedItems,
+    };
+  }
+
+  export function yy(state: State): State {
+    const idxs: number[] = [];
+    const lastLine = Math.min(
+      getEffectiveCount(state) + state.cursor.line,
+      state.currentBuffer.items.length,
+    );
+    for (let i = state.cursor.line; i < lastLine; i++) {
+      idxs.push(i);
+    }
+    return {
+      ...state,
+      registry: idxs.map((i) => state.currentBuffer.items[i]),
+      count: 0,
+    };
+  }
+
+  export function p(state: State): State {
+    if (state.count) GenericError.Message("p not supported with count");
+
+    const currentItems = [...state.currentBuffer.items];
+    currentItems.splice(state.cursor.line + 1, 0, ...state.registry);
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "remove",
+            count: state.registry.length,
+            index: state.cursor.line + 1,
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
+    return {
+      buffers: {
+        ...state.buffers,
+        [state.currentBuffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: "normal",
+      currentBuffer,
+      cursor: {
+        line: state.cursor.line + 1,
+        column: 0,
+      },
+      registry: state.registry,
+    };
+  }
+
+  export function P(state: State): State {
+    if (state.count) GenericError.Message("P not supported with count");
+
+    const currentItems = [...state.currentBuffer.items];
+    currentItems.splice(Math.max(0, state.cursor.line), 0, ...state.registry);
+    const currentBuffer: Buffer = {
+      fullPath: state.currentBuffer.fullPath,
+      items: currentItems,
+      historyStack: state.currentBuffer.historyStack.withNew({
+        reversions: [
+          {
+            type: "remove",
+            count: state.registry.length,
+            index: Math.max(0, state.cursor.line),
+          },
+          {
+            type: "cursor",
+            cursor: state.cursor,
+          },
+        ],
+      }),
+    };
     return {
       buffers: {
         ...state.buffers,
@@ -151,103 +241,9 @@ export namespace VimEngine {
       currentBuffer,
       cursor: {
         line: state.cursor.line,
-        column: Math.max(
-          state.cursor.column,
-          currentItems[state.cursor.line].str.length,
-        ),
-      },
-      registry: idxs.map((i) => state.currentBuffer.items[i]),
-    };
-  }
-
-  export function yy(state: State): State {
-    const idxs: number[] = [];
-    for (
-      let i = state.cursor.line;
-      i < getEffectiveCount(state) + state.cursor.line;
-      i++
-    ) {
-      idxs.push(i);
-    }
-    return {
-      ...state,
-      registry: idxs.map((i) => state.currentBuffer.items[i]),
-    };
-  }
-
-  export function p(state: State): State {
-    if (state.count) GenericError.Message("p not supported with count");
-
-    const currentItems = [...state.currentBuffer.items];
-    state.currentBuffer.items.splice(state.cursor.line, 0, ...state.registry);
-    const currentBuffer: Buffer = {
-      fullPath: state.currentBuffer.fullPath,
-      items: currentItems,
-      historyStack: state.currentBuffer.historyStack.withNew({
-        reversions: [
-          {
-            type: "remove",
-            count: state.registry.length,
-            index: state.cursor.line,
-          },
-          {
-            type: "cursor",
-            cursor: state.cursor,
-          },
-        ],
-      }),
-    };
-    return {
-      buffers: {
-        ...state.buffers,
-        [state.currentBuffer.fullPath]: currentBuffer,
-      },
-      count: 0,
-      mode: "normal",
-      currentBuffer,
-      cursor: {
-        line: state.cursor.line + 1,
         column: 0,
       },
-      registry: [],
-    };
-  }
-
-  export function P(state: State): State {
-    if (state.count) GenericError.Message("P not supported with count");
-
-    const currentItems = [...state.currentBuffer.items];
-    state.currentBuffer.items.splice(state.cursor.line, 0, ...state.registry);
-    const currentBuffer: Buffer = {
-      fullPath: state.currentBuffer.fullPath,
-      items: currentItems,
-      historyStack: state.currentBuffer.historyStack.withNew({
-        reversions: [
-          {
-            type: "remove",
-            count: state.registry.length,
-            index: state.cursor.line,
-          },
-          {
-            type: "cursor",
-            cursor: state.cursor,
-          },
-        ],
-      }),
-    };
-    return {
-      buffers: {
-        ...state.buffers,
-        [state.currentBuffer.fullPath]: currentBuffer,
-      },
-      count: 0,
-      mode: "normal",
-      currentBuffer,
-      cursor: {
-        line: state.cursor.line + 1,
-        column: 0,
-      },
-      registry: [],
+      registry: state.registry,
     };
   }
 
@@ -285,14 +281,18 @@ export namespace VimEngine {
       currentState = applyUndo(currentState);
     }
 
-    return currentState;
+    return {
+      ...currentState,
+      count: 0,
+    };
   }
 
   function lineUpdatingFn(
     state: State,
     fn: (line: string) => { column: number; result: string },
   ): State {
-    if (state.count) GenericError.Message("ciw not supported with count");
+    if (state.count)
+      GenericError.Message("lineUpdatingFn not supported with count");
 
     const currentItems = [...state.currentBuffer.items];
     const initialStr = currentItems[state.cursor.line].str;
@@ -328,6 +328,15 @@ export namespace VimEngine {
     });
   }
 
+  export function C(state: State): State {
+    return lineUpdatingFn(state, (initialStr) => {
+      return {
+        column: state.cursor.column,
+        result: initialStr.slice(0, state.cursor.column),
+      };
+    });
+  }
+
   export function addToCount(state: State, count: number): State {
     return {
       ...state,
@@ -346,8 +355,8 @@ export function getWordBounds(
   index: number,
 ): { start: number; end: number } {
   if (index < 0 || index >= text.length)
-    return { start: index, end: index + 1 };
-  if (!isWordChar(text[index])) return { start: index, end: index + 1 };
+    return { start: index, end: index };
+  if (!isWordChar(text[index])) return { start: index, end: index };
 
   let start = index;
   let end = index;
@@ -364,7 +373,7 @@ export function getWordBounds(
 }
 
 function removeWord(text: string, start: number, end: number): string {
-  return text.slice(0, start) + text.slice(end);
+  return text.slice(0, start) + text.slice(end + 1);
 }
 
 //  1

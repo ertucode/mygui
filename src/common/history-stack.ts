@@ -8,7 +8,7 @@ export class HistoryStack<T> {
   }
 
   get hasPrev(): boolean {
-    return this.index > 0;
+    return this.index >= 0;
   }
 
   get hasNext(): boolean {
@@ -30,19 +30,21 @@ export class HistoryStack<T> {
   }
 
   goPrev(): T {
-    if (!this.hasPrev) {
+    if (this.index < 0) {
       throw new Error("No previous item");
     }
+    const item = this.items[this.index];
     this.index--;
-    return this.items[this.index];
+    return item;
   }
 
   goPrevSafe(): T | undefined {
-    if (!this.hasPrev) {
+    if (this.index < 0) {
       return undefined;
     }
+    const item = this.items[this.index];
     this.index--;
-    return this.items[this.index];
+    return item;
   }
 
   goNext(): T {
