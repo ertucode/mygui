@@ -23,33 +23,22 @@ export namespace VimEngine {
     fullPath: string
     items: BufferItem[]
     historyStack: HistoryStack<HistoryItem>
+    cursor: CursorPosition
   }
 
   type FullPath = string
-  export type GlobalState = {
+  export type State = {
     buffers: Record<FullPath, Buffer>
     mode: Mode
     count: number
     registry: BufferItem[]
   }
 
-  export type PerDirectoryState = {
-    cursor: CursorPosition
-  }
-
-  export type States = {
-    state: PerDirectoryState
-    globalState: GlobalState
-  }
   export type CommandOpts = {
-    state: PerDirectoryState
-    globalState: GlobalState
+    state: State
     fullPath: FullPath
   }
-  export type CommandResult = {
-    state: PerDirectoryState
-    globalState: GlobalState
-  }
+  export type CommandResult = State
 
   export type HistoryItem = {
     reversions: Reversion[]
@@ -74,207 +63,188 @@ export namespace VimEngine {
   // cc - dd - yy - p - P - u - ciw - C
   // History stack not supported for line updates
 
-  export function cc({ state, globalState, fullPath }: CommandOpts): CommandResult {
-    const prevCurrentBuffer = globalState.buffers[fullPath]
-    const currentItems = [...prevCurrentBuffer.items]
-    const deletedItems = currentItems.splice(state.cursor.line, getEffectiveCount(globalState), {
+  export function cc({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), {
       type: 'str',
       str: '',
     })
     const currentBuffer: Buffer = {
       fullPath,
       items: currentItems,
-      historyStack: prevCurrentBuffer.historyStack.withNew({
+      historyStack: buffer.historyStack.withNew({
         reversions: [
           {
             type: 'remove',
             count: 1,
-            index: state.cursor.line,
+            index: buffer.cursor.line,
           },
           {
             type: 'add',
             items: deletedItems,
-            index: state.cursor.line,
+            index: buffer.cursor.line,
           },
           {
             type: 'cursor',
-            cursor: state.cursor,
+            cursor: buffer.cursor,
           },
         ],
       }),
+      cursor: {
+        line: buffer.cursor.line,
+        column: 0,
+      },
     }
 
     return {
-      state: {
-        cursor: {
-          line: state.cursor.line,
-          column: 0,
-        },
-      },
-      globalState: {
-        count: 0,
-        mode: 'insert',
-        registry: deletedItems,
-        buffers: {
-          ...globalState.buffers,
-          [fullPath]: currentBuffer,
-        },
+      count: 0,
+      mode: 'insert',
+      registry: deletedItems,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: currentBuffer,
       },
     }
   }
 
-  export function dd({ state, globalState, fullPath }: CommandOpts): CommandResult {
-    const prevCurrentBuffer = globalState.buffers[fullPath]
-    const currentItems = [...prevCurrentBuffer.items]
-    const deletedItems = currentItems.splice(state.cursor.line, getEffectiveCount(globalState))
-    const currentBuffer: Buffer = {
-      fullPath: fullPath,
-      items: currentItems,
-      historyStack: prevCurrentBuffer.historyStack.withNew({
-        reversions: [
-          {
-            type: 'add',
-            items: deletedItems,
-            index: state.cursor.line,
-          },
-          {
-            type: 'cursor',
-            cursor: state.cursor,
-          },
-        ],
-      }),
-    }
+  export function dd({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state))
     if (currentItems.length === 0) {
       currentItems.push({ type: 'str', str: '' })
     }
-    const line = Math.min(state.cursor.line, currentItems.length - 1)
-    return {
-      state: {
-        cursor: {
-          line,
-          column: Math.min(state.cursor.column, currentItems[line].str.length),
-        },
-      },
-      globalState: {
-        count: 0,
-        mode: 'normal',
-        registry: deletedItems,
-        buffers: {
-          ...globalState.buffers,
-          [fullPath]: currentBuffer,
-        },
-      },
-    }
-  }
-
-  export function yy({ state, globalState, fullPath }: CommandOpts): CommandResult {
-    const currentBuffer = globalState.buffers[fullPath]
-    const idxs: number[] = []
-    const lastLine = Math.min(getEffectiveCount(globalState) + state.cursor.line, currentBuffer.items.length)
-    for (let i = state.cursor.line; i < lastLine; i++) {
-      idxs.push(i)
-    }
-    return {
-      state,
-      globalState: {
-        ...globalState,
-        registry: idxs.map(i => currentBuffer.items[i]),
-        count: 0,
-      },
-    }
-  }
-
-  export function p({ state, globalState, fullPath }: CommandOpts): CommandResult {
-    if (globalState.count) GenericError.Message('p not supported with count')
-
-    const prevCurrentBuffer = globalState.buffers[fullPath]
-    const currentItems = [...prevCurrentBuffer.items]
-    currentItems.splice(state.cursor.line + 1, 0, ...globalState.registry)
-    const currentBuffer: Buffer = {
-      fullPath: prevCurrentBuffer.fullPath,
-      items: currentItems,
-      historyStack: prevCurrentBuffer.historyStack.withNew({
-        reversions: [
-          {
-            type: 'remove',
-            count: globalState.registry.length,
-            index: state.cursor.line + 1,
-          },
-          {
-            type: 'cursor',
-            cursor: state.cursor,
-          },
-        ],
-      }),
-    }
-    return {
-      state: {
-        cursor: {
-          line: state.cursor.line + 1,
-          column: 0,
-        },
-      },
-      globalState: {
-        buffers: {
-          ...globalState.buffers,
-          [prevCurrentBuffer.fullPath]: currentBuffer,
-        },
-        count: 0,
-        mode: 'normal',
-        registry: globalState.registry,
-      },
-    }
-  }
-
-  export function P({ state, globalState, fullPath }: CommandOpts): CommandResult {
-    if (globalState.count) GenericError.Message('P not supported with count')
-    const prevCurrentBuffer = globalState.buffers[fullPath]
-
-    const currentItems = [...prevCurrentBuffer.items]
-    currentItems.splice(Math.max(0, state.cursor.line), 0, ...globalState.registry)
+    const line = Math.min(buffer.cursor.line, currentItems.length - 1)
     const currentBuffer: Buffer = {
       fullPath: fullPath,
       items: currentItems,
-      historyStack: prevCurrentBuffer.historyStack.withNew({
+      historyStack: buffer.historyStack.withNew({
         reversions: [
           {
-            type: 'remove',
-            count: globalState.registry.length,
-            index: Math.max(0, state.cursor.line),
+            type: 'add',
+            items: deletedItems,
+            index: buffer.cursor.line,
           },
           {
             type: 'cursor',
-            cursor: state.cursor,
+            cursor: buffer.cursor,
           },
         ],
       }),
+      cursor: {
+        line,
+        column: Math.min(buffer.cursor.column, currentItems[line].str.length),
+      },
     }
     return {
-      state: {
-        cursor: {
-          line: state.cursor.line,
-          column: 0,
-        },
-      },
-      globalState: {
-        buffers: {
-          ...globalState.buffers,
-          [fullPath]: currentBuffer,
-        },
-        count: 0,
-        mode: 'normal',
-        registry: globalState.registry,
+      count: 0,
+      mode: 'normal',
+      registry: deletedItems,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: currentBuffer,
       },
     }
   }
 
-  export function applyUndo({ state, globalState }: States, fullPath: FullPath): CommandResult {
-    const prevCurrentBuffer = globalState.buffers[fullPath]
-    const historyItem = prevCurrentBuffer.historyStack.goPrevSafe()
-    if (!historyItem || !historyItem.reversions.length) return { globalState, state }
+  export function yy({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const idxs: number[] = []
+    const lastLine = Math.min(getEffectiveCount(state) + buffer.cursor.line, buffer.items.length)
+    for (let i = buffer.cursor.line; i < lastLine; i++) {
+      idxs.push(i)
+    }
+    return {
+      ...state,
+      registry: idxs.map(i => buffer.items[i]),
+      count: 0,
+    }
+  }
 
-    const currentItems = [...prevCurrentBuffer.items]
-    let cursor = state.cursor
+  export function p({ state, fullPath }: CommandOpts): CommandResult {
+    if (state.count) GenericError.Message('p not supported with count')
+
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    currentItems.splice(buffer.cursor.line + 1, 0, ...state.registry)
+    const currentBuffer: Buffer = {
+      fullPath: buffer.fullPath,
+      items: currentItems,
+      historyStack: buffer.historyStack.withNew({
+        reversions: [
+          {
+            type: 'remove',
+            count: state.registry.length,
+            index: buffer.cursor.line + 1,
+          },
+          {
+            type: 'cursor',
+            cursor: buffer.cursor,
+          },
+        ],
+      }),
+      cursor: {
+        line: buffer.cursor.line + 1,
+        column: 0,
+      },
+    }
+    return {
+      buffers: {
+        ...state.buffers,
+        [buffer.fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: 'normal',
+      registry: state.registry,
+    }
+  }
+
+  export function P({ state, fullPath }: CommandOpts): CommandResult {
+    if (state.count) GenericError.Message('P not supported with count')
+    const buffer = state.buffers[fullPath]
+
+    const currentItems = [...buffer.items]
+    currentItems.splice(Math.max(0, buffer.cursor.line), 0, ...state.registry)
+    const currentBuffer: Buffer = {
+      fullPath: fullPath,
+      items: currentItems,
+      historyStack: buffer.historyStack.withNew({
+        reversions: [
+          {
+            type: 'remove',
+            count: state.registry.length,
+            index: Math.max(0, buffer.cursor.line),
+          },
+          {
+            type: 'cursor',
+            cursor: buffer.cursor,
+          },
+        ],
+      }),
+      cursor: {
+        line: buffer.cursor.line,
+        column: 0,
+      },
+    }
+    return {
+      buffers: {
+        ...state.buffers,
+        [fullPath]: currentBuffer,
+      },
+      count: 0,
+      mode: 'normal',
+      registry: state.registry,
+    }
+  }
+
+  export function applyUndo(state: State, fullPath: FullPath): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const historyItem = buffer.historyStack.goPrevSafe()
+    if (!historyItem || !historyItem.reversions.length) return state
+
+    const currentItems = [...buffer.items]
+    let cursor = buffer.cursor
 
     for (const reversion of historyItem.reversions) {
       if (reversion.type === 'cursor') {
@@ -287,33 +257,28 @@ export namespace VimEngine {
     }
 
     return {
-      state: {
-        cursor,
-      },
-      globalState: {
-        ...globalState,
-        buffers: {
-          ...globalState.buffers,
-          [fullPath]: {
-            ...prevCurrentBuffer,
-            items: currentItems,
-          },
+      ...state,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
         },
-        count: 0,
       },
+      count: 0,
     }
   }
 
   export function u(opts: CommandOpts): CommandResult {
-    let currentState: { globalState: GlobalState; state: PerDirectoryState } = opts
-    const count = getEffectiveCount(currentState.globalState)
+    let state: State = opts.state
+    const count = getEffectiveCount(state)
 
     for (let i = 0; i < count; i++) {
-      currentState = applyUndo(currentState, opts.fullPath)
+      state = applyUndo(state, opts.fullPath)
     }
 
     return {
-      ...currentState,
+      ...state,
     }
   }
 
@@ -324,19 +289,19 @@ export namespace VimEngine {
   //   if (state.count) GenericError.Message('lineUpdatingFn not supported with count')
   //
   //   const currentItems = [...state.currentBuffer.items]
-  //   const initialStr = currentItems[state.cursor.line].str
+  //   const initialStr = currentItems[buffer.cursor.line].str
   //
   //   const { column, result } = fn(initialStr)
   //
-  //   currentItems[state.cursor.line] = {
-  //     ...currentItems[state.cursor.line],
+  //   currentItems[buffer.cursor.line] = {
+  //     ...currentItems[buffer.cursor.line],
   //     str: result,
   //   }
   //
   //   return {
   //     ...state,
   //     cursor: {
-  //       line: state.cursor.line,
+  //       line: buffer.cursor.line,
   //       column,
   //     },
   //     currentBuffer: {
@@ -350,7 +315,7 @@ export namespace VimEngine {
   //
   // export function ciw(state: PerDirectoryState): PerDirectoryState {
   //   return lineUpdatingFn(state, initialStr => {
-  //     const bounds = getWordBounds(initialStr, state.cursor.column)
+  //     const bounds = getWordBounds(initialStr, buffer.cursor.column)
   //     const result = removeWord(initialStr, bounds.start, bounds.end)
   //
   //     return { column: bounds.start, result }
@@ -360,33 +325,24 @@ export namespace VimEngine {
   // export function C(state: PerDirectoryState): PerDirectoryState {
   //   return lineUpdatingFn(state, initialStr => {
   //     return {
-  //       column: state.cursor.column,
-  //       result: initialStr.slice(0, state.cursor.column),
+  //       column: buffer.cursor.column,
+  //       result: initialStr.slice(0, buffer.cursor.column),
   //     }
   //   })
   // }
 
   export function addToCount(opts: CommandOpts, count: number): CommandResult {
     return {
-      state: opts.state,
-      globalState: {
-        ...opts.globalState,
-        count: opts.globalState.count === 0 ? count : 10 * opts.globalState.count + count,
-      },
+      ...opts.state,
+      count: opts.state.count === 0 ? count : 10 * opts.state.count + count,
     }
   }
 
-  function getEffectiveCount(globalState: GlobalState): number {
-    return globalState.count || 1
+  function getEffectiveCount(state: State): number {
+    return state.count || 1
   }
 
-  export function defaultState(): PerDirectoryState {
-    return {
-      cursor: { line: 0, column: 0 },
-    }
-  }
-
-  export function defaultGlobalState(): GlobalState {
+  export function defaultState(): State {
     return {
       buffers: {},
       mode: 'normal',

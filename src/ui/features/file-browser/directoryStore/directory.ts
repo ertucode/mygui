@@ -61,7 +61,6 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
     fuzzyQuery: '',
     viewMode: 'list',
     localSort: undefined,
-    vim: VimEngine.defaultState(),
   }
 }
 
@@ -395,7 +394,6 @@ export const directoryStore = createStore({
               viewMode: 'list' as 'list' | 'grid',
               // Local sort state
               localSort: undefined,
-              vim: VimEngine.defaultState(),
             }
             return acc
           },
@@ -403,7 +401,7 @@ export const directoryStore = createStore({
         ),
         directoryOrder: event.directories.map(d => d.id as DirectoryId),
         activeDirectoryId: event.activeDirectoryId as DirectoryId,
-        vimGlobal: VimEngine.defaultGlobalState(),
+        vim: VimEngine.defaultState(),
       }
       for (const directory of event.directories) {
         const directoryId = directory.id as DirectoryId
