@@ -288,6 +288,46 @@ export namespace VimEngine {
     return currentState;
   }
 
+  function lineUpdatingFn(
+    state: State,
+    fn: (line: string) => { column: number; result: string },
+  ): State {
+    if (state.count) GenericError.Message("ciw not supported with count");
+
+    const currentItems = [...state.currentBuffer.items];
+    const initialStr = currentItems[state.cursor.line].str;
+
+    const { column, result } = fn(initialStr);
+
+    currentItems[state.cursor.line] = {
+      ...currentItems[state.cursor.line],
+      str: result,
+    };
+
+    return {
+      ...state,
+      cursor: {
+        line: state.cursor.line,
+        column,
+      },
+      currentBuffer: {
+        ...state.currentBuffer,
+        items: currentItems,
+      },
+      count: 0,
+      mode: "insert",
+    };
+  }
+
+  export function ciw(state: State): State {
+    return lineUpdatingFn(state, (initialStr) => {
+      const bounds = getWordBounds(initialStr, state.cursor.column);
+      const result = removeWord(initialStr, bounds.start, bounds.end);
+
+      return { column: bounds.start, result };
+    });
+  }
+
   export function addToCount(state: State, count: number): State {
     return {
       ...state,
@@ -298,6 +338,33 @@ export namespace VimEngine {
   function getEffectiveCount(state: State): number {
     return state.count || 1;
   }
+}
+
+const isWordChar = (ch: string) => /[A-Za-z0-9]/.test(ch);
+export function getWordBounds(
+  text: string,
+  index: number,
+): { start: number; end: number } {
+  if (index < 0 || index >= text.length)
+    return { start: index, end: index + 1 };
+  if (!isWordChar(text[index])) return { start: index, end: index + 1 };
+
+  let start = index;
+  let end = index;
+
+  while (start > 0 && isWordChar(text[start - 1])) {
+    start--;
+  }
+
+  while (end < text.length - 1 && isWordChar(text[end + 1])) {
+    end++;
+  }
+
+  return { start, end };
+}
+
+function removeWord(text: string, start: number, end: number): string {
+  return text.slice(0, start) + text.slice(end);
 }
 
 //  1
