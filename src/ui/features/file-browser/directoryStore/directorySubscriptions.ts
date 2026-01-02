@@ -92,13 +92,13 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         settings.settings,
         dir?.fuzzyQuery,
         JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
-        fullPath && d.vim.buffers[fullPath].items,
+        fullPath && d.vim.buffers[fullPath]?.items,
       ]
     },
     ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
       const dir = d.directoriesById[directoryId]
       const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
-      if (fullPath && d.vim.buffers[fullPath].items) return d.vim.buffers[fullPath].items
+      if (fullPath && d.vim.buffers[fullPath]?.items) return d.vim.buffers[fullPath].items
 
       const sort = resolveSortFromStores(dir, columnPrefs)
       const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)

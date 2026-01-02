@@ -95,34 +95,40 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       header: 'Ext',
       headerConfigView: 'Extension',
       size: 6,
-      cell: row => <SimpleCall key="ext" row={row} />,
+      cell: row => <SimpleCell accessor="ext" row={row} />,
     },
     {
       id: 'size',
       sortKey: 'size',
       header: 'Size',
       size: 84,
-      cell: row => <SimpleCall key="size" row={row} />,
+      cell: row => <SimpleCell accessor="size" row={row} />,
     },
     {
       id: 'modifiedAt',
       sortKey: 'modifiedTimestamp',
       header: 'Modified',
       size: 148,
-      cell: row => <SimpleCall key="modifiedAt" row={row} />,
+      cell: row => <SimpleCell accessor="modifiedAt" row={row} />,
     },
     {
       id: 'permissions',
       sortKey: undefined,
       header: 'Permissions',
       size: 140,
-      cell: row => <SimpleCall key="permissions" row={row} />,
+      cell: row => <SimpleCell accessor="permissions" row={row} />,
     },
   ]
 }
 
-function SimpleCall({ key, row }: { key: keyof GetFilesAndFoldersInDirectoryItem; row: DerivedDirectoryItem }) {
-  const value = row.type === 'real' ? row.item[key] : undefined
+function SimpleCell({
+  accessor,
+  row,
+}: {
+  accessor: keyof GetFilesAndFoldersInDirectoryItem
+  row: DerivedDirectoryItem
+}) {
+  const value = row.type === 'real' ? row.item[accessor] : undefined
   if (!value) return null
   return (
     <span className="block truncate" title={value.toString()}>
