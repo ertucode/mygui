@@ -20,6 +20,7 @@ export function getActiveDirectory(context: DirectoryContext, directoryId: Direc
 }
 
 export type DirectoryId = $Branded<string, 'DirectoryId'>
+export type DerivedDirectoryItem = VimEngine.BufferItem
 
 export type DirectoryLocalSort = {
   actual: SortState

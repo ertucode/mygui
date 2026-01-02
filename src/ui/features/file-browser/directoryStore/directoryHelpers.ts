@@ -23,6 +23,7 @@ import {
   getActiveDirectory,
   directoryInfoEquals,
   DirectoryContextDirectory,
+  DerivedDirectoryItem,
 } from './DirectoryBase'
 import { initialDirectoryInfo } from '../defaultPath'
 import { columnPreferencesStore } from '../columnPreferences'
@@ -352,9 +353,10 @@ export const directoryHelpers = {
 
   handleDelete: async (
     items: GetFilesAndFoldersInDirectoryItem[],
-    tableData: GetFilesAndFoldersInDirectoryItem[],
+    _tableData: DerivedDirectoryItem[],
     _directoryId: DirectoryId | undefined
   ) => {
+    const tableData = _tableData.filter(i => i.type === 'real').map(i => i.item)
     const directoryId = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
 
     const paths = items.map(item => item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
@@ -435,7 +437,7 @@ export const directoryHelpers = {
   },
 
   openSelectedItem: (
-    data: GetFilesAndFoldersInDirectoryItem[],
+    data: DerivedDirectoryItem[],
     e: KeyboardEvent | undefined,
     directoryId: DirectoryId | undefined
   ) => {
@@ -451,13 +453,14 @@ export const directoryHelpers = {
     }
 
     const itemToOpen = resolveItemToOpen()
-    if (itemToOpen.type === 'file' && e?.key === 'l') return
+    if (itemToOpen.type !== 'real') return
+    if (itemToOpen.item.type === 'file' && e?.key === 'l') return
 
     // if ((e.target as HTMLInputElement).id === "fuzzy-finder-input") {
     //   fuzzy.clearQuery();
     //   tableRef.current?.querySelector("tbody")?.focus();
     // }
-    directoryHelpers.openItem(itemToOpen, directoryId)
+    directoryHelpers.openItem(itemToOpen.item, directoryId)
   },
 
   openAssignTagsDialog: (fullPath: string, data: GetFilesAndFoldersInDirectoryItem[], directoryId: DirectoryId) => {

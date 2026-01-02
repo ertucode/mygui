@@ -1,5 +1,5 @@
 import { dialogActions, dialogStore } from './dialogStore'
-import { directoryHelpers, directoryStore, selectSelection } from './directoryStore/directory'
+import { directoryHelpers, directoryStore, selectActiveVimBuffer, selectSelection } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
 import { favoritesStore } from './favorites'
 import { layoutModel } from './initializeDirectory'
@@ -117,11 +117,17 @@ export const FileBrowserShortcuts = {
         {
           key: { key: 'Backspace', metaKey: true },
           handler: () => {
-            const s = selectSelection(undefined)(directoryStore.getSnapshot())
+            const snapshot = directoryStore.getSnapshot()
+            const s = selectSelection(undefined)(snapshot)
             // Command+Delete on macOS
             if (s.indexes.size === 0) return
+            const vim = selectActiveVimBuffer(undefined)(snapshot)
+            if (vim) return
             const data = getData()
-            const itemsToDelete = [...s.indexes].map(i => data[i])
+            const itemsToDelete = [...s.indexes]
+              .map(i => data[i])
+              .filter(i => i.type === 'real')
+              .map(i => i.item)
             directoryHelpers.handleDelete(itemsToDelete, data, undefined)
           },
           enabledIn: () => true,
@@ -149,9 +155,13 @@ export const FileBrowserShortcuts = {
           handler: e => {
             e?.preventDefault()
             const data = getData()
-            const s = selectSelection(undefined)(directoryStore.getSnapshot())
+            const snapshot = directoryStore.getSnapshot()
+            const s = selectSelection(undefined)(snapshot)
+            const vim = selectActiveVimBuffer(undefined)(snapshot)
+            if (vim) return
             const itemsToRename = s.indexes.size < 1 ? data : [...s.indexes].map(i => data[i])
-            dialogActions.open('batchRename', itemsToRename)
+            const itemsToRenameMapped = itemsToRename.filter(i => i.type === 'real').map(i => i.item)
+            dialogActions.open('batchRename', itemsToRenameMapped)
           },
           enabledIn: () => true,
           label: 'Batch rename selected items',
@@ -168,8 +178,10 @@ export const FileBrowserShortcuts = {
 
             e?.preventDefault()
             if (s.indexes.size === 0) return
-            const itemsToCopy = [...s.indexes].map(i => getData()[i])
-            clipboardHelpers.copy(itemsToCopy, false, undefined)
+            const data = getData()
+            const itemsToCopy = [...s.indexes].map(i => data[i])
+            const itemsToCopyMapped = itemsToCopy.filter(i => i.type === 'real').map(i => i.item)
+            clipboardHelpers.copy(itemsToCopyMapped, false, undefined)
           },
           enabledIn: () => true,
           label: 'Copy selected items',
@@ -186,8 +198,10 @@ export const FileBrowserShortcuts = {
             e?.preventDefault()
             const s = selectSelection(undefined)(directoryStore.getSnapshot())
             if (s.indexes.size === 0) return
-            const itemsToCut = [...s.indexes].map(i => getData()[i])
-            clipboardHelpers.copy(itemsToCut, true, undefined)
+            const data = getData()
+            const itemsToCut = [...s.indexes].map(i => data[i])
+            const itemsToCutMapped = itemsToCut.filter(i => i.type === 'real').map(i => i.item)
+            clipboardHelpers.copy(itemsToCutMapped, true, undefined)
           },
           enabledIn: () => true,
           label: 'Cut selected items',

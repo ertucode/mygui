@@ -539,3 +539,10 @@ export const selectError = (directoryId: DirectoryId | undefined) => (state: Sto
 export function useRowIsSelected(index: number, directoryId: DirectoryId | undefined) {
   return useSelector(directoryStore, s => s.context.directoriesById[directoryId!].selection.indexes.has(index))
 }
+export const selectActiveVimBuffer =
+  (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
+    const activeDirectory = getActiveDirectory(state.context, directoryId)
+    if (!activeDirectory) return undefined
+    if (activeDirectory.directory.type !== 'path') return undefined
+    return state.context.vim.buffers[activeDirectory.directory.fullPath]
+  }
