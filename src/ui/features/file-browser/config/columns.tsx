@@ -5,11 +5,13 @@ import { FileTags, TAG_COLOR_CLASSES, TagColor } from '../tags'
 import { PathHelpers } from '@common/PathHelpers'
 import { useEffect, useRef, useState } from 'react'
 import { directoryHelpers, directoryStore } from '../directoryStore/directory'
-import { DerivedDirectoryItem, DirectoryId, DirectoryType } from '../directoryStore/DirectoryBase'
+import { DerivedDirectoryItem, DirectoryId, DirectoryType, StrDirectoryItem } from '../directoryStore/DirectoryBase'
 import { CategoryHelpers } from '../CategoryHelpers'
 import { perDirectoryDataHelpers } from '../directoryStore/perDirectoryData'
 import { getWindowElectron } from '@/getWindowElectron'
-import { BluetoothSearchingIcon } from 'lucide-react'
+import { useSelector } from '@xstate/store/react'
+import { toast } from '@/lib/components/toast'
+import { FileQuestionIcon } from 'lucide-react'
 
 function CategoryIcon({ category }: { category: FileCategory | 'folder' }) {
   const config = CategoryHelpers.get(category)
@@ -75,7 +77,7 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       cell: row => {
         if (row.type === 'real') return <AppIconOrCategoryIcon item={row.item} ctx={ctx} />
 
-        return <BluetoothSearchingIcon className="size-4" />
+        return <FileQuestionIcon className="size-4" />
       },
       size: 24,
       headerConfigView: 'Icon',
@@ -85,8 +87,9 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       sortKey: 'name',
       header: 'Name',
       cell: (row, { index: idx }) => {
+        // TODO: we could have an item with different name maybe? We should show depending on the insert mode
         if (row.type === 'real') return <DirectoryNameColumn row={row.item} ctx={ctx} idx={idx} />
-        return row.str
+        return <VimModeName ctx={ctx} row={row} index={idx} />
       },
     },
     {
@@ -181,6 +184,60 @@ function DirectoryNameColumn({
         </span>
       )}
     </div>
+  )
+}
+
+function VimModeName({ ctx, row, index }: { ctx: ColumnsContext; row: StrDirectoryItem; index: number }) {
+  const isInsert = useSelector(directoryStore, s => {
+    if (s.context.vim.mode !== 'insert') return false
+    const directory = s.context.directoriesById[ctx.directoryId]
+    if (!directory || directory.directory.type !== 'path') return false
+    const buffer = s.context.vim.buffers[directory.directory.fullPath]
+    if (!buffer) return false
+    return buffer.cursor.line === index
+  })
+
+  if (!isInsert) return row.str
+
+  return <VimInsertItem row={row} index={index} />
+}
+
+function VimInsertItem({ row, index }: { row: StrDirectoryItem; index: number }) {
+  const [value, setValue] = useState(row.str)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const onEscapeOrBlur = (e: React.FocusEvent | React.KeyboardEvent) => {
+    e.preventDefault()
+    directoryStore.trigger.updateItemStr({
+      index,
+      str: value,
+    })
+  }
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      toast.show({
+        message: 'Not implemented',
+        severity: 'error',
+      })
+    } else if (e.key === 'Escape') {
+      onEscapeOrBlur(e)
+    }
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      className="w-full"
+      type="text"
+      value={value}
+      onChange={e => setValue(e.target.value)}
+      onKeyDown={onKeyDown}
+      onClick={e => e.stopPropagation()}
+      onBlur={onEscapeOrBlur}
+      autoFocus
+    />
   )
 }
 

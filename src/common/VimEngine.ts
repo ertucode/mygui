@@ -59,7 +59,11 @@ export namespace VimEngine {
         count: number
         index: number
       }
-  export type Mode = 'normal' | 'insert'
+  export const Mode = {
+    N: 'normal',
+    I: 'insert',
+  } as const
+  export type Mode = (typeof Mode)[keyof typeof Mode]
 
   // cc - dd - yy - p - P - u - ciw - C
   // History stack not supported for line updates
@@ -278,6 +282,13 @@ export namespace VimEngine {
 
     return {
       ...state,
+    }
+  }
+
+  export function esc(opts: CommandOpts): CommandResult {
+    return {
+      ...opts.state,
+      mode: 'normal',
     }
   }
 

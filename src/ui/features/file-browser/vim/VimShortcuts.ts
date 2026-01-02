@@ -69,6 +69,11 @@ export const VimShortcuts = {
           handler: createHandler(VimEngine.yy),
           label: '[VIM] Yank line',
         },
+        {
+          sequence: ['c', 'c'],
+          handler: createHandler(VimEngine.cc),
+          label: '[VIM] Change line',
+        },
       ],
     })
   },
