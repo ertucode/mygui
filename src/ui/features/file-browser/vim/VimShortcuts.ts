@@ -18,9 +18,16 @@ function createHandler(updater: (opts: VimEngine.CommandOpts) => VimEngine.State
     const items = directoryDerivedStores.get(activeDirectory.directoryId)!.getFilteredDirectoryData()!
     if (!snapshot.vim.buffers[fullPath]) {
       snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items)
+      snapshot.vim.buffers[fullPath].cursor.line = activeDirectory.selection.last ?? 0
     }
+    const beforeCursor = snapshot.vim.buffers[fullPath].cursor
     const updated = updater({ state: snapshot.vim, fullPath })
-    directoryStore.trigger.updateVimState({ state: updated })
+    const afterCursor = snapshot.vim.buffers[fullPath].cursor
+    const isChanged = beforeCursor.line !== afterCursor.line || beforeCursor.column !== afterCursor.column
+    directoryStore.trigger.updateVimState({
+      state: updated,
+      selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,
+    })
   }
 }
 
@@ -35,12 +42,32 @@ export const VimShortcuts = {
           handler: createHandler(VimEngine.u),
           label: '[VIM] Undo',
         },
+        ...Array.from({ length: 10 }, (_, i) => ({
+          key: i.toString(),
+          handler: createHandler(opts => VimEngine.addToCount(opts, i)),
+          label: `[VIM] Count ${i}`,
+        })),
+        {
+          key: 'p',
+          handler: createHandler(VimEngine.p),
+          label: '[VIM] Paste after',
+        },
+        {
+          key: 'P',
+          handler: createHandler(VimEngine.P),
+          label: '[VIM] Paste before',
+        },
       ],
       sequences: [
         {
           sequence: ['d', 'd'],
           handler: createHandler(VimEngine.dd),
           label: '[VIM] Delete line',
+        },
+        {
+          sequence: ['y', 'y'],
+          handler: createHandler(VimEngine.yy),
+          label: '[VIM] Yank line',
         },
       ],
     })
