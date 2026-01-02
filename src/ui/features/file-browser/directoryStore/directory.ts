@@ -45,6 +45,13 @@ function updateDirectory(
   }
 }
 
+export function createResetSelection(): DirectoryContextDirectory['selection'] {
+  return {
+    indexes: new Set<number>([0]),
+    last: 0,
+  }
+}
+
 export function createDirectoryContext(directoryId: DirectoryId, directory: DirectoryInfo): DirectoryContextDirectory {
   return {
     directoryId,
@@ -187,22 +194,18 @@ export const directoryStore = createStore({
       })),
 
     setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId }) =>
-      updateDirectory(context, event.directoryId, d => ({
-        ...d,
-        selection: {
-          indexes: event.indexes,
-          last: event.last,
-        },
-      })),
-
-    resetSelection: (context, event: { directoryId: DirectoryId | undefined }) =>
-      updateDirectory(context, event.directoryId, d => ({
-        ...d,
-        selection: {
-          indexes: new Set<number>([0]),
-          last: 0,
-        },
-      })),
+      updateDirectory(context, event.directoryId, d => {
+        if (d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath]) {
+          context.vim.buffers[d.directory.fullPath].cursor.line = event.last || 0
+        }
+        return {
+          ...d,
+          selection: {
+            indexes: event.indexes,
+            last: event.last,
+          },
+        }
+      }),
 
     selectManually: (
       context,
@@ -215,13 +218,18 @@ export const directoryStore = createStore({
       return updateDirectory(
         context,
         event.directoryId,
-        d => ({
-          ...d,
-          selection: {
-            indexes: new Set([event.index]),
-            last: event.index,
-          },
-        }),
+        d => {
+          if (d.directory.type === 'path' && context.vim.buffers[d.directory.fullPath]) {
+            context.vim.buffers[d.directory.fullPath].cursor.line = event.index
+          }
+          return {
+            ...d,
+            selection: {
+              indexes: new Set([event.index]),
+              last: event.index,
+            },
+          }
+        },
         d => !d.selection.indexes.has(event.index)
       )
     },
