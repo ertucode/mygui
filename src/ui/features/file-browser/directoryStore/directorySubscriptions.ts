@@ -98,7 +98,12 @@ export function setupSubscriptions(directoryId: DirectoryId) {
     ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
       const dir = d.directoriesById[directoryId]
       const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
-      if (fullPath && d.vim.buffers[fullPath]?.items) return d.vim.buffers[fullPath].items
+      if (fullPath) {
+        const stack = d.vim.buffers[fullPath]?.historyStack
+        if (stack && stack.hasItems()) {
+          return d.vim.buffers[fullPath].items
+        }
+      }
 
       const sort = resolveSortFromStores(dir, columnPrefs)
       const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)
