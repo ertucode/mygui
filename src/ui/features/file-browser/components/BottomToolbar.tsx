@@ -4,6 +4,7 @@ import { DirectoryContextProvider } from '../DirectoryContext'
 import { FolderBreadcrumb } from './FolderBreadcrumb'
 import { FileBrowserOptionsSection } from './FileBrowserOptionsSection'
 import { shallowEqual } from '@xstate/store'
+import { StringUtils } from '@common/StringUtils'
 
 export function BottomToolbar() {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
@@ -48,6 +49,8 @@ function VimStatus() {
         cursor: buffer.cursor,
         count: s.context.vim.count,
         pendingFindCommand: s.context.vim.pendingFindCommand,
+        pendingOperator: s.context.vim.pendingOperator,
+        textObjectModifier: s.context.vim.textObjectModifier,
       }
     },
     shallowEqual
@@ -57,8 +60,11 @@ function VimStatus() {
     return null
   }
 
+  const pt = StringUtils.joinNullable('', [state.pendingOperator, state.textObjectModifier])
+
   return (
     <div className="flex items-center gap-1 text-xs text-gray-500">
+      {pt && <span>Pending: {pt}</span>}
       {state.pendingFindCommand && <span>Find: {state.pendingFindCommand}</span>}
       {state.count && <span>Count: {state.count}</span>}
       <span>
