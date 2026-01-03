@@ -1,27 +1,44 @@
 import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { VimEngine } from '@common/VimEngine'
+import { VimMovements } from '@common/VimMovements'
 import { directoryStore } from '../directoryStore/directory'
 import { directoryDerivedStores } from '../directoryStore/directorySubscriptions'
 import { dialogActions } from '../dialogStore'
 
 const SHORTCUTS_KEY = 'vim'
 
-function createHandler(updater: (opts: VimEngine.CommandOpts) => VimEngine.State) {
+type Updater = (opts: VimEngine.CommandOpts) => VimEngine.State
+function createHandler(updater: Updater) {
   return (e: KeyboardEvent | undefined) => {
     e?.preventDefault()
     const result = getSnapshotWithInitializedVim()
     if (!result) return
-    const { snapshot, fullPath, activeDirectory } = result
-    const beforeCursor = snapshot.vim.buffers[fullPath].cursor
-    const updated = updater({ state: snapshot.vim, fullPath })
-    const afterCursor = updated.buffers[fullPath].cursor
-    const isChanged = beforeCursor.line !== afterCursor.line || beforeCursor.column !== afterCursor.column
+    const pendingFindCommand = result.snapshot.vim.pendingFindCommand
+    if (pendingFindCommand) return undefined
 
-    directoryStore.trigger.updateVimState({
-      state: updated,
-      selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,
-    })
+    initializedWithUpdater(result, updater)
   }
+}
+
+function initializedWithUpdater(
+  result: Exclude<ReturnType<typeof getSnapshotWithInitializedVim>, undefined>,
+  updater: Updater
+) {
+  const { snapshot, fullPath, activeDirectory } = result
+
+  const beforeCursor = snapshot.vim.buffers[fullPath].cursor
+  const updated = updater({ state: snapshot.vim, fullPath })
+  const afterCursor = updated.buffers[fullPath].cursor
+  const isChanged = beforeCursor.line !== afterCursor.line || beforeCursor.column !== afterCursor.column
+
+  directoryStore.trigger.updateVimState({
+    state: updated,
+    selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,
+  })
+}
+
+function isSingleCharAndNoModifiers(e: KeyboardEvent | undefined): e is KeyboardEvent {
+  return e?.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey
 }
 
 function getSnapshotWithInitializedVim() {
@@ -45,6 +62,35 @@ function getSnapshotWithInitializedVim() {
     wasInitialized,
   }
 }
+
+const findCommandListener: (e: KeyboardEvent) => void = e => {
+  if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') {
+    return
+  }
+  e.preventDefault()
+  e.stopImmediatePropagation()
+  const result = getSnapshotWithInitializedVim()
+  if (!result) return
+
+  const pendingFindCommand = result.snapshot.vim.pendingFindCommand
+  if (!pendingFindCommand) {
+    window.removeEventListener('keydown', findCommandListener)
+    return
+  }
+
+  if (!isSingleCharAndNoModifiers(e)) {
+    initializedWithUpdater(result, VimMovements.clearPendingFindCommand)
+  } else {
+    initializedWithUpdater(result, opts => VimMovements.executeFind(opts, pendingFindCommand, e.key))
+  }
+  window.removeEventListener('keydown', findCommandListener)
+}
+
+directoryStore.subscribe(s => {
+  if (s.context.vim.pendingFindCommand) {
+    window.addEventListener('keydown', findCommandListener)
+  }
+})
 
 export const VimShortcuts = {
   init: () => {
@@ -89,35 +135,44 @@ export const VimShortcuts = {
           },
           label: '[VIM] Save',
         },
+        { key: 'o', handler: createHandler(VimEngine.o), label: '[VIM] Open line' },
+        { key: 'i', handler: createHandler(VimMovements.i), label: '[VIM] Insert' },
+        { key: 'a', handler: createHandler(VimMovements.a), label: '[VIM] Append' },
+        { key: { key: 'A', shiftKey: true }, handler: createHandler(VimMovements.A), label: '[VIM] Append at end' },
+        { key: 'l', handler: createHandler(VimMovements.l), label: '[VIM] Move cursor right' },
+        { key: 'h', handler: createHandler(VimMovements.h), label: '[VIM] Move cursor left' },
+        { key: 'w', handler: createHandler(VimMovements.w), label: '[VIM] Move cursor to start of word' },
+        { key: 'b', handler: createHandler(VimMovements.b), label: '[VIM] Move cursor to end of word' },
+        { key: 'e', handler: createHandler(VimMovements.e), label: '[VIM] Move cursor to end of word' },
         {
-          key: 'o',
-          handler: createHandler(VimEngine.o),
-          label: '[VIM] Open line',
+          key: 'f',
+          handler: createHandler(VimMovements.f),
+          label: '[VIM] Move cursor to next occurrence of character',
         },
         {
-          key: 'i',
-          handler: createHandler(VimEngine.i),
-          label: '[VIM] Insert',
+          key: 'F',
+          handler: createHandler(VimMovements.F),
+          label: '[VIM] Move cursor to previous occurrence of character',
         },
         {
-          key: 'a',
-          handler: createHandler(VimEngine.a),
-          label: '[VIM] Append',
+          key: 't',
+          handler: createHandler(VimMovements.t),
+          label: '[VIM] Move cursor to next occurrence of character',
         },
         {
-          key: { key: 'A', shiftKey: true },
-          handler: createHandler(VimEngine.A),
-          label: '[VIM] Append at end',
+          key: 'T',
+          handler: createHandler(VimMovements.T),
+          label: '[VIM] Move cursor to previous occurrence of character',
         },
         {
-          key: 'l',
-          handler: createHandler(VimEngine.l),
-          label: '[VIM] Move cursor right',
+          key: ';',
+          handler: createHandler(VimMovements.semicolon),
+          label: '[VIM] Repeat last f/F/t/T command',
         },
         {
-          key: 'h',
-          handler: createHandler(VimEngine.h),
-          label: '[VIM] Move cursor left',
+          key: ',',
+          handler: createHandler(VimMovements.comma),
+          label: '[VIM] Repeat last f/F/t/T command in reverse direction',
         },
       ],
       sequences: [

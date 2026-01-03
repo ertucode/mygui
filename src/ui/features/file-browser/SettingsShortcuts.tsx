@@ -1,15 +1,15 @@
-import { useShortcuts } from "@/lib/hooks/useShortcuts";
-import { fileBrowserSettingsStore } from "./settings";
+import { useShortcuts } from '@/lib/hooks/useShortcuts'
+import { fileBrowserSettingsStore } from './settings'
 
 export function SettingsShortcuts() {
   useShortcuts([
     {
-      key: { key: "." },
+      sequence: ['g', '.'],
       handler: () => {
-        fileBrowserSettingsStore.trigger.toggleShowDotFiles();
+        fileBrowserSettingsStore.trigger.toggleShowDotFiles()
       },
-      label: "Toggle show dot files",
+      label: 'Toggle show dot files',
     },
-  ]);
-  return undefined;
+  ])
+  return undefined
 }
