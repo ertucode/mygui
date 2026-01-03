@@ -320,61 +320,82 @@ export namespace VimEngine {
       }
   export function aggregateChanges(state: State): Changes {
     const changes: Change[] = []
+    
+    // First pass: collect all items across all buffers
+    type ItemLocation = {
+      directory: string
+      item: GetFilesAndFoldersInDirectoryItem
+      newName: string
+    }
+    
+    const originalLocations = new Map<string, ItemLocation>() // id -> original location
+    const currentLocations = new Map<string, ItemLocation>() // id -> current location
+    const addedItems: Array<{ directory: string; name: string }> = []
 
+    // Collect all original and current items from all buffers
     for (const buffer of Object.values(state.buffers)) {
-      // Create a map of original items by their identifier (fullPath or name)
-      const originalItemsById = new Map<string, GetFilesAndFoldersInDirectoryItem>()
+      // Process original items
       for (const originalItem of buffer.originalItems) {
         const id = originalItem.item.fullPath || originalItem.item.name
-        originalItemsById.set(id, originalItem.item)
+        originalLocations.set(id, {
+          directory: buffer.fullPath,
+          item: originalItem.item,
+          newName: originalItem.item.name,
+        })
       }
 
-      // Create a map of current items by their identifier for tracking
-      const currentItemsById = new Map<string, { item: GetFilesAndFoldersInDirectoryItem; newName: string }>()
-      const addedItems: string[] = []
-
-      // Process current buffer state
+      // Process current items
       for (const bufferItem of buffer.items) {
         if (bufferItem.type === 'real') {
           const id = bufferItem.item.fullPath || bufferItem.item.name
-          currentItemsById.set(id, { item: bufferItem.item, newName: bufferItem.str })
+          currentLocations.set(id, {
+            directory: buffer.fullPath,
+            item: bufferItem.item,
+            newName: bufferItem.str,
+          })
         } else if (bufferItem.type === 'str' && bufferItem.str.trim() !== '') {
           // This is a new item (add)
-          addedItems.push(bufferItem.str)
-        }
-      }
-
-      // Detect changes by comparing original vs current
-      for (const [id, originalItem] of originalItemsById.entries()) {
-        const currentItem = currentItemsById.get(id)
-
-        if (!currentItem) {
-          // Original item is not in current buffer - it's been removed
-          changes.push({
-            type: 'remove',
+          addedItems.push({
             directory: buffer.fullPath,
-            item: originalItem,
-          })
-        } else if (currentItem.newName !== originalItem.name) {
-          // Item exists but name has changed - it's a rename
-          changes.push({
-            type: 'rename',
-            item: originalItem,
-            newDirectory: buffer.fullPath,
-            newName: currentItem.newName,
+            name: bufferItem.str,
           })
         }
-        // else: item exists with same name - no change
       }
+    }
 
-      // Add all new items
-      for (const newItemName of addedItems) {
+    // Second pass: detect changes by comparing original vs current locations
+    for (const [id, originalLocation] of originalLocations.entries()) {
+      const currentLocation = currentLocations.get(id)
+
+      if (!currentLocation) {
+        // Item was in original but not in current - it's been removed
         changes.push({
-          type: 'add',
-          directory: buffer.fullPath,
-          name: newItemName,
+          type: 'remove',
+          directory: originalLocation.directory,
+          item: originalLocation.item,
+        })
+      } else if (
+        currentLocation.directory !== originalLocation.directory ||
+        currentLocation.newName !== originalLocation.item.name
+      ) {
+        // Item exists but directory or name has changed - it's a rename/move
+        changes.push({
+          type: 'rename',
+          item: originalLocation.item,
+          newDirectory: currentLocation.directory,
+          newName: currentLocation.newName,
         })
       }
+      // else: item exists in same directory with same name - no change
+    }
+
+    // Add all new items
+    for (const addedItem of addedItems) {
+      changes.push({
+        type: 'add',
+        directory: addedItem.directory,
+        name: addedItem.name,
+      })
     }
 
     return { changes }

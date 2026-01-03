@@ -29,6 +29,8 @@ import { DialogForItem, useDialogForItem } from "@/lib/hooks/useDialogForItem";
 import { useSelector } from "@xstate/store/react";
 import { CommandMetadata } from "@common/Command";
 import { RunCommandDialog } from "./components/RunCommandDialog";
+import { VimChangesDialog } from "./vim/VimChangesDialog";
+import { SaveIcon } from "lucide-react";
 
 // Define the dialog types that can be opened
 export type DialogType =
@@ -43,7 +45,8 @@ export type DialogType =
   | "commandPalette"
   | "customLayouts"
   | "pasteConflict"
-  | "runCommand";
+  | "runCommand"
+  | "vimChanges";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -73,6 +76,9 @@ export type DialogMetadata = {
     command: CommandMetadata;
     fullPath: string;
     fileType: "dir" | "file";
+  };
+  vimChanges: {
+    changes: import("@common/VimEngine").VimEngine.Change[];
   };
 };
 
@@ -202,6 +208,12 @@ const dialogDefinitions = [
     component: RunCommandDialog,
     icon: TerminalIcon,
     title: "Run Command",
+  },
+  {
+    type: "vimChanges" as const,
+    component: VimChangesDialog,
+    icon: SaveIcon,
+    title: "VIM Changes",
   },
 ] as const;
 

@@ -832,4 +832,133 @@ describe('VimEngine.aggregateChanges', () => {
     // Random shuffle should not trigger any changes
     expect(result.changes).toEqual([])
   })
+
+  it('should detect cross-directory move (dd from one dir, paste to another) as rename', () => {
+    // Directory 1: /source with file1.txt and file2.txt
+    const sourceItems = [
+      createRealBufferItem('file1.txt', '/source/file1.txt'),
+      createRealBufferItem('file2.txt', '/source/file2.txt'),
+    ]
+
+    // Directory 2: /target with fileA.txt
+    const targetItems = [
+      createRealBufferItem('fileA.txt', '/target/fileA.txt'),
+    ]
+
+    const sourceBuffer = createBuffer('/source', sourceItems)
+    const targetBuffer = createBuffer('/target', targetItems)
+
+    // Simulate dd on file1.txt from /source (removes it from source buffer)
+    sourceBuffer.items = [sourceItems[1]] // Only file2.txt remains
+
+    // Simulate paste into /target (adds file1.txt to target buffer)
+    targetBuffer.items = [
+      targetItems[0], // fileA.txt
+      sourceItems[0], // file1.txt moved here
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/source': sourceBuffer,
+        '/target': targetBuffer,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    // Should detect as a single rename/move operation, not remove + add
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]).toEqual({
+      type: 'rename',
+      item: sourceItems[0].item,
+      newDirectory: '/target',
+      newName: 'file1.txt',
+    })
+  })
+
+  it('should detect cross-directory move with name change as rename', () => {
+    const sourceItems = [
+      createRealBufferItem('oldname.txt', '/dir1/oldname.txt'),
+    ]
+
+    const targetItems = [
+      createRealBufferItem('existing.txt', '/dir2/existing.txt'),
+    ]
+
+    const sourceBuffer = createBuffer('/dir1', sourceItems)
+    const targetBuffer = createBuffer('/dir2', targetItems)
+
+    // Remove from source
+    sourceBuffer.items = []
+
+    // Add to target with new name
+    targetBuffer.items = [
+      targetItems[0],
+      {
+        type: 'real',
+        item: sourceItems[0].item,
+        str: 'newname.txt', // Renamed during move
+      },
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/dir1': sourceBuffer,
+        '/dir2': targetBuffer,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]).toEqual({
+      type: 'rename',
+      item: sourceItems[0].item,
+      newDirectory: '/dir2',
+      newName: 'newname.txt',
+    })
+  })
+
+  it('should handle multiple cross-directory moves', () => {
+    const dir1Items = [
+      createRealBufferItem('file1.txt', '/dir1/file1.txt'),
+      createRealBufferItem('file2.txt', '/dir1/file2.txt'),
+    ]
+
+    const dir2Items = [
+      createRealBufferItem('fileA.txt', '/dir2/fileA.txt'),
+      createRealBufferItem('fileB.txt', '/dir2/fileB.txt'),
+    ]
+
+    const buffer1 = createBuffer('/dir1', dir1Items)
+    const buffer2 = createBuffer('/dir2', dir2Items)
+
+    // Move file1.txt from dir1 to dir2
+    buffer1.items = [dir1Items[1]] // Only file2.txt remains
+    buffer2.items = [
+      dir2Items[0],
+      dir2Items[1],
+      dir1Items[0], // file1.txt moved here
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/dir1': buffer1,
+        '/dir2': buffer2,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]).toEqual({
+      type: 'rename',
+      item: dir1Items[0].item,
+      newDirectory: '/dir2',
+      newName: 'file1.txt',
+    })
+  })
 })

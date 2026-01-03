@@ -2,6 +2,7 @@ import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
 import { VimEngine } from '@common/VimEngine'
 import { directoryStore } from '../directoryStore/directory'
 import { directoryDerivedStores } from '../directoryStore/directorySubscriptions'
+import { dialogActions } from '../dialogStore'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -71,15 +72,21 @@ export const VimShortcuts = {
           label: '[VIM] Paste before',
         },
         {
-          key: { key: 's', altKey: true },
+          key: { key: 's', metaKey: true },
           handler: e => {
+            e?.preventDefault()
+
             const result = getSnapshotWithInitializedVim()
+            console.log(result)
             if (!result || !result.wasInitialized) return
 
             const { snapshot } = result
             const { changes } = VimEngine.aggregateChanges(snapshot.vim)
 
             if (changes.length === 0) return
+            console.log(changes)
+
+            dialogActions.open('vimChanges', { changes })
           },
           label: '[VIM] Save',
         },
