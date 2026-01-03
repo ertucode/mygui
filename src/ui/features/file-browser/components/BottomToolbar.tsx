@@ -47,6 +47,7 @@ function VimStatus() {
       return {
         cursor: buffer.cursor,
         count: s.context.vim.count,
+        pendingFindCommand: s.context.vim.pendingFindCommand,
       }
     },
     shallowEqual
@@ -58,6 +59,7 @@ function VimStatus() {
 
   return (
     <div className="flex items-center gap-1 text-xs text-gray-500">
+      {state.pendingFindCommand && <span>Find: {state.pendingFindCommand}</span>}
       {state.count && <span>Count: {state.count}</span>}
       <span>
         {state.cursor.line + 1}:{state.cursor.column + 1}

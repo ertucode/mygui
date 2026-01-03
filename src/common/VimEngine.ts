@@ -30,12 +30,14 @@ export namespace VimEngine {
     cursor: CursorPosition
   }
 
+  export type FindCommand = 'f' | 'F' | 't' | 'T'
   type FullPath = string
   export type State = {
     buffers: Record<FullPath, Buffer>
     mode: Mode
     count: number
     registry: BufferItem[]
+    pendingFindCommand?: $Maybe<FindCommand>
   }
 
   export type CommandOpts = {
@@ -381,89 +383,8 @@ export namespace VimEngine {
     }
   }
 
-  function moveCursor(
-    opts: CommandOpts,
-    updater: (count: number, cursor: CursorPosition, strLength: number) => CursorPosition
-  ): CommandResult {
-    const count = getEffectiveCount(opts.state)
-    const buffer = opts.state.buffers[opts.fullPath]
-    const str = buffer.items[buffer.cursor.line].str
-    const cursor = updater(count, opts.state.buffers[opts.fullPath].cursor, str.length)
-    return {
-      ...opts.state,
-      buffers: {
-        ...opts.state.buffers,
-        [opts.fullPath]: {
-          ...opts.state.buffers[opts.fullPath],
-          cursor,
-        },
-      },
-    }
-  }
-
-  export function l(opts: CommandOpts): CommandResult {
-    return moveCursor(opts, (count, cursor, strLength) => ({
-      line: cursor.line,
-      column: Math.min(strLength - 1, cursor.column + count),
-    }))
-  }
-
-  export function h(opts: CommandOpts): CommandResult {
-    return moveCursor(opts, (count, cursor) => ({
-      line: cursor.line,
-      column: Math.max(0, cursor.column - count),
-    }))
-  }
-
-  export function j(opts: CommandOpts): CommandResult {
-    return moveCursor(opts, (count, cursor) => {
-      const numItems = opts.state.buffers[opts.fullPath].items.length
-      const dest = cursor.line + count
-      return {
-        line: dest > numItems - 1 ? dest % numItems : dest,
-        column: cursor.column,
-      }
-    })
-  }
-
-  export function k(opts: CommandOpts): CommandResult {
-    return moveCursor(opts, (count, cursor) => {
-      const numItems = opts.state.buffers[opts.fullPath].items.length
-      const dest = cursor.line - count
-      return {
-        line: dest < 0 ? numItems + dest : dest,
-        column: cursor.column,
-      }
-    })
-  }
-
   export function o({ state, fullPath }: CommandOpts): CommandResult {
     return enterInInsert({ state, fullPath })
-  }
-
-  export function i(opts: CommandOpts): CommandResult {
-    return {
-      ...opts.state,
-      mode: 'insert',
-    }
-  }
-
-  export function a(opts: CommandOpts): CommandResult {
-    const r = moveCursor(opts, (_count, cursor, strLength) => ({
-      column: Math.min(strLength - 1, cursor.column + 1),
-      line: cursor.line,
-    }))
-    r.mode = 'insert'
-    return r
-  }
-
-  export function A(opts: CommandOpts): CommandResult {
-    const r = moveCursor(opts, (_count, cursor, strLength) => ({
-      column: strLength,
-      line: cursor.line,
-    }))
-    r.mode = 'insert'
-    return r
   }
 
   export type Changes = {

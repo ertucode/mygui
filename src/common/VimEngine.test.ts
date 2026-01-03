@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { VimEngine } from './VimEngine.js'
+import { VimMovements } from './VimMovements.js'
 import { GetFilesAndFoldersInDirectoryItem } from './Contracts.js'
 import { HistoryStack } from './history-stack.js'
 
@@ -997,10 +998,10 @@ describe('VimEngine.aggregateChanges', () => {
     state = VimEngine.p({ state, fullPath: '/dir' })
     state = VimEngine.p({ state, fullPath: '/dir' })
     state = VimEngine.p({ state, fullPath: '/dir' })
-    state = VimEngine.k({ state, fullPath: '/dir' })
-    state = VimEngine.k({ state, fullPath: '/dir' })
+    state = VimMovements.k({ state, fullPath: '/dir' })
+    state = VimMovements.k({ state, fullPath: '/dir' })
     state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file2.txt', undefined)
-    state = VimEngine.j({ state, fullPath: '/dir' })
+    state = VimMovements.j({ state, fullPath: '/dir' })
     state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file3.txt', undefined)
 
     const result = VimEngine.aggregateChanges(state)
