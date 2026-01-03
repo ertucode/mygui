@@ -293,6 +293,7 @@ const TableRow = memo(function TableRow({ row, index, directoryId, item, onConte
         isDragOverThisRow && 'bg-primary/20 ring-1 ring-primary ring-inset',
         'select-none'
       )}
+      style={{ height: 25.5 }}
       data-list-item
       {...rowProps}
     >
