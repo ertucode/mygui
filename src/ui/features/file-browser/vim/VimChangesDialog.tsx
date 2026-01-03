@@ -302,133 +302,164 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
   const getChangeDescription = (dirChange: DirectoryChange) => {
     const { change, displayType, otherDirectory } = dirChange
 
+    // Grid columns: [Operation] [From (Icon + Name + Path)] [Arrow] [To (Icon + Name + Path)]
     switch (displayType) {
       case 'add':
         if (change.type !== 'add') return null
         const isDirectory = change.name.endsWith('/')
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Add:</span>
-            {isDirectory ? <FolderIcon className="h-4 w-4" /> : <FileIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.name}</span>
+          <div className="grid grid-cols-[70px_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-green-600 dark:text-green-400 text-xs">Add</span>
+            <div className="flex items-center gap-1.5">
+              {isDirectory ? <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.name}</span>
+            </div>
           </div>
         )
       case 'remove':
         if (change.type !== 'remove') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Remove:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.item.name}</span>
+          <div className="grid grid-cols-[70px_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-red-600 dark:text-red-400 text-xs">Remove</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
           </div>
         )
       case 'copy':
         if (change.type !== 'copy') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Copy:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.item.name}</span>
-            <span className="text-gray-500">→</span>
-            <span className="font-mono font-semibold">{change.newName}</span>
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'copy-from':
         if (change.type !== 'copy') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Copy to:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.item.name}</span>
-            <ArrowRightIcon className="h-4 w-4 text-gray-400" />
-            <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
-            {change.newName !== change.item.name && (
-              <>
-                <span className="text-gray-500">as</span>
-                <span className="font-mono font-semibold">{change.newName}</span>
-              </>
-            )}
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'copy-to':
         if (change.type !== 'copy') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Copy from:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
-            <ArrowRightIcon className="h-4 w-4 text-gray-400" />
-            <span className="font-mono">{change.newName}</span>
-            {change.newName !== change.item.name && (
-              <>
-                <span className="text-gray-500">from</span>
-                <span className="font-mono text-sm">{change.item.name}</span>
-              </>
-            )}
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'rename':
         if (change.type !== 'rename') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Rename:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.item.name}</span>
-            <span className="text-gray-500">→</span>
-            <span className="font-mono font-semibold">{change.newName}</span>
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-blue-600 dark:text-blue-400 text-xs">Rename</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'move-from':
         if (change.type !== 'rename') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Move to:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono">{change.item.name}</span>
-            <ArrowRightIcon className="h-4 w-4 text-gray-400" />
-            <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
-            {change.newName !== change.item.name && (
-              <>
-                <span className="text-gray-500">as</span>
-                <span className="font-mono font-semibold">{change.newName}</span>
-              </>
-            )}
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-orange-600 dark:text-orange-400 text-xs">Move</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'move-to':
         if (change.type !== 'rename') return null
         return (
-          <div className="flex items-center gap-2">
-            <span className="font-semibold w-28 text-right">Move from:</span>
-            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-            <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
-            <ArrowRightIcon className="h-4 w-4 text-gray-400" />
-            <span className="font-mono">{change.newName}</span>
-            {change.newName !== change.item.name && (
-              <>
-                <span className="text-gray-500">from</span>
-                <span className="font-mono text-sm">{change.item.name}</span>
-              </>
-            )}
+          <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
+            <span className="font-semibold text-right text-cyan-600 dark:text-cyan-400 text-xs">Move</span>
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
+              <span className="font-mono text-xs">{change.item.name}</span>
+            </div>
+            <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-1.5">
+              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <span className="font-mono text-xs font-semibold">{change.newName}</span>
+            </div>
           </div>
         )
       case 'multi-dest':
         if (change.type !== 'copy' && change.type !== 'rename') return null
+        // Determine the operation label based on whether there's a rename (which removes original)
+        const hasRename = dirChange.changes?.some(c => c.type === 'rename')
+        const operationLabel = hasRename ? 'Rename' : 'Copy'
+        const operationColor = hasRename 
+          ? 'text-blue-600 dark:text-blue-400' 
+          : 'text-purple-600 dark:text-purple-400'
+        
         return (
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold w-28 text-right">To multiple:</span>
-              {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
-              <span className="font-mono">{change.item.name}</span>
-            </div>
-            {dirChange.destinations?.map((dest, idx) => (
-              <div key={idx} className="flex items-center gap-2 ml-28 pl-6">
-                <ArrowRightIcon className="h-3 w-3 text-gray-400" />
-                <span className="font-mono text-sm text-gray-500">{dest.directory}</span>
-                <span className="text-gray-400">/</span>
-                <span className="font-mono text-sm">{dest.name}</span>
+          <div className="flex flex-col gap-0.5">
+            <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-start text-sm">
+              <div className="flex items-center gap-1 justify-end pt-0.5">
+                <span className={`font-semibold text-right ${operationColor} text-xs`}>{operationLabel}</span>
+                {hasRename && (
+                  <span className="text-xs text-red-500" title="Original will be removed">×</span>
+                )}
               </div>
-            ))}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+                <span className="font-mono text-xs">{change.item.name}</span>
+              </div>
+              <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex flex-col gap-0.5">
+                {dirChange.destinations?.map((dest, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+                    <span className="font-mono text-xs opacity-40">{dest.directory}/</span>
+                    <span className="font-mono text-xs font-semibold">{dest.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )
       default:
