@@ -4,7 +4,7 @@ import { FileCategory } from '@common/file-category'
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from '../tags'
 import { PathHelpers } from '@common/PathHelpers'
 import { useEffect, useRef, useState } from 'react'
-import { directoryStore } from '../directoryStore/directory'
+import { directoryStore, selectActiveVimBuffer } from '../directoryStore/directory'
 import {
   DerivedDirectoryItem,
   DirectoryId,
@@ -203,6 +203,13 @@ function VimInsertItem({ row }: { row: DerivedDirectoryItem }) {
       onEscapeOrBlur(e, false)
     }
   }
+
+  useEffect(() => {
+    const vim = selectActiveVimBuffer(undefined)(directoryStore.getSnapshot())
+    if (!vim || !inputRef.current) return
+    inputRef.current.selectionStart = vim.cursor.column
+    inputRef.current.selectionEnd = vim.cursor.column
+  }, [])
 
   return (
     <input

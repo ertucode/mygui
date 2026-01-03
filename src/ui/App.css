@@ -1,6 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-@import "tailwindcss/preflight.css" layer(base);
+@import 'tailwindcss/preflight.css' layer(base);
 
 @theme {
   --color-base-100: oklch(28.822% 0.022 277.508);
@@ -34,24 +34,31 @@
 }
 
 @layer components {
-  @import "./styles/_flex-layout.css";
+  @import './styles/_flex-layout.css';
 
-  @import "./styles/button.css";
-  @import "./styles/input.css";
-  @import "./styles/table.css";
-  @import "./styles/textarea.css";
-  @import "./styles/alert.css";
-  @import "./styles/menu.css";
-  @import "./styles/modal.css";
-  @import "./styles/checkbox.css";
-  @import "./styles/label.css";
-  @import "./styles/loading.css";
-  @import "./styles/select.css";
-  @import "./styles/tab.css";
-  @import "./styles/kbd.css";
-  @import "./styles/join.css";
-  @import "./styles/toast.css";
+  @import './styles/button.css';
+  @import './styles/input.css';
+  @import './styles/table.css';
+  @import './styles/textarea.css';
+  @import './styles/alert.css';
+  @import './styles/menu.css';
+  @import './styles/modal.css';
+  @import './styles/checkbox.css';
+  @import './styles/label.css';
+  @import './styles/loading.css';
+  @import './styles/select.css';
+  @import './styles/tab.css';
+  @import './styles/kbd.css';
+  @import './styles/join.css';
+  @import './styles/toast.css';
 }
+
+/* @font-face { */
+/*   font-family: 'JetBrains Mono'; */
+/*   src: url('/fonts/JetBrainsMono-Regular.woff2') format('woff2'); */
+/*   font-weight: 400; */
+/*   font-style: normal; */
+/* } */
 
 html,
 body,
@@ -62,4 +69,5 @@ body,
   background-color: var(--root-bg, var(--color-base-100));
   color: var(--color-base-content);
   scrollbar-color: color-mix(in oklch, currentColor 35%, #0000) #0000;
+  /* font-family: 'JetBrains Mono'; */
 }

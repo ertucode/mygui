@@ -9,6 +9,7 @@ export function VimCursor() {
   const data = useSelector(
     directoryStore,
     s => {
+      if (s.context.vim.mode === 'insert') return
       const vim = selectActiveVimBuffer(directoryId)(s)
       if (!vim) return
       if (s.context.directoriesById[directoryId].directory.type !== 'path') return
