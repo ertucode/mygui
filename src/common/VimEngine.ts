@@ -761,4 +761,10 @@ export namespace VimEngine {
       id: Math.random(),
     }
   }
+
+  export function isActive(state: State, fullPath: string) {
+    if (state.mode === 'insert') return true
+    const stack = state.buffers[fullPath]?.historyStack
+    return stack && stack.hasItems()
+  }
 }

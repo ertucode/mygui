@@ -10,6 +10,7 @@ import { DerivedDirectoryItem, DirectoryId } from './DirectoryBase'
 import { directorySelection } from './directorySelection'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores, SortState } from '../schemas'
+import { VimEngine } from '@common/VimEngine'
 
 export const directorySubscriptions = new Map<DirectoryId, (() => void)[]>()
 
@@ -98,11 +99,8 @@ export function setupSubscriptions(directoryId: DirectoryId) {
     ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
       const dir = d.directoriesById[directoryId]
       const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
-      if (fullPath) {
-        const stack = d.vim.buffers[fullPath]?.historyStack
-        if (stack && stack.hasItems()) {
-          return d.vim.buffers[fullPath].items
-        }
+      if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
+        return d.vim.buffers[fullPath].items
       }
 
       const sort = resolveSortFromStores(dir, columnPrefs)

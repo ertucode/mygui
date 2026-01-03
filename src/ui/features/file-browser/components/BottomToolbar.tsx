@@ -51,6 +51,7 @@ function VimStatus() {
         pendingFindCommand: s.context.vim.pendingFindCommand,
         pendingOperator: s.context.vim.pendingOperator,
         textObjectModifier: s.context.vim.textObjectModifier,
+        mode: s.context.vim.mode,
       }
     },
     shallowEqual
@@ -64,6 +65,7 @@ function VimStatus() {
 
   return (
     <div className="flex items-center gap-1 text-xs text-gray-500">
+      {state.mode === 'insert' ? <span>INSERT</span> : <span>NORMAL</span>}
       {pt && <span>Pending: {pt}</span>}
       {state.pendingFindCommand && <span>Find: {state.pendingFindCommand}</span>}
       {state.count && <span>Count: {state.count}</span>}
