@@ -77,14 +77,12 @@ export const VimShortcuts = {
             e?.preventDefault()
 
             const result = getSnapshotWithInitializedVim()
-            console.log(result)
             if (!result || !result.wasInitialized) return
 
             const { snapshot } = result
             const { changes } = VimEngine.aggregateChanges(snapshot.vim)
 
             if (changes.length === 0) return
-            console.log(changes)
 
             dialogActions.open('vimChanges', { changes })
           },
