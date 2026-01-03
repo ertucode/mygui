@@ -128,15 +128,20 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
     // Second pass: group multiple copy/copy-from/rename/move-from with same source file into multi-dest
     for (const [directory, changes] of groupMap.entries()) {
       const sourceFileGroups = new Map<string, DirectoryChange[]>()
-      
+
       for (const dirChange of changes) {
         // Group same-directory and cross-directory copies/renames
-        if (dirChange.displayType === 'copy' || dirChange.displayType === 'copy-from' || 
-            dirChange.displayType === 'rename' || dirChange.displayType === 'move-from') {
-          const sourceFile = dirChange.change.type === 'copy' || dirChange.change.type === 'rename'
-            ? dirChange.change.item.fullPath || dirChange.change.item.name
-            : ''
-          
+        if (
+          dirChange.displayType === 'copy' ||
+          dirChange.displayType === 'copy-from' ||
+          dirChange.displayType === 'rename' ||
+          dirChange.displayType === 'move-from'
+        ) {
+          const sourceFile =
+            dirChange.change.type === 'copy' || dirChange.change.type === 'rename'
+              ? dirChange.change.item.fullPath || dirChange.change.item.name
+              : ''
+
           if (!sourceFileGroups.has(sourceFile)) {
             sourceFileGroups.set(sourceFile, [])
           }
@@ -150,24 +155,27 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
       for (const dirChange of changes) {
         // Skip if not a groupable type
-        if (dirChange.displayType !== 'copy' && dirChange.displayType !== 'copy-from' && 
-            dirChange.displayType !== 'rename' && dirChange.displayType !== 'move-from') {
+        if (
+          dirChange.displayType !== 'copy' &&
+          dirChange.displayType !== 'copy-from' &&
+          dirChange.displayType !== 'rename' &&
+          dirChange.displayType !== 'move-from'
+        ) {
           singleChanges.push(dirChange)
           continue
         }
 
-        const sourceFile = dirChange.change.type === 'copy' || dirChange.change.type === 'rename'
-          ? dirChange.change.item.fullPath || dirChange.change.item.name
-          : ''
-        
+        const sourceFile =
+          dirChange.change.type === 'copy' || dirChange.change.type === 'rename'
+            ? dirChange.change.item.fullPath || dirChange.change.item.name
+            : ''
+
         const group = sourceFileGroups.get(sourceFile)!
         if (group.length > 1) {
           // Check if we already created a multi-dest for this source file
           const alreadyGrouped = multiDestGroups.some(g => {
             return g.changes?.some(c => {
-              const cSourceFile = c.type === 'copy' || c.type === 'rename'
-                ? c.item.fullPath || c.item.name
-                : ''
+              const cSourceFile = c.type === 'copy' || c.type === 'rename' ? c.item.fullPath || c.item.name : ''
               return cSourceFile === sourceFile
             })
           })
@@ -180,9 +188,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
               displayType: 'multi-dest',
               destinations: group.map(g => {
                 // For same-directory operations, use the directory from the change
-                const destDir = g.change.type === 'copy' || g.change.type === 'rename'
-                  ? g.change.newDirectory
-                  : ''
+                const destDir = g.change.type === 'copy' || g.change.type === 'rename' ? g.change.newDirectory : ''
                 return {
                   directory: destDir,
                   name: g.change.type === 'copy' || g.change.type === 'rename' ? g.change.newName : '',
@@ -311,7 +317,11 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-green-600 dark:text-green-400 text-xs">Add</span>
             <div className="flex items-center gap-1.5">
-              {isDirectory ? <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {isDirectory ? (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.name}</span>
             </div>
           </div>
@@ -322,7 +332,11 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-red-600 dark:text-red-400 text-xs">Remove</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
           </div>
@@ -333,12 +347,20 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
           </div>
@@ -349,12 +371,20 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              )}
               <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
@@ -366,13 +396,21 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-purple-600 dark:text-purple-400 text-xs">Copy</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              )}
               <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
           </div>
@@ -383,12 +421,20 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-blue-600 dark:text-blue-400 text-xs">Rename</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
           </div>
@@ -399,12 +445,20 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-orange-600 dark:text-orange-400 text-xs">Move</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              )}
               <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
@@ -416,13 +470,21 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-center text-sm">
             <span className="font-semibold text-right text-cyan-600 dark:text-cyan-400 text-xs">Move</span>
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+              )}
               <span className="font-mono text-xs opacity-40">{otherDirectory}/</span>
               <span className="font-mono text-xs">{change.item.name}</span>
             </div>
             <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
             <div className="flex items-center gap-1.5">
-              {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              {change.item.type === 'file' ? (
+                <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              ) : (
+                <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+              )}
               <span className="font-mono text-xs font-semibold">{change.newName}</span>
             </div>
           </div>
@@ -432,28 +494,36 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         // Determine the operation label based on whether there's a rename (which removes original)
         const hasRename = dirChange.changes?.some(c => c.type === 'rename')
         const operationLabel = hasRename ? 'Rename' : 'Copy'
-        const operationColor = hasRename 
-          ? 'text-blue-600 dark:text-blue-400' 
-          : 'text-purple-600 dark:text-purple-400'
-        
+        const operationColor = hasRename ? 'text-blue-600 dark:text-blue-400' : 'text-purple-600 dark:text-purple-400'
+
         return (
           <div className="flex flex-col gap-0.5">
             <div className="grid grid-cols-[70px_1fr_auto_1fr] gap-2 items-start text-sm">
-              <div className="flex items-center gap-1 justify-end pt-0.5">
+              <div className="flex items-center gap-1 justify-end pt-0.5 h-full">
                 <span className={`font-semibold text-right ${operationColor} text-xs`}>{operationLabel}</span>
                 {hasRename && (
-                  <span className="text-xs text-red-500" title="Original will be removed">×</span>
+                  <span className="text-xs text-red-500" title="Original will be removed">
+                    ×
+                  </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 pt-0.5">
-                {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />}
+              <div className="flex items-center gap-1.5 pt-0.5 h-full">
+                {change.item.type === 'file' ? (
+                  <FileIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                ) : (
+                  <FolderIcon className="h-3.5 w-3.5 flex-shrink-0" />
+                )}
                 <span className="font-mono text-xs">{change.item.name}</span>
               </div>
               <ArrowRightIcon className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
               <div className="flex flex-col gap-0.5">
                 {dirChange.destinations?.map((dest, idx) => (
                   <div key={idx} className="flex items-center gap-1.5">
-                    {change.item.type === 'file' ? <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" /> : <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />}
+                    {change.item.type === 'file' ? (
+                      <FileIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+                    ) : (
+                      <FolderIcon className="h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+                    )}
                     <span className="font-mono text-xs opacity-40">{dest.directory}/</span>
                     <span className="font-mono text-xs font-semibold">{dest.name}</span>
                   </div>
@@ -511,11 +581,12 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
             <div className="border border-gray-200 dark:border-gray-700 rounded-b">
               {group.changes.map((dirChange, idx) => {
                 const Icon = getChangeIcon(dirChange.displayType)
-                
+
                 // For multi-dest, check if all changes in the group are selected
-                const isSelected = dirChange.displayType === 'multi-dest'
-                  ? dirChange.changes?.every(c => selectedIds.has(c.id)) ?? false
-                  : selectedIds.has(dirChange.change.id)
+                const isSelected =
+                  dirChange.displayType === 'multi-dest'
+                    ? (dirChange.changes?.every(c => selectedIds.has(c.id)) ?? false)
+                    : selectedIds.has(dirChange.change.id)
 
                 const handleToggle = () => {
                   if (dirChange.displayType === 'multi-dest' && dirChange.changes) {
