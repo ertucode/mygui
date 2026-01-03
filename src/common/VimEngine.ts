@@ -42,6 +42,7 @@ export namespace VimEngine {
     pendingFindCommand?: $Maybe<FindCommand>
     pendingOperator?: $Maybe<Operator>
     textObjectModifier?: $Maybe<TextObjectModifier>
+    insertModeStartReversions?: Reversion[]
   }
 
   export type CommandOpts = {
@@ -83,28 +84,30 @@ export namespace VimEngine {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
     const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), createStrBufferItem(''))
+
+    // Store reversions to be merged with insert mode changes
+    const reversions: Reversion[] = [
+      {
+        type: 'remove',
+        count: 1,
+        index: buffer.cursor.line,
+      },
+      {
+        type: 'add',
+        items: deletedItems,
+        index: buffer.cursor.line,
+      },
+      {
+        type: 'cursor',
+        cursor: buffer.cursor,
+      },
+    ]
+
     const currentBuffer: Buffer = {
       fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
-      historyStack: buffer.historyStack.withNew({
-        reversions: [
-          {
-            type: 'remove',
-            count: 1,
-            index: buffer.cursor.line,
-          },
-          {
-            type: 'add',
-            items: deletedItems,
-            index: buffer.cursor.line,
-          },
-          {
-            type: 'cursor',
-            cursor: buffer.cursor,
-          },
-        ],
-      }),
+      historyStack: buffer.historyStack,
       cursor: {
         line: buffer.cursor.line,
         column: 0,
@@ -119,6 +122,8 @@ export namespace VimEngine {
         ...state.buffers,
         [fullPath]: currentBuffer,
       },
+      insertModeStartReversions: reversions,
+      pendingOperator: undefined,
     }
   }
 
@@ -160,6 +165,7 @@ export namespace VimEngine {
         ...state.buffers,
         [fullPath]: currentBuffer,
       },
+      pendingOperator: undefined,
     }
   }
 
@@ -174,6 +180,7 @@ export namespace VimEngine {
       ...state,
       registry: idxs.map(i => buffer.items[i]),
       count: 0,
+      pendingOperator: undefined,
     }
   }
 
@@ -307,21 +314,52 @@ export namespace VimEngine {
     }
   }
 
-  export function esc(opts: CommandOpts): CommandResult {
-    return {
-      ...opts.state,
-      mode: 'normal',
-    }
-  }
-
-  export function updateItemStr({ state, fullPath }: CommandOpts, str: string, column: $Maybe<number>): CommandResult {
+  export function esc({ state, fullPath }: CommandOpts, str: $Maybe<string>, column: $Maybe<number>): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
     const prevStr = currentItems[buffer.cursor.line].str
-    currentItems[buffer.cursor.line] = {
-      ...currentItems[buffer.cursor.line],
-      str,
+    if (str != null) {
+      currentItems[buffer.cursor.line] = {
+        ...currentItems[buffer.cursor.line],
+        str,
+      }
     }
+
+    const returnState: State = {
+      ...state,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+          cursor: column ? { line: buffer.cursor.line, column } : buffer.cursor,
+        },
+      },
+      count: 0,
+      mode: 'normal',
+      insertModeStartReversions: undefined,
+    }
+
+    // If we have pending reversions from insert mode start, add update-content and flush to history
+    if (state.insertModeStartReversions) {
+      // Add the content change reversion to the beginning of the list
+      const updatedReversions = [
+        {
+          type: 'update-content' as const,
+          index: buffer.cursor.line,
+          str: prevStr,
+        },
+        ...state.insertModeStartReversions,
+      ]
+
+      buffer.historyStack.goNew({
+        reversions: updatedReversions,
+      })
+
+      return returnState
+    }
+
+    // Normal case: create history immediately
     buffer.historyStack.goNew({
       reversions: [
         {
@@ -335,6 +373,23 @@ export namespace VimEngine {
         },
       ],
     })
+
+    return returnState
+  }
+
+  export function enter({ state, fullPath }: CommandOpts, str: $Maybe<string>): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const prevStr = currentItems[buffer.cursor.line].str
+    if (str != null) {
+      currentItems[buffer.cursor.line] = {
+        ...currentItems[buffer.cursor.line],
+        str,
+      }
+    }
+
+    currentItems.splice(buffer.cursor.line + 1, 0, createStrBufferItem(''))
+
     return {
       ...state,
       buffers: {
@@ -342,53 +397,49 @@ export namespace VimEngine {
         [fullPath]: {
           ...buffer,
           items: currentItems,
-          cursor: column ? { line: buffer.cursor.line, column } : buffer.cursor,
+          cursor: {
+            column: 0,
+            line: buffer.cursor.line + 1,
+          },
         },
       },
       count: 0,
-      mode: 'normal',
-    }
-  }
-
-  export function enterInInsert({ state, fullPath }: CommandOpts): CommandResult {
-    const buffer = state.buffers[fullPath]
-    const currentItems = [...buffer.items]
-    currentItems.splice(buffer.cursor.line + 1, 0, createStrBufferItem(''))
-    const currentBuffer: Buffer = {
-      fullPath: buffer.fullPath,
-      items: currentItems,
-      originalItems: buffer.originalItems,
-      historyStack: buffer.historyStack.withNew({
-        reversions: [
-          {
-            type: 'remove',
-            count: 1,
-            index: buffer.cursor.line + 1,
-          },
-          {
-            type: 'cursor',
-            cursor: buffer.cursor,
-          },
-        ],
-      }),
-      cursor: {
-        line: buffer.cursor.line + 1,
-        column: 0,
-      },
-    }
-    return {
-      buffers: {
-        ...state.buffers,
-        [buffer.fullPath]: currentBuffer,
-      },
-      count: 0,
       mode: 'insert',
-      registry: state.registry,
+      insertModeStartReversions: state.insertModeStartReversions
+        ? [
+            {
+              type: 'update-content' as const,
+              index: buffer.cursor.line,
+              str: prevStr,
+            },
+            {
+              type: 'remove',
+              index: buffer.cursor.line + 1,
+              count: 1,
+            },
+            ...state.insertModeStartReversions,
+          ]
+        : [
+            {
+              type: 'update-content',
+              index: buffer.cursor.line,
+              str: prevStr,
+            },
+            {
+              type: 'remove',
+              index: buffer.cursor.line + 1,
+              count: 1,
+            },
+            {
+              type: 'cursor',
+              cursor: buffer.cursor,
+            },
+          ],
     }
   }
 
   export function o({ state, fullPath }: CommandOpts): CommandResult {
-    return enterInInsert({ state, fullPath })
+    return enter({ state, fullPath }, undefined)
   }
 
   export type Changes = {
@@ -659,6 +710,20 @@ export namespace VimEngine {
       registry: [selectedItem],
       pendingOperator: undefined,
       textObjectModifier: undefined,
+      insertModeStartReversions:
+        operator === 'c'
+          ? [
+              {
+                type: 'update-content',
+                index: buffer.cursor.line,
+                str: currentStr,
+              },
+              {
+                type: 'cursor',
+                cursor: buffer.cursor,
+              },
+            ]
+          : undefined,
       buffers: {
         ...state.buffers,
         [fullPath]: currentBuffer,

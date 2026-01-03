@@ -16,6 +16,8 @@ import { CategoryHelpers } from '../CategoryHelpers'
 import { getWindowElectron } from '@/getWindowElectron'
 import { useSelector } from '@xstate/store/react'
 import { FileQuestionIcon } from 'lucide-react'
+import { VimShortcutHelper } from '../vim/VimShortcutHelper'
+import { VimEngine } from '@common/VimEngine'
 
 function CategoryIcon({ category }: { category: FileCategory | 'folder' }) {
   const config = CategoryHelpers.get(category)
@@ -187,21 +189,19 @@ function VimInsertItem({ row }: { row: DerivedDirectoryItem }) {
   const [value, setValue] = useState(row.str)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const onEscapeOrBlur = (e: React.FocusEvent | React.KeyboardEvent, isEnter: boolean) => {
-    e.preventDefault()
-    directoryStore.trigger.updateItemStr({
-      str: value,
-      isEnter,
-      column: inputRef.current?.selectionStart && inputRef.current.selectionStart - 1,
-    })
+  const onEscapeOrBlur = (e: { preventDefault: () => void } | undefined) => {
+    const handler = VimShortcutHelper.createHandler(s =>
+      VimEngine.esc(s, value, inputRef.current?.selectionStart && inputRef.current.selectionStart - 1)
+    )
+    handler(e)
   }
 
-  const onKeyDown = (e: React.KeyboardEvent) => {
+  const onKeyDown = (e: React.KeyboardEvent | KeyboardEvent) => {
     if (e.key === 'Enter') {
-      e.preventDefault()
-      onEscapeOrBlur(e, true)
+      const handler = VimShortcutHelper.createHandler(s => VimEngine.enter(s, value))
+      handler(e)
     } else if (e.key === 'Escape') {
-      onEscapeOrBlur(e, false)
+      onEscapeOrBlur(e)
     }
   }
 
@@ -221,7 +221,7 @@ function VimInsertItem({ row }: { row: DerivedDirectoryItem }) {
       onChange={e => setValue(e.target.value)}
       onKeyDown={onKeyDown}
       onClick={e => e.stopPropagation()}
-      onBlur={e => onEscapeOrBlur(e, false)}
+      onBlur={onEscapeOrBlur}
       autoFocus
     />
   )

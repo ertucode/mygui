@@ -1000,9 +1000,9 @@ describe('VimEngine.aggregateChanges', () => {
     state = VimEngine.p({ state, fullPath: '/dir' })
     state = VimMovements.k({ state, fullPath: '/dir' })
     state = VimMovements.k({ state, fullPath: '/dir' })
-    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file2.txt', undefined)
+    state = VimEngine.esc({ state, fullPath: '/dir' }, 'file2.txt', undefined)
     state = VimMovements.j({ state, fullPath: '/dir' })
-    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file3.txt', undefined)
+    state = VimEngine.esc({ state, fullPath: '/dir' }, 'file3.txt', undefined)
 
     const result = VimEngine.aggregateChanges(state)
 
@@ -1195,5 +1195,118 @@ describe('VimEngine.aggregateChanges', () => {
       newDirectory: '/target3',
       newName: 'final.txt',
     })
+  })
+})
+
+describe('VimEngine history merging for insert mode commands', () => {
+  it('should create a single history item for cc + esc', () => {
+    const items = [
+      createRealBufferItem('file1.txt'),
+      createRealBufferItem('file2.txt'),
+      createRealBufferItem('file3.txt'),
+    ]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 1, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/test': buffer,
+      },
+    }
+
+    // Execute cc (delete line and go to insert mode)
+    state = VimEngine.cc({ state, fullPath: '/test' })
+    expect(state.mode).toBe('insert')
+    expect(state.insertModeStartReversions).toBeDefined()
+    expect(state.buffers['/test'].items.length).toBe(3)
+    expect(state.buffers['/test'].items[1].str).toBe('')
+
+    // Exit insert mode
+    state = VimEngine.esc({ state, fullPath: '/test' }, 'new line', 8)
+    expect(state.buffers['/test'].items[1].str).toBe('new line')
+    expect(state.mode).toBe('normal')
+    expect(state.insertModeStartReversions).toBeUndefined()
+
+    // Undo once - should undo both the cc and the text change
+    state = VimEngine.u({ state, fullPath: '/test' })
+
+    // After one undo, there should be no more history to undo
+    expect(state.buffers['/test'].historyStack.hasPrev).toBe(false)
+  })
+
+  it('should create a single history item for cc without typing + esc', () => {
+    const items = [createRealBufferItem('file1.txt'), createRealBufferItem('file2.txt')]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 0, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/test': buffer,
+      },
+    }
+
+    // Execute cc
+    state = VimEngine.cc({ state, fullPath: '/test' })
+    expect(state.mode).toBe('insert')
+
+    // Exit insert mode immediately without typing
+    state = VimEngine.esc({ state, fullPath: '/test' }, undefined, undefined)
+    expect(state.mode).toBe('normal')
+
+    // Undo once
+    state = VimEngine.u({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items[0].str).toBe('file1.txt')
+    expect(state.buffers['/test'].items[1].str).toBe('file2.txt')
+  })
+
+  it('should handle normal updateItemStr without insert mode merge', () => {
+    const items = [createRealBufferItem('file1.txt')]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 0, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/test': buffer,
+      },
+    }
+
+    // Update item directly (not from insert mode)
+    state = VimEngine.esc({ state, fullPath: '/test' }, 'renamed.txt', undefined)
+    expect(state.mode).toBe('normal')
+    expect(state.buffers['/test'].items[0].str).toBe('renamed.txt')
+
+    // Should have created history immediately
+    expect(state.buffers['/test'].historyStack.hasPrev).toBe(true)
+
+    // Undo
+    state = VimEngine.u({ state, fullPath: '/test' })
+    expect(state.buffers['/test'].items[0].str).toBe('file1.txt')
+  })
+
+  it('should create a single history item for o + esc', () => {
+    const items = [createRealBufferItem('file1.txt'), createRealBufferItem('file2.txt')]
+
+    const buffer = createBuffer('/test', items)
+    buffer.cursor = { line: 0, column: 0 }
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/test': buffer,
+      },
+    }
+
+    // Execute o (create new line below and enter insert mode)
+    state = VimEngine.o({ state, fullPath: '/test' })
+    expect(state.mode).toBe('insert')
+    expect(state.insertModeStartReversions).toBeDefined()
+    expect(state.buffers['/test'].items.length).toBe(3)
+    expect(state.buffers['/test'].cursor.line).toBe(1)
   })
 })
