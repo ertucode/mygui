@@ -85,6 +85,9 @@ export const VimShortcuts = {
         { key: 'd', handler: create(VimEngine.d), label: '[VIM] Delete operator' },
         { key: 'c', handler: create(VimEngine.c), label: '[VIM] Change operator' },
         { key: 'y', handler: create(VimEngine.y), label: '[VIM] Yank operator' },
+        { key: 's', handler: create(VimEngine.s), label: '[VIM] Substitute character' },
+        { key: { key: 'C', shiftKey: true }, handler: create(VimEngine.C), label: '[VIM] Change to end of line' },
+        { key: { key: 'D', shiftKey: true }, handler: create(VimEngine.D), label: '[VIM] Delete to end of line' },
         { key: 'i', handler: create(VimMovements.i), label: '[VIM] Insert' },
         { key: 'a', handler: create(VimMovements.a), label: '[VIM] Append' },
         { key: { key: 'A', shiftKey: true }, handler: create(VimMovements.A), label: '[VIM] Append at end' },
@@ -122,6 +125,18 @@ export const VimShortcuts = {
           key: ',',
           handler: create(VimMovements.comma),
           label: '[VIM] Repeat last f/F/t/T command in reverse direction',
+        },
+        {
+          // TODO: fix shortcut implementation
+          key: { key: '_', shiftKey: true },
+          handler: create(VimMovements.underscore),
+          label: '[VIM] Move to first non-blank character of line',
+        },
+        {
+          // TODO: fix shortcut implementation
+          key: { key: '$', shiftKey: true },
+          handler: create(VimMovements.dollar),
+          label: '[VIM] Move to end of line',
         },
       ],
       sequences: [],

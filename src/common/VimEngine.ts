@@ -767,4 +767,142 @@ export namespace VimEngine {
     const stack = state.buffers[fullPath]?.historyStack
     return stack && stack.hasItems()
   }
+
+  // s - substitute character (delete character under cursor and enter insert mode)
+  export function s({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const currentStr = currentItems[buffer.cursor.line].str
+    const count = getEffectiveCount(state)
+
+    // Delete count characters starting from cursor position
+    const beforeCursor = currentStr.slice(0, buffer.cursor.column)
+    const afterCursor = currentStr.slice(buffer.cursor.column + count)
+    const newStr = beforeCursor + afterCursor
+    const deletedStr = currentStr.slice(buffer.cursor.column, buffer.cursor.column + count)
+
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str: newStr,
+    }
+
+    const reversions: Reversion[] = [
+      {
+        type: 'update-content',
+        index: buffer.cursor.line,
+        str: currentStr,
+      },
+      {
+        type: 'cursor',
+        cursor: buffer.cursor,
+      },
+    ]
+
+    return {
+      count: 0,
+      mode: 'insert',
+      registry: [createStrBufferItem(deletedStr)],
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+          cursor: buffer.cursor,
+        },
+      },
+      insertModeStartReversions: reversions,
+      pendingOperator: undefined,
+    }
+  }
+
+  // C - change to end of line
+  export function C({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const currentStr = currentItems[buffer.cursor.line].str
+
+    // Delete from cursor to end of line
+    const beforeCursor = currentStr.slice(0, buffer.cursor.column)
+    const deletedStr = currentStr.slice(buffer.cursor.column)
+
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str: beforeCursor,
+    }
+
+    const reversions: Reversion[] = [
+      {
+        type: 'update-content',
+        index: buffer.cursor.line,
+        str: currentStr,
+      },
+      {
+        type: 'cursor',
+        cursor: buffer.cursor,
+      },
+    ]
+
+    return {
+      count: 0,
+      mode: 'insert',
+      registry: [createStrBufferItem(deletedStr)],
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+          cursor: buffer.cursor,
+        },
+      },
+      insertModeStartReversions: reversions,
+      pendingOperator: undefined,
+    }
+  }
+
+  // D - delete to end of line
+  export function D({ state, fullPath }: CommandOpts): CommandResult {
+    const buffer = state.buffers[fullPath]
+    const currentItems = [...buffer.items]
+    const currentStr = currentItems[buffer.cursor.line].str
+
+    // Delete from cursor to end of line
+    const beforeCursor = currentStr.slice(0, buffer.cursor.column)
+    const deletedStr = currentStr.slice(buffer.cursor.column)
+
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str: beforeCursor,
+    }
+
+    return {
+      count: 0,
+      mode: 'normal',
+      registry: [createStrBufferItem(deletedStr)],
+      buffers: {
+        ...state.buffers,
+        [fullPath]: {
+          ...buffer,
+          items: currentItems,
+          historyStack: buffer.historyStack.withNew({
+            reversions: [
+              {
+                type: 'update-content',
+                index: buffer.cursor.line,
+                str: currentStr,
+              },
+              {
+                type: 'cursor',
+                cursor: buffer.cursor,
+              },
+            ],
+          }),
+          cursor: {
+            line: buffer.cursor.line,
+            column: Math.max(0, beforeCursor.length - 1),
+          },
+        },
+      },
+      pendingOperator: undefined,
+    }
+  }
 }

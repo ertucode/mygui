@@ -553,4 +553,59 @@ export namespace VimMovements {
     // If no text object modifier, this is just a normal w movement
     return w(opts)
   }
+
+  // Move to first non-blank character of line
+  export function underscore(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[buffer.cursor.line].str
+      let firstNonBlank = 0
+
+      // Find first non-whitespace character
+      while (firstNonBlank < str.length && /\s/.test(str[firstNonBlank])) {
+        firstNonBlank++
+      }
+
+      // If we're before the first non-blank, range is from cursor to first non-blank
+      // If we're after, range is from first non-blank to cursor
+      const start = Math.min(buffer.cursor.column, firstNonBlank)
+      const end = Math.max(buffer.cursor.column, firstNonBlank)
+
+      return VimEngine.executeOperatorWithRange(opts, { start, end })
+    }
+
+    return moveCursor(opts, (_count, cursor) => {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[cursor.line].str
+      let col = 0
+
+      // Find first non-whitespace character
+      while (col < str.length && /\s/.test(str[col])) {
+        col++
+      }
+
+      return {
+        line: cursor.line,
+        column: col,
+      }
+    })
+  }
+
+  // Move to end of line
+  export function dollar(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[buffer.cursor.line].str
+      
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: buffer.cursor.column,
+        end: str.length,
+      })
+    }
+
+    return moveCursor(opts, (_count, cursor, strLength) => ({
+      line: cursor.line,
+      column: Math.max(0, strLength - 1),
+    }))
+  }
 }
