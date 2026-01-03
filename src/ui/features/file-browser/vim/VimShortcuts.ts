@@ -136,6 +136,9 @@ export const VimShortcuts = {
           label: '[VIM] Save',
         },
         { key: 'o', handler: createHandler(VimEngine.o), label: '[VIM] Open line' },
+        { key: 'd', handler: createHandler(VimEngine.d), label: '[VIM] Delete operator' },
+        { key: 'c', handler: createHandler(VimEngine.c), label: '[VIM] Change operator' },
+        { key: 'y', handler: createHandler(VimEngine.y), label: '[VIM] Yank operator' },
         { key: 'i', handler: createHandler(VimMovements.i), label: '[VIM] Insert' },
         { key: 'a', handler: createHandler(VimMovements.a), label: '[VIM] Append' },
         { key: { key: 'A', shiftKey: true }, handler: createHandler(VimMovements.A), label: '[VIM] Append at end' },
@@ -175,23 +178,7 @@ export const VimShortcuts = {
           label: '[VIM] Repeat last f/F/t/T command in reverse direction',
         },
       ],
-      sequences: [
-        {
-          sequence: ['d', 'd'],
-          handler: createHandler(VimEngine.dd),
-          label: '[VIM] Delete line',
-        },
-        {
-          sequence: ['y', 'y'],
-          handler: createHandler(VimEngine.yy),
-          label: '[VIM] Yank line',
-        },
-        {
-          sequence: ['c', 'c'],
-          handler: createHandler(VimEngine.cc),
-          label: '[VIM] Change line',
-        },
-      ],
+      sequences: [],
     })
   },
   deinit: () => {

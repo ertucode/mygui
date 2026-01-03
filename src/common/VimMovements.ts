@@ -44,6 +44,18 @@ function isWordChar(ch: string): boolean {
 export namespace VimMovements {
   // Basic movement commands
   export function l(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const count = getEffectiveCount(opts.state)
+      const str = buffer.items[buffer.cursor.line].str
+      const endCol = Math.min(str.length, buffer.cursor.column + count)
+
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: buffer.cursor.column,
+        end: endCol,
+      })
+    }
+
     return moveCursor(opts, (count, cursor, strLength) => ({
       line: cursor.line,
       column: Math.min(strLength - 1, cursor.column + count),
@@ -51,6 +63,17 @@ export namespace VimMovements {
   }
 
   export function h(opts: CommandOpts): CommandResult {
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const count = getEffectiveCount(opts.state)
+      const startCol = Math.max(0, buffer.cursor.column - count)
+
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: startCol,
+        end: buffer.cursor.column,
+      })
+    }
+
     return moveCursor(opts, (count, cursor) => ({
       line: cursor.line,
       column: Math.max(0, cursor.column - count),
@@ -81,6 +104,35 @@ export namespace VimMovements {
 
   // Word movement commands
   export function w(opts: CommandOpts): CommandResult {
+    // If there's a text object modifier, handle it
+    if (opts.state.textObjectModifier) {
+      return textObjectW(opts)
+    }
+
+    // If there's a pending operator, execute it with the range
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[buffer.cursor.line].str
+      const count = getEffectiveCount(opts.state)
+      let col = buffer.cursor.column
+
+      for (let i = 0; i < count; i++) {
+        // Skip current word
+        while (col < str.length && isWordChar(str[col])) {
+          col++
+        }
+        // Skip whitespace
+        while (col < str.length && !isWordChar(str[col])) {
+          col++
+        }
+      }
+
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: buffer.cursor.column,
+        end: col,
+      })
+    }
+
     return moveCursor(opts, (count, cursor, strLength) => {
       const buffer = opts.state.buffers[opts.fullPath]
       const str = buffer.items[cursor.line].str
@@ -105,6 +157,34 @@ export namespace VimMovements {
   }
 
   export function b(opts: CommandOpts): CommandResult {
+    // If there's a pending operator, execute it with the range
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[buffer.cursor.line].str
+      const count = getEffectiveCount(opts.state)
+      let col = buffer.cursor.column
+
+      for (let i = 0; i < count; i++) {
+        // Move back one position if we're at the start of a word
+        if (col > 0) {
+          col--
+        }
+        // Skip whitespace
+        while (col > 0 && !isWordChar(str[col])) {
+          col--
+        }
+        // Skip to beginning of word
+        while (col > 0 && isWordChar(str[col - 1])) {
+          col--
+        }
+      }
+
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: col,
+        end: buffer.cursor.column,
+      })
+    }
+
     return moveCursor(opts, (count, cursor) => {
       const buffer = opts.state.buffers[opts.fullPath]
       const str = buffer.items[cursor.line].str
@@ -133,6 +213,34 @@ export namespace VimMovements {
   }
 
   export function e(opts: CommandOpts): CommandResult {
+    // If there's a pending operator, execute it with the range
+    if (opts.state.pendingOperator) {
+      const buffer = opts.state.buffers[opts.fullPath]
+      const str = buffer.items[buffer.cursor.line].str
+      const count = getEffectiveCount(opts.state)
+      let col = buffer.cursor.column
+
+      for (let i = 0; i < count; i++) {
+        // Move forward one position if we're at the end of a word
+        if (col < str.length - 1) {
+          col++
+        }
+        // Skip whitespace
+        while (col < str.length && !isWordChar(str[col])) {
+          col++
+        }
+        // Skip to end of word
+        while (col < str.length - 1 && isWordChar(str[col + 1])) {
+          col++
+        }
+      }
+
+      return VimEngine.executeOperatorWithRange(opts, {
+        start: buffer.cursor.column,
+        end: col + 1, // Include the character at the end position
+      })
+    }
+
     return moveCursor(opts, (count, cursor, strLength) => {
       const buffer = opts.state.buffers[opts.fullPath]
       const str = buffer.items[cursor.line].str
@@ -162,6 +270,14 @@ export namespace VimMovements {
 
   // Insert mode commands
   export function i(opts: CommandOpts): CommandResult {
+    // If there's a pending operator, this is a text object modifier
+    if (opts.state.pendingOperator) {
+      return {
+        ...opts.state,
+        textObjectModifier: 'i',
+      }
+    }
+
     return {
       ...opts.state,
       mode: 'insert',
@@ -169,6 +285,14 @@ export namespace VimMovements {
   }
 
   export function a(opts: CommandOpts): CommandResult {
+    // If there's a pending operator, this is a text object modifier
+    if (opts.state.pendingOperator) {
+      return {
+        ...opts.state,
+        textObjectModifier: 'a',
+      }
+    }
+
     const r = moveCursor(opts, (_count, cursor, strLength) => ({
       column: Math.min(strLength - 1, cursor.column + 1),
       line: cursor.line,
@@ -344,5 +468,89 @@ export namespace VimMovements {
       command === 'f' ? 'F' : command === 'F' ? 'f' : command === 't' ? 'T' : 't'
 
     return executeFind(opts, reverseCommand, char, true)
+  }
+
+  // Text object modifier functions
+  export function setTextObjectModifier(opts: CommandOpts, modifier: VimEngine.TextObjectModifier): CommandResult {
+    return {
+      ...opts.state,
+      textObjectModifier: modifier,
+    }
+  }
+
+  // Helper function to find word boundaries
+  function findWordBoundaries(str: string, col: number): { start: number; end: number } {
+    let start = col
+    let end = col
+
+    // If we're on whitespace, find the next word
+    if (!isWordChar(str[col]) && col < str.length) {
+      while (end < str.length && !isWordChar(str[end])) {
+        end++
+      }
+      start = end
+    }
+
+    // Find start of word
+    while (start > 0 && isWordChar(str[start - 1])) {
+      start--
+    }
+
+    // Find end of word
+    while (end < str.length && isWordChar(str[end])) {
+      end++
+    }
+
+    return { start, end }
+  }
+
+  // Text object: inner word
+  function textObjectInnerWord(opts: CommandOpts): CommandResult {
+    const buffer = opts.state.buffers[opts.fullPath]
+    const str = buffer.items[buffer.cursor.line].str
+    const { start, end } = findWordBoundaries(str, buffer.cursor.column)
+
+    if (opts.state.pendingOperator) {
+      return VimEngine.executeOperatorWithRange(opts, { start, end })
+    }
+
+    return opts.state
+  }
+
+  // Text object: a word (includes surrounding whitespace)
+  function textObjectAroundWord(opts: CommandOpts): CommandResult {
+    const buffer = opts.state.buffers[opts.fullPath]
+    const str = buffer.items[buffer.cursor.line].str
+    let { start, end } = findWordBoundaries(str, buffer.cursor.column)
+
+    // Include trailing whitespace
+    while (end < str.length && !isWordChar(str[end])) {
+      end++
+    }
+
+    // If no trailing whitespace, include leading whitespace
+    if (end === start || !isWordChar(str[end - 1])) {
+      while (start > 0 && !isWordChar(str[start - 1])) {
+        start--
+      }
+    }
+
+    if (opts.state.pendingOperator) {
+      return VimEngine.executeOperatorWithRange(opts, { start, end })
+    }
+
+    return opts.state
+  }
+
+  // Text object dispatcher - handles movements after i/a modifier
+  export function textObjectW(opts: CommandOpts): CommandResult {
+    if (opts.state.textObjectModifier === 'i') {
+      return textObjectInnerWord(opts)
+    } else if (opts.state.textObjectModifier === 'a') {
+      return textObjectAroundWord(opts)
+    }
+
+    // If no text object modifier, this is just a normal w movement
+    return w(opts)
   }
 }

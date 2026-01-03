@@ -31,6 +31,8 @@ export namespace VimEngine {
   }
 
   export type FindCommand = 'f' | 'F' | 't' | 'T'
+  export type Operator = 'd' | 'c' | 'y'
+  export type TextObjectModifier = 'i' | 'a'
   type FullPath = string
   export type State = {
     buffers: Record<FullPath, Buffer>
@@ -38,6 +40,8 @@ export namespace VimEngine {
     count: number
     registry: BufferItem[]
     pendingFindCommand?: $Maybe<FindCommand>
+    pendingOperator?: $Maybe<Operator>
+    textObjectModifier?: $Maybe<TextObjectModifier>
   }
 
   export type CommandOpts = {
@@ -547,59 +551,118 @@ export namespace VimEngine {
     return { changes }
   }
 
-  // function lineUpdatingFn(
-  //   state: PerDirectoryState,
-  //   fn: (line: string) => { column: number; result: string }
-  // ): PerDirectoryState {
-  //   if (state.count) GenericError.Message('lineUpdatingFn not supported with count')
-  //
-  //   const currentItems = [...state.currentBuffer.items]
-  //   const initialStr = currentItems[buffer.cursor.line].str
-  //
-  //   const { column, result } = fn(initialStr)
-  //
-  //   currentItems[buffer.cursor.line] = {
-  //     ...currentItems[buffer.cursor.line],
-  //     str: result,
-  //   }
-  //
-  //   return {
-  //     ...state,
-  //     cursor: {
-  //       line: buffer.cursor.line,
-  //       column,
-  //     },
-  //     currentBuffer: {
-  //       ...state.currentBuffer,
-  //       items: currentItems,
-  //     },
-  //     count: 0,
-  //     mode: 'insert',
-  //   }
-  // }
-  //
-  // export function ciw(state: PerDirectoryState): PerDirectoryState {
-  //   return lineUpdatingFn(state, initialStr => {
-  //     const bounds = getWordBounds(initialStr, buffer.cursor.column)
-  //     const result = removeWord(initialStr, bounds.start, bounds.end)
-  //
-  //     return { column: bounds.start, result }
-  //   })
-  // }
-  //
-  // export function C(state: PerDirectoryState): PerDirectoryState {
-  //   return lineUpdatingFn(state, initialStr => {
-  //     return {
-  //       column: buffer.cursor.column,
-  //       result: initialStr.slice(0, buffer.cursor.column),
-  //     }
-  //   })
-  // }
-
   export function addToCount(opts: CommandOpts, count: number): CommandResult {
     return {
       ...opts.state,
       count: opts.state.count === 0 ? count : 10 * opts.state.count + count,
+    }
+  }
+
+  export function d(opts: CommandOpts): CommandResult {
+    // If d is already pending, execute dd
+    if (opts.state.pendingOperator === 'd') {
+      return dd(opts)
+    }
+    return {
+      ...opts.state,
+      pendingOperator: 'd',
+    }
+  }
+
+  export function c(opts: CommandOpts): CommandResult {
+    // If c is already pending, execute cc
+    if (opts.state.pendingOperator === 'c') {
+      return cc(opts)
+    }
+    return {
+      ...opts.state,
+      pendingOperator: 'c',
+    }
+  }
+
+  export function y(opts: CommandOpts): CommandResult {
+    // If y is already pending, execute yy
+    if (opts.state.pendingOperator === 'y') {
+      return yy(opts)
+    }
+    return {
+      ...opts.state,
+      pendingOperator: 'y',
+    }
+  }
+
+  export type Range = {
+    start: number
+    end: number
+  }
+
+  export function executeOperatorWithRange(opts: CommandOpts, range: Range): CommandResult {
+    const { state, fullPath } = opts
+    const buffer = state.buffers[fullPath]
+    const operator = state.pendingOperator
+
+    if (!operator) return state
+
+    const currentStr = buffer.items[buffer.cursor.line].str
+    const selectedStr = currentStr.slice(range.start, range.end)
+    const selectedItem = createStrBufferItem(selectedStr)
+
+    // For yank operator, don't modify the buffer
+    if (operator === 'y') {
+      return {
+        ...state,
+        count: 0,
+        mode: 'normal',
+        registry: [selectedItem],
+        pendingOperator: undefined,
+        textObjectModifier: undefined,
+      }
+    }
+
+    // For delete and change operators, modify the buffer
+    const currentItems = [...buffer.items]
+    const beforeRange = currentStr.slice(0, range.start)
+    const afterRange = currentStr.slice(range.end)
+    const newStr = beforeRange + afterRange
+
+    currentItems[buffer.cursor.line] = {
+      ...currentItems[buffer.cursor.line],
+      str: newStr,
+    }
+
+    const currentBuffer: Buffer = {
+      fullPath,
+      items: currentItems,
+      originalItems: buffer.originalItems,
+      historyStack: buffer.historyStack.withNew({
+        reversions: [
+          {
+            type: 'update-content',
+            index: buffer.cursor.line,
+            str: currentStr,
+          },
+          {
+            type: 'cursor',
+            cursor: buffer.cursor,
+          },
+        ],
+      }),
+      cursor: {
+        line: buffer.cursor.line,
+        column: Math.max(0, Math.min(range.start, newStr.length - 1)),
+      },
+    }
+
+    return {
+      count: 0,
+      mode: operator === 'c' ? 'insert' : 'normal',
+      registry: [selectedItem],
+      pendingOperator: undefined,
+      textObjectModifier: undefined,
+      buffers: {
+        ...state.buffers,
+        [fullPath]: currentBuffer,
+      },
     }
   }
 
@@ -634,26 +697,3 @@ export namespace VimEngine {
     }
   }
 }
-
-// const isWordChar = (ch: string) => /[A-Za-z0-9]/.test(ch)
-// export function getWordBounds(text: string, index: number): { start: number; end: number } {
-//   if (index < 0 || index >= text.length) return { start: index, end: index }
-//   if (!isWordChar(text[index])) return { start: index, end: index }
-//
-//   let start = index
-//   let end = index
-//
-//   while (start > 0 && isWordChar(text[start - 1])) {
-//     start--
-//   }
-//
-//   while (end < text.length - 1 && isWordChar(text[end + 1])) {
-//     end++
-//   }
-//
-//   return { start, end }
-// }
-//
-// function removeWord(text: string, start: number, end: number): string {
-//   return text.slice(0, start) + text.slice(end + 1)
-// }
