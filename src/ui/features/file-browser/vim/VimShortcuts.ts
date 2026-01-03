@@ -8,18 +8,9 @@ const SHORTCUTS_KEY = 'vim'
 function createHandler(updater: (opts: VimEngine.CommandOpts) => VimEngine.State) {
   return (e: KeyboardEvent | undefined) => {
     e?.preventDefault()
-    const snapshot = directoryStore.getSnapshot().context
-    const activeDirectory = snapshot.directoriesById[snapshot.activeDirectoryId]
-    if (!activeDirectory) return
-    if (activeDirectory.directory.type !== 'path') return
-    const fullPath = activeDirectory.directory.fullPath
-    if (!fullPath) return
-
-    const items = directoryDerivedStores.get(activeDirectory.directoryId)!.getFilteredDirectoryData()!
-    if (!snapshot.vim.buffers[fullPath]) {
-      snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items)
-      snapshot.vim.buffers[fullPath].cursor.line = activeDirectory.selection.last ?? 0
-    }
+    const result = getSnapshotWithInitializedVim()
+    if (!result) return
+    const { snapshot, fullPath, activeDirectory } = result
     const beforeCursor = snapshot.vim.buffers[fullPath].cursor
     const updated = updater({ state: snapshot.vim, fullPath })
     const afterCursor = snapshot.vim.buffers[fullPath].cursor
@@ -28,6 +19,28 @@ function createHandler(updater: (opts: VimEngine.CommandOpts) => VimEngine.State
       state: updated,
       selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,
     })
+  }
+}
+
+function getSnapshotWithInitializedVim() {
+  const snapshot = directoryStore.getSnapshot().context
+  const activeDirectory = snapshot.directoriesById[snapshot.activeDirectoryId]
+  if (!activeDirectory) return
+  if (activeDirectory.directory.type !== 'path') return
+  const fullPath = activeDirectory.directory.fullPath
+  if (!fullPath) return
+
+  const items = directoryDerivedStores.get(activeDirectory.directoryId)!.getFilteredDirectoryData()!
+  const wasInitialized = snapshot.vim.buffers[fullPath]
+  if (!wasInitialized) {
+    snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
+    snapshot.vim.buffers[fullPath].cursor.line = activeDirectory.selection.last ?? 0
+  }
+  return {
+    snapshot,
+    fullPath,
+    activeDirectory,
+    wasInitialized,
   }
 }
 
@@ -59,7 +72,15 @@ export const VimShortcuts = {
         },
         {
           key: { key: 's', altKey: true },
-          handler: createHandler(VimEngine.esc),
+          handler: e => {
+            const result = getSnapshotWithInitializedVim()
+            if (!result || !result.wasInitialized) return
+
+            const { snapshot } = result
+            const { changes } = VimEngine.aggregateChanges(snapshot.vim)
+
+            if (changes.length === 0) return
+          },
           label: '[VIM] Save',
         },
       ],

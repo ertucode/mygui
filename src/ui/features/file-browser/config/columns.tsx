@@ -105,7 +105,7 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       sortKey: 'size',
       header: 'Size',
       size: 84,
-      cell: row => <SimpleCell accessor="size" row={row} />,
+      cell: row => <SimpleCell accessor="sizeStr" row={row} />,
     },
     {
       id: 'modifiedAt',
