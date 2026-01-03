@@ -568,23 +568,49 @@ export namespace VimEngine {
         // else: item exists in same directory with same name - no change
       } else {
         // Multiple locations - multiple pastes detected
-        // First n-1 are copies, last one is the rename/move
-        for (let i = 0; i < locations.length - 1; i++) {
+        // Check if any location matches the original (same directory and name)
+        let originalLocationIndex = -1
+        for (let i = 0; i < locations.length; i++) {
+          if (
+            locations[i].directory === originalLocation.directory &&
+            locations[i].newName === originalLocation.item.name
+          ) {
+            originalLocationIndex = i
+            break
+          }
+        }
+
+        if (originalLocationIndex !== -1) {
+          // One of the locations matches the original - that's the "rename" (no-op)
+          // All others are copies
+          for (let i = 0; i < locations.length; i++) {
+            if (i !== originalLocationIndex) {
+              changes.push({
+                type: 'copy',
+                item: originalLocation.item,
+                newDirectory: locations[i].directory,
+                newName: locations[i].newName,
+              })
+            }
+          }
+        } else {
+          // None match the original - first n-1 are copies, last is rename
+          for (let i = 0; i < locations.length - 1; i++) {
+            changes.push({
+              type: 'copy',
+              item: originalLocation.item,
+              newDirectory: locations[i].directory,
+              newName: locations[i].newName,
+            })
+          }
+          const lastLocation = locations[locations.length - 1]
           changes.push({
-            type: 'copy',
+            type: 'rename',
             item: originalLocation.item,
-            newDirectory: locations[i].directory,
-            newName: locations[i].newName,
+            newDirectory: lastLocation.directory,
+            newName: lastLocation.newName,
           })
         }
-        // Last one is the rename/move
-        const lastLocation = locations[locations.length - 1]
-        changes.push({
-          type: 'rename',
-          item: originalLocation.item,
-          newDirectory: lastLocation.directory,
-          newName: lastLocation.newName,
-        })
       }
     }
 
