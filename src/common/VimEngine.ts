@@ -437,7 +437,7 @@ export namespace VimEngine {
 
   export function A(opts: CommandOpts): CommandResult {
     const r = moveCursor(opts, (_count, cursor, strLength) => ({
-      column: strLength - 1,
+      column: strLength,
       line: cursor.line,
     }))
     r.mode = 'insert'
