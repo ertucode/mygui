@@ -22,7 +22,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "transpile:electron": "tsc -p ./src/electron/tsconfig.json",
-    "build": "npm run transpile:electron && npm run build:react && electron-builder --mac --arm64",
+    "build-code": "npm run transpile:electron && npm run build:react",
+    "build-local": "npm run build-code && electron-builder --mac --arm64 --dir",
+    "build": "npm run build-code && electron-builder --mac --arm64",
     "build-vendor": "node scripts/build-all.mjs",
     "build-everything": "npm run build-vendor && npm run build",
     "build-icon": "node scripts/build-icon.mjs"
