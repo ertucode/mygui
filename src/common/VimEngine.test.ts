@@ -991,18 +991,18 @@ describe('VimEngine.aggregateChanges', () => {
     let state: VimEngine.State = {
       ...VimEngine.defaultState(),
       buffers: {
-        '/source': sourceBuffer,
+        '/dir': sourceBuffer,
       },
     }
     sourceBuffer.cursor = { column: 0, line: 0 }
 
-    state = VimEngine.dd({ state, fullPath: '/source' })
-    state = VimEngine.p({ state, fullPath: '/source' })
-    state = VimEngine.p({ state, fullPath: '/source' })
-    state = VimEngine.p({ state, fullPath: '/source' })
-    state = VimEngine.updateItemStr({ state, fullPath: '/source' }, 'file2.txt', undefined)
-    state = VimEngine.k({ state, fullPath: '/source' })
-    state = VimEngine.updateItemStr({ state, fullPath: '/source' }, 'file3.txt', undefined)
+    state = VimEngine.dd({ state, fullPath: '/dir' })
+    state = VimEngine.p({ state, fullPath: '/dir' })
+    state = VimEngine.p({ state, fullPath: '/dir' })
+    state = VimEngine.p({ state, fullPath: '/dir' })
+    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file2.txt', undefined)
+    state = VimEngine.k({ state, fullPath: '/dir' })
+    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file3.txt', undefined)
 
     const result = VimEngine.aggregateChanges(state)
 
