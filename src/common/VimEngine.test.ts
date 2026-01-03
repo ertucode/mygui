@@ -961,4 +961,224 @@ describe('VimEngine.aggregateChanges', () => {
       newName: 'file1.txt',
     })
   })
+
+  it('should detect dd + single paste as rename only (not copy)', () => {
+    // Scenario: dd file from /source, paste once into /target
+    const sourceItems = [
+      createRealBufferItem('file.txt', '/source/file.txt'),
+      createRealBufferItem('other.txt', '/source/other.txt'),
+    ]
+
+    const targetItems = [
+      createRealBufferItem('existing.txt', '/target/existing.txt'),
+    ]
+
+    const sourceBuffer = createBuffer('/source', sourceItems)
+    const targetBuffer = createBuffer('/target', targetItems)
+
+    // Remove from source (dd)
+    sourceBuffer.items = [sourceItems[1]] // only other.txt remains
+
+    // Paste into target
+    targetBuffer.items = [
+      targetItems[0],
+      sourceItems[0], // file.txt pasted here
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/source': sourceBuffer,
+        '/target': targetBuffer,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    // Should be just a rename (move), not a copy
+    expect(result.changes).toHaveLength(1)
+    expect(result.changes[0]).toEqual({
+      type: 'rename',
+      item: sourceItems[0].item,
+      newDirectory: '/target',
+      newName: 'file.txt',
+    })
+  })
+
+  it('should detect dd + multiple pastes as n-1 copies + 1 rename', () => {
+    // Scenario: dd file from /source, paste into /target1, /target2, and /target3
+    // Should generate: 2 copies + 1 rename (last paste is the rename)
+    const sourceItems = [
+      createRealBufferItem('file.txt', '/source/file.txt'),
+      createRealBufferItem('other.txt', '/source/other.txt'),
+    ]
+
+    const target1Items = [
+      createRealBufferItem('existing1.txt', '/target1/existing1.txt'),
+    ]
+
+    const target2Items = [
+      createRealBufferItem('existing2.txt', '/target2/existing2.txt'),
+    ]
+
+    const target3Items = [
+      createRealBufferItem('existing3.txt', '/target3/existing3.txt'),
+    ]
+
+    const sourceBuffer = createBuffer('/source', sourceItems)
+    const target1Buffer = createBuffer('/target1', target1Items)
+    const target2Buffer = createBuffer('/target2', target2Items)
+    const target3Buffer = createBuffer('/target3', target3Items)
+
+    // Remove from source (dd)
+    sourceBuffer.items = [sourceItems[1]] // only other.txt remains
+
+    // Paste into all three targets
+    target1Buffer.items = [
+      target1Items[0],
+      sourceItems[0], // first paste
+    ]
+
+    target2Buffer.items = [
+      target2Items[0],
+      sourceItems[0], // second paste
+    ]
+
+    target3Buffer.items = [
+      target3Items[0],
+      sourceItems[0], // third paste (last one - this becomes the rename)
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/source': sourceBuffer,
+        '/target1': target1Buffer,
+        '/target2': target2Buffer,
+        '/target3': target3Buffer,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    // Should have 3 changes: 2 copies + 1 rename
+    expect(result.changes).toHaveLength(3)
+    
+    const copyChanges = result.changes.filter(c => c.type === 'copy')
+    const renameChanges = result.changes.filter(c => c.type === 'rename')
+    
+    expect(copyChanges).toHaveLength(2)
+    expect(renameChanges).toHaveLength(1)
+    
+    // First two should be copies
+    expect(copyChanges[0]).toEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/target1',
+      newName: 'file.txt',
+    })
+    
+    expect(copyChanges[1]).toEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/target2',
+      newName: 'file.txt',
+    })
+    
+    // Last one should be the rename
+    expect(renameChanges[0]).toEqual({
+      type: 'rename',
+      item: sourceItems[0].item,
+      newDirectory: '/target3',
+      newName: 'file.txt',
+    })
+  })
+
+  it('should handle dd + multiple pastes with different names', () => {
+    // Scenario: dd file, paste multiple times with different names
+    const sourceItems = [
+      createRealBufferItem('original.txt', '/source/original.txt'),
+    ]
+
+    const target1Items: VimEngine.RealBufferItem[] = []
+    const target2Items: VimEngine.RealBufferItem[] = []
+    const target3Items: VimEngine.RealBufferItem[] = []
+
+    const sourceBuffer = createBuffer('/source', sourceItems)
+    const target1Buffer = createBuffer('/target1', target1Items)
+    const target2Buffer = createBuffer('/target2', target2Items)
+    const target3Buffer = createBuffer('/target3', target3Items)
+
+    // Remove from source (dd)
+    sourceBuffer.items = []
+
+    // Paste into targets with different names
+    target1Buffer.items = [
+      {
+        type: 'real',
+        item: sourceItems[0].item,
+        str: 'copy1.txt', // renamed
+      },
+    ]
+
+    target2Buffer.items = [
+      {
+        type: 'real',
+        item: sourceItems[0].item,
+        str: 'copy2.txt', // renamed
+      },
+    ]
+
+    target3Buffer.items = [
+      {
+        type: 'real',
+        item: sourceItems[0].item,
+        str: 'final.txt', // renamed (this is the final rename)
+      },
+    ]
+
+    const state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/source': sourceBuffer,
+        '/target1': target1Buffer,
+        '/target2': target2Buffer,
+        '/target3': target3Buffer,
+      },
+    }
+
+    const result = VimEngine.aggregateChanges(state)
+    
+    // Should have 3 changes: 2 copies + 1 rename
+    expect(result.changes).toHaveLength(3)
+    
+    const copyChanges = result.changes.filter(c => c.type === 'copy')
+    const renameChanges = result.changes.filter(c => c.type === 'rename')
+    
+    expect(copyChanges).toHaveLength(2)
+    expect(renameChanges).toHaveLength(1)
+    
+    // Verify the copies
+    expect(copyChanges).toContainEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/target1',
+      newName: 'copy1.txt',
+    })
+    
+    expect(copyChanges).toContainEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/target2',
+      newName: 'copy2.txt',
+    })
+    
+    // Verify the final rename
+    expect(renameChanges[0]).toEqual({
+      type: 'rename',
+      item: sourceItems[0].item,
+      newDirectory: '/target3',
+      newName: 'final.txt',
+    })
+  })
 })

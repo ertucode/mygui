@@ -5,6 +5,7 @@ import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
 import { TaskManager } from "../TaskManager.js";
 import { VimEngine } from "../../common/VimEngine.js";
+import { Typescript } from "../../common/Typescript.js";
 
 export async function applyVimChanges(
   changes: VimEngine.Change[],
@@ -14,7 +15,7 @@ export async function applyVimChanges(
   for (const change of changes) {
     if (change.type === "add" || change.type === "remove") {
       affectedDirsSet.add(change.directory);
-    } else if (change.type === "rename") {
+    } else if (change.type === "copy" || change.type === "rename") {
       // Add both source and destination directories
       const originalDir = change.item.fullPath
         ? change.item.fullPath.substring(
@@ -24,6 +25,8 @@ export async function applyVimChanges(
         : change.newDirectory;
       affectedDirsSet.add(originalDir);
       affectedDirsSet.add(change.newDirectory);
+    } else {
+      Typescript.assertUnreachable(change);
     }
   }
 
@@ -124,6 +127,44 @@ async function validateChange(change: VimEngine.Change): Promise<void> {
       break;
     }
 
+    case "copy": {
+      const sourcePath = expandHome(
+        change.item.fullPath ||
+          path.join(change.newDirectory, change.item.name),
+      );
+      const destDir = expandHome(change.newDirectory);
+      const destPath = path.join(destDir, change.newName);
+
+      // Check if source exists
+      try {
+        await fs.access(sourcePath);
+      } catch {
+        throw new Error(`Source item does not exist: ${sourcePath}`);
+      }
+
+      // Check if destination directory exists
+      try {
+        const stats = await fs.stat(destDir);
+        if (!stats.isDirectory()) {
+          throw new Error(`Target directory is not a directory: ${destDir}`);
+        }
+      } catch {
+        throw new Error(`Target directory does not exist: ${destDir}`);
+      }
+
+      // Check if destination already exists
+      try {
+        await fs.access(destPath);
+        throw new Error(`Destination already exists: ${destPath}`);
+      } catch (error: any) {
+        // ENOENT means it doesn't exist, which is what we want
+        if (error.code !== "ENOENT") {
+          throw error;
+        }
+      }
+      break;
+    }
+
     case "rename": {
       const oldPath = expandHome(
         change.item.fullPath ||
@@ -163,6 +204,9 @@ async function validateChange(change: VimEngine.Change): Promise<void> {
       }
       break;
     }
+
+    default:
+      Typescript.assertUnreachable(change);
   }
 }
 
@@ -217,6 +261,27 @@ async function applyChange(change: VimEngine.Change): Promise<void> {
       break;
     }
 
+    case "copy": {
+      const sourcePath = expandHome(
+        change.item.fullPath ||
+          path.join(change.newDirectory, change.item.name),
+      );
+      const destDir = expandHome(change.newDirectory);
+      const destPath = path.join(destDir, change.newName);
+
+      // Create target directory if it doesn't exist
+      await fs.mkdir(destDir, { recursive: true });
+
+      // Copy the item (file or directory)
+      const stats = await fs.stat(sourcePath);
+      if (stats.isDirectory()) {
+        await fs.cp(sourcePath, destPath, { recursive: true });
+      } else {
+        await fs.copyFile(sourcePath, destPath);
+      }
+      break;
+    }
+
     case "rename": {
       const oldPath = expandHome(
         change.item.fullPath ||
@@ -232,5 +297,8 @@ async function applyChange(change: VimEngine.Change): Promise<void> {
       await fs.rename(oldPath, newPath);
       break;
     }
+
+    default:
+      Typescript.assertUnreachable(change);
   }
 }
