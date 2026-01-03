@@ -13,9 +13,11 @@ export function VimCursor() {
       if (!vim) return
       if (s.context.directoriesById[directoryId].directory.type !== 'path') return
       const fullPath = s.context.directoriesById[directoryId].directory.fullPath
+      const str = s.context.vim.buffers[fullPath]?.items[vim.cursor.line]?.str
       return {
         cursor: vim.cursor,
-        content: s.context.vim.buffers[fullPath]?.items[vim.cursor.line]?.str[0],
+        until: str.slice(0, vim.cursor.column),
+        char: str[vim.cursor.column],
       }
     },
     shallowEqual
@@ -26,15 +28,17 @@ export function VimCursor() {
 
   return (
     <div
-      className="absolute bg-red-100/50 z-10 leading-none "
+      className="absolute z-10 leading-none whitespace-pre"
       style={{
         top: HEADER + PADDING + cursor.line * ROW_HEIGHT,
         left: NAME_START,
         height: CURSOR_HEIGHT,
         fontSize: fontsize,
       }}
+      data-cursor={directoryId}
     >
-      {data.content}
+      <span className="opacity-0">{data.until}</span>
+      <span className="bg-red-100/50 ">{data.char}</span>
     </div>
   )
 }

@@ -383,6 +383,40 @@ export namespace VimEngine {
     }
   }
 
+  function moveCursor(
+    opts: CommandOpts,
+    updater: (count: number, cursor: CursorPosition, strLength: number) => CursorPosition
+  ): CommandResult {
+    const count = getEffectiveCount(opts.state)
+    const buffer = opts.state.buffers[opts.fullPath]
+    const str = buffer.items[buffer.cursor.line].str
+    const cursor = updater(count, opts.state.buffers[opts.fullPath].cursor, str.length)
+    return {
+      ...opts.state,
+      buffers: {
+        ...opts.state.buffers,
+        [opts.fullPath]: {
+          ...opts.state.buffers[opts.fullPath],
+          cursor,
+        },
+      },
+    }
+  }
+
+  export function l(opts: CommandOpts): CommandResult {
+    return moveCursor(opts, (count, cursor, strLength) => ({
+      line: cursor.line,
+      column: Math.min(strLength - 1, cursor.column + count),
+    }))
+  }
+
+  export function h(opts: CommandOpts): CommandResult {
+    return moveCursor(opts, (count, cursor) => ({
+      line: cursor.line,
+      column: Math.max(0, cursor.column - count),
+    }))
+  }
+
   export function o({ state, fullPath }: CommandOpts): CommandResult {
     return enterInInsert({ state, fullPath })
   }

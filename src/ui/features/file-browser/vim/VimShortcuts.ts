@@ -99,6 +99,16 @@ export const VimShortcuts = {
           handler: createHandler(VimEngine.i),
           label: '[VIM] Insert line',
         },
+        {
+          key: 'l',
+          handler: createHandler(VimEngine.l),
+          label: '[VIM] Move cursor right',
+        },
+        {
+          key: 'h',
+          handler: createHandler(VimEngine.h),
+          label: '[VIM] Move cursor left',
+        },
       ],
       sequences: [
         {
