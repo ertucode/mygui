@@ -97,7 +97,12 @@ export const VimShortcuts = {
         {
           key: 'i',
           handler: createHandler(VimEngine.i),
-          label: '[VIM] Insert line',
+          label: '[VIM] Insert',
+        },
+        {
+          key: 'a',
+          handler: createHandler(VimEngine.a),
+          label: '[VIM] Append',
         },
         {
           key: 'l',

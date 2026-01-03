@@ -460,11 +460,11 @@ export const directoryStore = createStore({
       updated.vim = event.state
       return updated
     },
-    updateItemStr: (context, event: { str: string; isEnter: boolean }) => {
+    updateItemStr: (context, event: { str: string; isEnter: boolean; column: $Maybe<number> }) => {
       const dir = getActiveDirectory(context, context.activeDirectoryId).directory
       if (dir.type !== 'path') return context
       const fullPath = dir.fullPath
-      const newVim = VimEngine.updateItemStr({ state: context.vim, fullPath }, event.str)
+      const newVim = VimEngine.updateItemStr({ state: context.vim, fullPath }, event.str, event.column)
       const newVim2 = event.isEnter ? VimEngine.enterInInsert({ state: newVim, fullPath }) : newVim
 
       const cursorLine = newVim2.buffers[fullPath].cursor.line

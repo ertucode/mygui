@@ -1,4 +1,4 @@
-import { useState, Ref, forwardRef, useEffect, useMemo } from 'react'
+import { useState, Ref, forwardRef, useEffect, useMemo, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { Button } from '@/lib/components/button'
 import { VimEngine } from '@common/VimEngine'
@@ -20,7 +20,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
   ref: Ref<DialogForItem<{ changes: VimEngine.Change[] }>>
 ) {
   const { dialogOpen, item, onClose } = useDialogStoreDialog(ref)
-  
+
   const changes = item?.changes ?? []
   const changesWithIds: ChangeWithId[] = changes.map((change, idx) => ({
     ...change,
@@ -44,7 +44,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         })
       } else if (change.type === 'rename') {
         // Check if it's a cross-directory move
-        const originalDir = change.item.fullPath 
+        const originalDir = change.item.fullPath
           ? change.item.fullPath.substring(0, change.item.fullPath.lastIndexOf('/'))
           : ''
         const isCrossDirectoryMove = originalDir !== change.newDirectory
@@ -89,13 +89,12 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
       .sort((a, b) => a.directory.localeCompare(b.directory))
   }, [changesWithIds])
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    new Set(changesWithIds.map(c => c.id))
-  )
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(changesWithIds.map(c => c.id)))
 
   // Reset selected IDs when changes change
   useEffect(() => {
     setSelectedIds(new Set(changesWithIds.map(c => c.id)))
+    buttonRef.current?.focus()
   }, [changes.length])
 
   const toggleChange = (id: string) => {
@@ -119,22 +118,22 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
   }
 
   const handleApply = async () => {
-    const selectedChanges = changesWithIds
-      .filter(c => selectedIds.has(c.id))
-      .map(({ id, ...change }) => change)
-    
+    if (selectedIds.size === 0) return
+    const selectedChanges = changesWithIds.filter(c => selectedIds.has(c.id)).map(({ id, ...change }) => change)
+
     const result = await getWindowElectron().applyVimChanges(selectedChanges)
-    
+
     if (result.success) {
       onClose()
     } else {
       // Error handling - could show a toast or alert
       console.error('Failed to apply changes:', result.error)
-      const errorMsg = result.error.type === 'message' 
-        ? result.error.message 
-        : result.error.type === 'http'
-        ? result.error.message
-        : 'Unknown error occurred'
+      const errorMsg =
+        result.error.type === 'message'
+          ? result.error.message
+          : result.error.type === 'http'
+            ? result.error.message
+            : 'Unknown error occurred'
       alert(`Failed to apply changes: ${errorMsg}`)
     }
   }
@@ -170,7 +169,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
   const getChangeDescription = (dirChange: DirectoryChange) => {
     const { change, displayType, otherDirectory } = dirChange
-    
+
     switch (displayType) {
       case 'add':
         if (change.type !== 'add') return null
@@ -178,11 +177,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Add:</span>
-            {isDirectory ? (
-              <FolderIcon className="h-4 w-4" />
-            ) : (
-              <FileIcon className="h-4 w-4" />
-            )}
+            {isDirectory ? <FolderIcon className="h-4 w-4" /> : <FileIcon className="h-4 w-4" />}
             <span className="font-mono">{change.name}</span>
           </div>
         )
@@ -191,11 +186,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Remove:</span>
-            {change.item.type === 'file' ? (
-              <FileIcon className="h-4 w-4" />
-            ) : (
-              <FolderIcon className="h-4 w-4" />
-            )}
+            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
             <span className="font-mono">{change.item.name}</span>
           </div>
         )
@@ -204,11 +195,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Rename:</span>
-            {change.item.type === 'file' ? (
-              <FileIcon className="h-4 w-4" />
-            ) : (
-              <FolderIcon className="h-4 w-4" />
-            )}
+            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
             <span className="font-mono">{change.item.name}</span>
             <span className="text-gray-500">→</span>
             <span className="font-mono font-semibold">{change.newName}</span>
@@ -219,11 +206,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Move to:</span>
-            {change.item.type === 'file' ? (
-              <FileIcon className="h-4 w-4" />
-            ) : (
-              <FolderIcon className="h-4 w-4" />
-            )}
+            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
             <span className="font-mono">{change.item.name}</span>
             <ArrowRightIcon className="h-4 w-4 text-gray-400" />
             <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
@@ -240,11 +223,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
         return (
           <div className="flex items-center gap-2">
             <span className="font-semibold w-20 text-right">Move from:</span>
-            {change.item.type === 'file' ? (
-              <FileIcon className="h-4 w-4" />
-            ) : (
-              <FolderIcon className="h-4 w-4" />
-            )}
+            {change.item.type === 'file' ? <FileIcon className="h-4 w-4" /> : <FolderIcon className="h-4 w-4" />}
             <span className="font-mono text-sm text-gray-500">{otherDirectory}</span>
             <ArrowRightIcon className="h-4 w-4 text-gray-400" />
             <span className="font-mono">{change.newName}</span>
@@ -259,6 +238,8 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
     }
   }
 
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
   if (!dialogOpen) return null
 
   return (
@@ -266,12 +247,9 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
       title={
         <div className="flex items-center justify-between w-full">
           <span>VIM Changes ({changes.length})</span>
-          <button
-            onClick={toggleAll}
-            className="text-sm font-normal hover:underline text-blue-500"
-          >
+          <Button onClick={toggleAll} className="btn-sm btn-ghost">
             {selectedIds.size === changesWithIds.length ? 'Deselect All' : 'Select All'}
-          </button>
+          </Button>
         </div>
       }
       onClose={onClose}
@@ -280,7 +258,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
           <Button onClick={onClose} className="btn-ghost">
             Cancel
           </Button>
-          <Button onClick={handleApply} disabled={selectedIds.size === 0}>
+          <Button ref={buttonRef} onClick={handleApply}>
             Apply {selectedIds.size > 0 && `(${selectedIds.size})`}
           </Button>
         </>
@@ -309,7 +287,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
                 return (
                   <label
                     key={`${dirChange.change.id}-${dirChange.displayType}`}
-                    className={`flex items-start gap-3 p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
+                    className={`flex items-center gap-3 p-3 cursor-pointer transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 ${
                       idx !== group.changes.length - 1 ? 'border-b border-gray-200 dark:border-gray-700' : ''
                     }`}
                   >
@@ -317,7 +295,7 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
                       type="checkbox"
                       checked={isSelected}
                       onChange={() => toggleChange(dirChange.change.id)}
-                      className="mt-1 h-4 w-4 cursor-pointer"
+                      className="checkbox checkbox-sm cursor-pointer"
                     />
                     <Icon className={`h-5 w-5 mt-0.5 flex-shrink-0 ${getChangeColor(dirChange.displayType)}`} />
                     <div className="flex-1 min-w-0">{getChangeDescription(dirChange)}</div>

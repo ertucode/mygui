@@ -311,7 +311,7 @@ export namespace VimEngine {
     }
   }
 
-  export function updateItemStr({ state, fullPath }: CommandOpts, str: string): CommandResult {
+  export function updateItemStr({ state, fullPath }: CommandOpts, str: string, column: $Maybe<number>): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
     const prevStr = currentItems[buffer.cursor.line].str
@@ -339,6 +339,7 @@ export namespace VimEngine {
         [fullPath]: {
           ...buffer,
           items: currentItems,
+          cursor: column ? { line: buffer.cursor.line, column } : buffer.cursor,
         },
       },
       count: 0,
@@ -424,6 +425,25 @@ export namespace VimEngine {
   export function i(opts: CommandOpts): CommandResult {
     return {
       ...opts.state,
+      mode: 'insert',
+    }
+  }
+
+  export function a(opts: CommandOpts): CommandResult {
+    const buffer = opts.state.buffers[opts.fullPath]
+    const maxLine = buffer.items[buffer.cursor.line].str.length - 1
+    return {
+      ...opts.state,
+      buffers: {
+        ...opts.state.buffers,
+        [opts.fullPath]: {
+          ...opts.state.buffers[opts.fullPath],
+          cursor: {
+            line: buffer.cursor.line,
+            column: Math.min(buffer.cursor.column + 1, maxLine),
+          },
+        },
+      },
       mode: 'insert',
     }
   }
