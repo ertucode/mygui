@@ -14,8 +14,9 @@ function createHandler(updater: (opts: VimEngine.CommandOpts) => VimEngine.State
     const { snapshot, fullPath, activeDirectory } = result
     const beforeCursor = snapshot.vim.buffers[fullPath].cursor
     const updated = updater({ state: snapshot.vim, fullPath })
-    const afterCursor = snapshot.vim.buffers[fullPath].cursor
+    const afterCursor = updated.buffers[fullPath].cursor
     const isChanged = beforeCursor.line !== afterCursor.line || beforeCursor.column !== afterCursor.column
+
     directoryStore.trigger.updateVimState({
       state: updated,
       selection: isChanged ? { index: afterCursor.line, directoryId: activeDirectory.directoryId } : undefined,

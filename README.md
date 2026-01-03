@@ -5,22 +5,9 @@
 
 # TODO
 
+- selection after tasks -> have metadata about the selection on the task? and update the selection if metadata selection matches
 - unarchive as file if only one file
 - extract'tan sonra reload olmadı sanki.
-- oil.nvim style directory editing
-  - always oil mode????
-    - do we refresh when that specific directory is changed?
-  - ctrl+v selection
-  - cc
-  - dd
-  - yy
-  - p
-  - P
-  - u
-  - ciw
-  - C
-  - movement through directories
-  - normal mode, insert mode
 - for archives, navgate to it on double click. show unarchive button on the name part
 
 # AMBITIOUS TODO

@@ -155,12 +155,12 @@ function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: Column
 
   return (
     <div className="flex items-center min-w-0 gap-2">
-      <span className="block truncate" title={row.name}>
+      <span className="block truncate leading-none" title={row.name}>
         {item.str}
       </span>
       {tags && <TagCircles tags={tags} />}
       {parentFolder && parentFolder.name && ctx.directoryType === 'tags' && (
-        <span className="text-gray-400 text-xs truncate flex-shrink-0" title={parentFolder.path}>
+        <span className="text-gray-400 text-xs truncate flex-shrink-0 leading-none" title={parentFolder.path}>
           {parentFolder.path}
         </span>
       )}
