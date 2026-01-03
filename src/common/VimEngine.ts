@@ -415,6 +415,28 @@ export namespace VimEngine {
     }))
   }
 
+  export function j(opts: CommandOpts): CommandResult {
+    return moveCursor(opts, (count, cursor) => {
+      const numItems = opts.state.buffers[opts.fullPath].items.length
+      const dest = cursor.line + count
+      return {
+        line: dest > numItems - 1 ? dest % numItems : dest,
+        column: cursor.column,
+      }
+    })
+  }
+
+  export function k(opts: CommandOpts): CommandResult {
+    return moveCursor(opts, (count, cursor) => {
+      const numItems = opts.state.buffers[opts.fullPath].items.length
+      const dest = cursor.line - count
+      return {
+        line: dest < 0 ? numItems + dest : dest,
+        column: cursor.column,
+      }
+    })
+  }
+
   export function o({ state, fullPath }: CommandOpts): CommandResult {
     return enterInInsert({ state, fullPath })
   }

@@ -44,10 +44,7 @@ function createRealBufferItem(name: string, fullPath?: string): VimEngine.RealBu
 }
 
 // Helper to create a default buffer
-function createBuffer(
-  fullPath: string,
-  items: VimEngine.RealBufferItem[]
-): VimEngine.Buffer {
+function createBuffer(fullPath: string, items: VimEngine.RealBufferItem[]): VimEngine.Buffer {
   return {
     fullPath,
     items: [...items],
@@ -61,7 +58,7 @@ describe('VimEngine.aggregateChanges', () => {
   it('should return empty changes for empty state', () => {
     const state: VimEngine.State = VimEngine.defaultState()
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toEqual([])
   })
 
@@ -85,17 +82,11 @@ describe('VimEngine.aggregateChanges', () => {
   })
 
   it('should detect single file addition', () => {
-    const originalItems = [
-      createRealBufferItem('file1.txt'),
-      createRealBufferItem('file2.txt'),
-    ]
+    const originalItems = [createRealBufferItem('file1.txt'), createRealBufferItem('file2.txt')]
 
     const buffer = createBuffer('/test/dir1', originalItems)
     // Add a new string item
-    buffer.items = [
-      ...originalItems,
-      VimEngine.createStrBufferItem('newfile.txt'),
-    ]
+    buffer.items = [...originalItems, VimEngine.createStrBufferItem('newfile.txt')]
 
     const state: VimEngine.State = {
       ...VimEngine.defaultState(),
@@ -143,10 +134,7 @@ describe('VimEngine.aggregateChanges', () => {
   })
 
   it('should detect single file rename', () => {
-    const originalItems = [
-      createRealBufferItem('oldname.txt'),
-      createRealBufferItem('file2.txt'),
-    ]
+    const originalItems = [createRealBufferItem('oldname.txt'), createRealBufferItem('file2.txt')]
 
     const buffer = createBuffer('/test/dir1', originalItems)
     // Rename the first file
@@ -205,10 +193,10 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should have 3 changes: remove, rename, add
     expect(result.changes).toHaveLength(3)
-    
+
     const removeChange = result.changes.find(c => c.type === 'remove')
     expect(removeChange).toEqual({
       type: 'remove',
@@ -247,10 +235,7 @@ describe('VimEngine.aggregateChanges', () => {
     const buffer2 = createBuffer('/dir2', dir2Items)
 
     // In dir1: add a file
-    buffer1.items = [
-      ...dir1Items,
-      VimEngine.createStrBufferItem('new1.txt'),
-    ]
+    buffer1.items = [...dir1Items, VimEngine.createStrBufferItem('new1.txt')]
 
     // In dir2: remove a file and rename another
     buffer2.items = [
@@ -271,7 +256,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(3)
 
     // Check dir1 addition
@@ -301,9 +286,7 @@ describe('VimEngine.aggregateChanges', () => {
   })
 
   it('should ignore empty string items (whitespace only)', () => {
-    const originalItems = [
-      createRealBufferItem('file1.txt'),
-    ]
+    const originalItems = [createRealBufferItem('file1.txt')]
 
     const buffer = createBuffer('/test/dir1', originalItems)
     // Add empty/whitespace items
@@ -323,7 +306,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should only detect the valid file addition, not the empty ones
     expect(result.changes).toEqual([
       {
@@ -349,9 +332,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     // Directory 3: /assets
-    const assetsItems = [
-      createRealBufferItem('logo.png', '/assets/logo.png'),
-    ]
+    const assetsItems = [createRealBufferItem('logo.png', '/assets/logo.png')]
 
     const buffer1 = createBuffer('/projects', projectsItems)
     const buffer2 = createBuffer('/docs', docsItems)
@@ -390,10 +371,7 @@ describe('VimEngine.aggregateChanges', () => {
     // - Remove logo.png
     // - Add icon.svg
     // - Add banner.jpg
-    buffer3.items = [
-      VimEngine.createStrBufferItem('icon.svg'),
-      VimEngine.createStrBufferItem('banner.jpg'),
-    ]
+    buffer3.items = [VimEngine.createStrBufferItem('icon.svg'), VimEngine.createStrBufferItem('banner.jpg')]
 
     const state: VimEngine.State = {
       ...VimEngine.defaultState(),
@@ -405,7 +383,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should have 8 changes total:
     // /projects: 1 rename, 1 remove, 1 add = 3
     // /docs: 1 rename, 1 add = 2
@@ -476,7 +454,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test', originalItems)
-    
+
     // Rename folder1 to renamed-folder
     // Remove folder2
     // Add folder3
@@ -497,7 +475,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(3)
     expect(result.changes).toContainEqual({
       type: 'rename',
@@ -531,7 +509,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test', originalItems)
-    
+
     // Rename the file
     buffer.items = [
       {
@@ -549,7 +527,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toEqual([
       {
         type: 'rename',
@@ -579,7 +557,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(3)
     expect(result.changes).toEqual(
       expect.arrayContaining([
@@ -619,7 +597,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(3)
     expect(result.changes).toEqual(
       expect.arrayContaining([
@@ -651,7 +629,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test/dir1', originalItems)
-    
+
     // Reorder items: same files, different order
     buffer.items = [
       originalItems[2], // gamma.txt
@@ -668,7 +646,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Order changes should not trigger any changes
     expect(result.changes).toEqual([])
   })
@@ -682,7 +660,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test/dir1', originalItems)
-    
+
     // Reorder + rename one file + remove one + add one
     buffer.items = [
       originalItems[3], // file4.txt - moved but not changed
@@ -704,23 +682,23 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should detect: 1 rename, 1 remove, 1 add (order changes ignored)
     expect(result.changes).toHaveLength(3)
-    
+
     expect(result.changes).toContainEqual({
       type: 'rename',
       item: originalItems[1].item,
       newDirectory: '/test/dir1',
       newName: 'renamed2.txt',
     })
-    
+
     expect(result.changes).toContainEqual({
       type: 'remove',
       directory: '/test/dir1',
       item: originalItems[2].item,
     })
-    
+
     expect(result.changes).toContainEqual({
       type: 'add',
       directory: '/test/dir1',
@@ -766,7 +744,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // No changes should be detected - only order changed
     expect(result.changes).toEqual([])
   })
@@ -781,7 +759,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test/dir1', originalItems)
-    
+
     // Completely reverse the order
     buffer.items = [...originalItems].reverse()
 
@@ -793,7 +771,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Reversing order should not trigger any changes
     expect(result.changes).toEqual([])
   })
@@ -809,7 +787,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     const buffer = createBuffer('/test/dir1', originalItems)
-    
+
     // Random shuffle: [3, 0, 5, 1, 4, 2]
     buffer.items = [
       originalItems[3],
@@ -828,7 +806,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Random shuffle should not trigger any changes
     expect(result.changes).toEqual([])
   })
@@ -841,9 +819,7 @@ describe('VimEngine.aggregateChanges', () => {
     ]
 
     // Directory 2: /target with fileA.txt
-    const targetItems = [
-      createRealBufferItem('fileA.txt', '/target/fileA.txt'),
-    ]
+    const targetItems = [createRealBufferItem('fileA.txt', '/target/fileA.txt')]
 
     const sourceBuffer = createBuffer('/source', sourceItems)
     const targetBuffer = createBuffer('/target', targetItems)
@@ -866,7 +842,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should detect as a single rename/move operation, not remove + add
     expect(result.changes).toHaveLength(1)
     expect(result.changes[0]).toEqual({
@@ -878,13 +854,9 @@ describe('VimEngine.aggregateChanges', () => {
   })
 
   it('should detect cross-directory move with name change as rename', () => {
-    const sourceItems = [
-      createRealBufferItem('oldname.txt', '/dir1/oldname.txt'),
-    ]
+    const sourceItems = [createRealBufferItem('oldname.txt', '/dir1/oldname.txt')]
 
-    const targetItems = [
-      createRealBufferItem('existing.txt', '/dir2/existing.txt'),
-    ]
+    const targetItems = [createRealBufferItem('existing.txt', '/dir2/existing.txt')]
 
     const sourceBuffer = createBuffer('/dir1', sourceItems)
     const targetBuffer = createBuffer('/dir2', targetItems)
@@ -911,7 +883,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(1)
     expect(result.changes[0]).toEqual({
       type: 'rename',
@@ -952,7 +924,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     expect(result.changes).toHaveLength(1)
     expect(result.changes[0]).toEqual({
       type: 'rename',
@@ -969,9 +941,7 @@ describe('VimEngine.aggregateChanges', () => {
       createRealBufferItem('other.txt', '/source/other.txt'),
     ]
 
-    const targetItems = [
-      createRealBufferItem('existing.txt', '/target/existing.txt'),
-    ]
+    const targetItems = [createRealBufferItem('existing.txt', '/target/existing.txt')]
 
     const sourceBuffer = createBuffer('/source', sourceItems)
     const targetBuffer = createBuffer('/target', targetItems)
@@ -994,7 +964,7 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should be just a rename (move), not a copy
     expect(result.changes).toHaveLength(1)
     expect(result.changes[0]).toEqual({
@@ -1002,6 +972,60 @@ describe('VimEngine.aggregateChanges', () => {
       item: sourceItems[0].item,
       newDirectory: '/target',
       newName: 'file.txt',
+    })
+  })
+
+  it('should detect dd + multiple pastes as n-1 copies when original is not renamed', () => {
+    // Scenario: dd file from /dir, paste into /dir
+    // Should generate: 2 copies
+    const sourceItems = [
+      createRealBufferItem('file.txt', '/dir/file.txt'),
+      createRealBufferItem('other.txt', '/dir/other.txt'),
+    ]
+
+    const sourceBuffer = createBuffer('/source', sourceItems)
+
+    // Remove from source (dd)
+    sourceBuffer.items = [sourceItems[1]] // only other.txt remains
+
+    let state: VimEngine.State = {
+      ...VimEngine.defaultState(),
+      buffers: {
+        '/source': sourceBuffer,
+      },
+    }
+    sourceBuffer.cursor = { column: 0, line: 0 }
+
+    state = VimEngine.dd({ state, fullPath: '/source' })
+    state = VimEngine.p({ state, fullPath: '/source' })
+    state = VimEngine.p({ state, fullPath: '/source' })
+    state = VimEngine.p({ state, fullPath: '/source' })
+    state = VimEngine.updateItemStr({ state, fullPath: '/source' }, 'file2.txt', undefined)
+    state = VimEngine.k({ state, fullPath: '/source' })
+    state = VimEngine.updateItemStr({ state, fullPath: '/source' }, 'file3.txt', undefined)
+
+    const result = VimEngine.aggregateChanges(state)
+
+    // Should have 3 changes: 2 copies
+    expect(result.changes).toHaveLength(2)
+
+    const copyChanges = result.changes.filter(c => c.type === 'copy')
+
+    expect(copyChanges).toHaveLength(2)
+
+    // First two should be copies
+    expect(copyChanges[0]).toEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/dir',
+      newName: 'file2.txt',
+    })
+
+    expect(copyChanges[1]).toEqual({
+      type: 'copy',
+      item: sourceItems[0].item,
+      newDirectory: '/dir',
+      newName: 'file3.txt',
     })
   })
 
@@ -1013,17 +1037,11 @@ describe('VimEngine.aggregateChanges', () => {
       createRealBufferItem('other.txt', '/source/other.txt'),
     ]
 
-    const target1Items = [
-      createRealBufferItem('existing1.txt', '/target1/existing1.txt'),
-    ]
+    const target1Items = [createRealBufferItem('existing1.txt', '/target1/existing1.txt')]
 
-    const target2Items = [
-      createRealBufferItem('existing2.txt', '/target2/existing2.txt'),
-    ]
+    const target2Items = [createRealBufferItem('existing2.txt', '/target2/existing2.txt')]
 
-    const target3Items = [
-      createRealBufferItem('existing3.txt', '/target3/existing3.txt'),
-    ]
+    const target3Items = [createRealBufferItem('existing3.txt', '/target3/existing3.txt')]
 
     const sourceBuffer = createBuffer('/source', sourceItems)
     const target1Buffer = createBuffer('/target1', target1Items)
@@ -1060,16 +1078,16 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should have 3 changes: 2 copies + 1 rename
     expect(result.changes).toHaveLength(3)
-    
+
     const copyChanges = result.changes.filter(c => c.type === 'copy')
     const renameChanges = result.changes.filter(c => c.type === 'rename')
-    
+
     expect(copyChanges).toHaveLength(2)
     expect(renameChanges).toHaveLength(1)
-    
+
     // First two should be copies
     expect(copyChanges[0]).toEqual({
       type: 'copy',
@@ -1077,14 +1095,14 @@ describe('VimEngine.aggregateChanges', () => {
       newDirectory: '/target1',
       newName: 'file.txt',
     })
-    
+
     expect(copyChanges[1]).toEqual({
       type: 'copy',
       item: sourceItems[0].item,
       newDirectory: '/target2',
       newName: 'file.txt',
     })
-    
+
     // Last one should be the rename
     expect(renameChanges[0]).toEqual({
       type: 'rename',
@@ -1096,9 +1114,7 @@ describe('VimEngine.aggregateChanges', () => {
 
   it('should handle dd + multiple pastes with different names', () => {
     // Scenario: dd file, paste multiple times with different names
-    const sourceItems = [
-      createRealBufferItem('original.txt', '/source/original.txt'),
-    ]
+    const sourceItems = [createRealBufferItem('original.txt', '/source/original.txt')]
 
     const target1Items: VimEngine.RealBufferItem[] = []
     const target2Items: VimEngine.RealBufferItem[] = []
@@ -1148,16 +1164,16 @@ describe('VimEngine.aggregateChanges', () => {
     }
 
     const result = VimEngine.aggregateChanges(state)
-    
+
     // Should have 3 changes: 2 copies + 1 rename
     expect(result.changes).toHaveLength(3)
-    
+
     const copyChanges = result.changes.filter(c => c.type === 'copy')
     const renameChanges = result.changes.filter(c => c.type === 'rename')
-    
+
     expect(copyChanges).toHaveLength(2)
     expect(renameChanges).toHaveLength(1)
-    
+
     // Verify the copies
     expect(copyChanges).toContainEqual({
       type: 'copy',
@@ -1165,14 +1181,14 @@ describe('VimEngine.aggregateChanges', () => {
       newDirectory: '/target1',
       newName: 'copy1.txt',
     })
-    
+
     expect(copyChanges).toContainEqual({
       type: 'copy',
       item: sourceItems[0].item,
       newDirectory: '/target2',
       newName: 'copy2.txt',
     })
-    
+
     // Verify the final rename
     expect(renameChanges[0]).toEqual({
       type: 'rename',
