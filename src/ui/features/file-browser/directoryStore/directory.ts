@@ -213,7 +213,7 @@ export const directoryStore = createStore({
         pendingSelection: event.name,
       })),
 
-    setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId }) => {
+    setSelection: (context, event: { indexes: Set<number>; last?: number; directoryId: DirectoryId | undefined }) => {
       let cursorLineFullPath: undefined | string | false = undefined
       const updatedContext = updateDirectory(context, event.directoryId, d => {
         cursorLineFullPath = getVimCursorFullPath(d, context)

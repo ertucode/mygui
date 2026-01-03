@@ -6,7 +6,7 @@ import { GenericError } from '@common/GenericError'
 import { mergeMaybeSlashed } from '@common/merge-maybe-slashed'
 import { PathHelpers } from '@common/PathHelpers'
 import { dialogActions } from '../dialogStore'
-import { directoryStore, loadDirectoryInfo } from './directory'
+import { createResetSelection, directoryStore, loadDirectoryInfo } from './directory'
 import { directoryLoadingHelpers } from './directoryLoadingStore'
 import { selectIsFavorite, favoritesStore } from '../favorites'
 import { recentsStore } from '../recents'
@@ -403,7 +403,8 @@ export const directoryHelpers = {
             const itemToSelect = remainingItems[newIndex]
             directoryHelpers.setPendingSelection(itemToSelect.name, directoryId)
           } else {
-            directoryStore.send({ type: 'resetSelection', directoryId })
+            const s = createResetSelection()
+            directoryStore.send({ type: 'setSelection', directoryId, ...s })
           }
           // Reload the directory without affecting history
           await directoryHelpers.reload(directoryId)
