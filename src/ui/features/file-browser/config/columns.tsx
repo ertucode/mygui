@@ -4,10 +4,15 @@ import { FileCategory } from '@common/file-category'
 import { FileTags, TAG_COLOR_CLASSES, TagColor } from '../tags'
 import { PathHelpers } from '@common/PathHelpers'
 import { useEffect, useRef, useState } from 'react'
-import { directoryHelpers, directoryStore } from '../directoryStore/directory'
-import { DerivedDirectoryItem, DirectoryId, DirectoryType, StrDirectoryItem } from '../directoryStore/DirectoryBase'
+import { directoryStore } from '../directoryStore/directory'
+import {
+  DerivedDirectoryItem,
+  DirectoryId,
+  DirectoryType,
+  RealDirectoryItem,
+  StrDirectoryItem,
+} from '../directoryStore/DirectoryBase'
 import { CategoryHelpers } from '../CategoryHelpers'
-import { perDirectoryDataHelpers } from '../directoryStore/perDirectoryData'
 import { getWindowElectron } from '@/getWindowElectron'
 import { useSelector } from '@xstate/store/react'
 import { FileQuestionIcon } from 'lucide-react'
@@ -65,6 +70,7 @@ export interface ColumnsContext {
   getFullPath: (name: string) => string
   directoryId: DirectoryId
   directoryType: DirectoryType
+  isInsert: (index: number) => boolean | undefined
 }
 
 export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryItem>[] {
@@ -86,8 +92,9 @@ export function createColumns(ctx: ColumnsContext): ColumnDef<DerivedDirectoryIt
       sortKey: 'name',
       header: 'Name',
       cell: (row, { index: idx }) => {
-        // TODO: we could have an item with different name maybe? We should show depending on the insert mode
-        if (row.type === 'real') return <DirectoryNameColumn row={row.item} ctx={ctx} idx={idx} />
+        if (ctx.isInsert(idx)) return <VimInsertItem row={row} index={idx} />
+
+        if (row.type === 'real') return <DirectoryNameCell item={row} ctx={ctx} idx={idx} />
         return <VimModeName ctx={ctx} row={row} index={idx} />
       },
     },
@@ -139,43 +146,18 @@ function SimpleCell({
   )
 }
 
-function DirectoryNameColumn({
-  row,
-  ctx,
-  idx,
-}: {
-  row: GetFilesAndFoldersInDirectoryItem
-  ctx: ColumnsContext
-  idx: number
-}) {
+function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: ColumnsContext; idx: number }) {
+  const row = item.item
   const fullPath = row.fullPath ?? ctx.getFullPath(row.name)
   const tags = ctx.fileTags[fullPath]
   // Show folder name when fullPath is available (tags view)
   const parentFolder = row.fullPath ? PathHelpers.parent(row.fullPath) : null
 
-  const [renaming, setRenaming] = useState(false)
-
   return (
     <div className="flex items-center min-w-0 gap-2">
-      {renaming ? (
-        <RenameInput row={row} ctx={ctx} setRenaming={setRenaming} />
-      ) : (
-        <span
-          className="block truncate"
-          title={row.name}
-          onClick={e => {
-            if (perDirectoryDataHelpers.lastClickIsRecent(ctx.directoryId, idx)) {
-              return
-            }
-            if (e.metaKey || checkIfRowIsSelected(ctx, idx)) {
-              e.preventDefault()
-              setRenaming(true)
-            }
-          }}
-        >
-          {row.name}
-        </span>
-      )}
+      <span className="block truncate" title={row.name}>
+        {item.str}
+      </span>
       {tags && <TagCircles tags={tags} />}
       {parentFolder && parentFolder.name && ctx.directoryType === 'tags' && (
         <span className="text-gray-400 text-xs truncate flex-shrink-0" title={parentFolder.path}>
@@ -201,7 +183,7 @@ function VimModeName({ ctx, row, index }: { ctx: ColumnsContext; row: StrDirecto
   return <VimInsertItem row={row} index={index} />
 }
 
-function VimInsertItem({ row, index }: { row: StrDirectoryItem; index: number }) {
+function VimInsertItem({ row, index }: { row: DerivedDirectoryItem; index: number }) {
   const [value, setValue] = useState(row.str)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -234,79 +216,6 @@ function VimInsertItem({ row, index }: { row: StrDirectoryItem; index: number })
       onClick={e => e.stopPropagation()}
       onBlur={e => onEscapeOrBlur(e, false)}
       autoFocus
-    />
-  )
-}
-
-function checkIfRowIsSelected(ctx: ColumnsContext, idx: number) {
-  const snapshot = directoryStore.getSnapshot()
-  if (snapshot.context.activeDirectoryId !== ctx.directoryId) return false
-
-  const lastSelected = snapshot.context.directoriesById[ctx.directoryId]?.selection?.last
-  if (lastSelected == null) return false
-
-  return lastSelected === idx
-}
-
-function RenameInput({
-  row,
-  ctx,
-  setRenaming,
-}: {
-  row: GetFilesAndFoldersInDirectoryItem
-  ctx: ColumnsContext
-  setRenaming: (value: boolean) => void
-}) {
-  const [value, setValue] = useState(row.name)
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  useEffect(() => {
-    const c = inputRef.current
-    if (!c) return
-    c.focus()
-    c.selectionStart = 0
-    const indexOfLastDot = c.value.lastIndexOf('.')
-    if (indexOfLastDot !== -1) {
-      c.selectionEnd = indexOfLastDot
-    }
-
-    const closest = c.closest('tr')
-    if (closest) {
-      closest.draggable = false
-    }
-
-    return () => {
-      if (!closest) return
-      closest.draggable = true
-    }
-  }, [])
-
-  const onKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      directoryHelpers.renameItem(row, value, ctx.directoryId)
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      setRenaming(false)
-    }
-  }
-
-  const onBlur = (e: React.FocusEvent) => {
-    e.preventDefault()
-    setRenaming(false)
-  }
-
-  return (
-    <input
-      ref={inputRef}
-      className="w-full"
-      type="text"
-      value={value}
-      onChange={e => setValue(e.target.value)}
-      onKeyDown={onKeyDown}
-      onClick={e => e.stopPropagation()}
-      onBlur={onBlur}
-      draggable={false}
     />
   )
 }

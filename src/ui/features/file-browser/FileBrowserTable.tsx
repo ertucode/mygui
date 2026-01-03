@@ -52,14 +52,30 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
   const columnPreferences = useSelector(columnPreferencesStore, selectEffectivePreferences(directoryPath))
 
+  const insertBuffer = useSelector(
+    directoryStore,
+    s => {
+      if (s.context.vim.mode !== 'insert') return
+      const directory = s.context.directoriesById[directoryId]
+      if (!directory || directory.directory.type !== 'path') return
+      const buffer = s.context.vim.buffers[directory.directory.fullPath]
+      return buffer
+    },
+    (a, b) => {
+      if (a && b) return a.cursor.line === b.cursor.line
+      return a === b
+    }
+  )
+
   const allColumns = useMemo(() => {
     return createColumns({
       fileTags,
       getFullPath: n => directoryHelpers.getFullPath(n, context.directoryId),
       directoryId: context.directoryId,
       directoryType,
+      isInsert: (index: number) => insertBuffer?.cursor.line === index,
     })
-  }, [fileTags])
+  }, [fileTags, insertBuffer])
 
   // Apply column preferences: reorder and filter columns
   const columns = useMemo(() => {
