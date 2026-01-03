@@ -73,9 +73,6 @@ export namespace VimEngine {
   } as const
   export type Mode = (typeof Mode)[keyof typeof Mode]
 
-  // cc - dd - yy - p - P - u - ciw - C
-  // History stack not supported for line updates
-
   export function cc({ state, fullPath }: CommandOpts): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]

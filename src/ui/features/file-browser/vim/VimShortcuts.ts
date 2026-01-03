@@ -105,7 +105,7 @@ export const VimShortcuts = {
           label: '[VIM] Append',
         },
         {
-          key: 'A',
+          key: { key: 'A', shiftKey: true },
           handler: createHandler(VimEngine.A),
           label: '[VIM] Append at end',
         },
