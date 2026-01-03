@@ -983,10 +983,8 @@ describe('VimEngine.aggregateChanges', () => {
       createRealBufferItem('other.txt', '/dir/other.txt'),
     ]
 
-    const sourceBuffer = createBuffer('/source', sourceItems)
-
-    // Remove from source (dd)
-    sourceBuffer.items = [sourceItems[1]] // only other.txt remains
+    const sourceBuffer = createBuffer('/dir', sourceItems)
+    sourceBuffer.cursor = { column: 0, line: 0 }
 
     let state: VimEngine.State = {
       ...VimEngine.defaultState(),
@@ -994,26 +992,26 @@ describe('VimEngine.aggregateChanges', () => {
         '/dir': sourceBuffer,
       },
     }
-    sourceBuffer.cursor = { column: 0, line: 0 }
 
     state = VimEngine.dd({ state, fullPath: '/dir' })
     state = VimEngine.p({ state, fullPath: '/dir' })
     state = VimEngine.p({ state, fullPath: '/dir' })
     state = VimEngine.p({ state, fullPath: '/dir' })
-    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file2.txt', undefined)
     state = VimEngine.k({ state, fullPath: '/dir' })
+    state = VimEngine.k({ state, fullPath: '/dir' })
+    state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file2.txt', undefined)
+    state = VimEngine.j({ state, fullPath: '/dir' })
     state = VimEngine.updateItemStr({ state, fullPath: '/dir' }, 'file3.txt', undefined)
 
     const result = VimEngine.aggregateChanges(state)
 
-    // Should have 3 changes: 2 copies
+    // Should have 2 changes: 2 copies
     expect(result.changes).toHaveLength(2)
 
     const copyChanges = result.changes.filter(c => c.type === 'copy')
 
     expect(copyChanges).toHaveLength(2)
 
-    // First two should be copies
     expect(copyChanges[0]).toEqual({
       type: 'copy',
       item: sourceItems[0].item,
