@@ -8,21 +8,23 @@ export namespace VimEngine {
     column: number
   }
 
+  export type RealBufferItem = {
+    type: 'real'
+    item: GetFilesAndFoldersInDirectoryItem
+    str: string
+  }
   export type BufferItem =
     | {
         type: 'str'
         str: string
         id: number
       }
-    | {
-        type: 'real'
-        item: GetFilesAndFoldersInDirectoryItem
-        str: string
-      }
+    | RealBufferItem
 
   export type Buffer = {
     fullPath: string
     items: BufferItem[]
+    originalItems: RealBufferItem[]
     historyStack: HistoryStack<HistoryItem>
     cursor: CursorPosition
   }
@@ -75,6 +77,7 @@ export namespace VimEngine {
     const currentBuffer: Buffer = {
       fullPath,
       items: currentItems,
+      originalItems: buffer.originalItems,
       historyStack: buffer.historyStack.withNew({
         reversions: [
           {
@@ -121,6 +124,7 @@ export namespace VimEngine {
     const currentBuffer: Buffer = {
       fullPath: fullPath,
       items: currentItems,
+      originalItems: buffer.originalItems,
       historyStack: buffer.historyStack.withNew({
         reversions: [
           {
@@ -173,6 +177,7 @@ export namespace VimEngine {
     const currentBuffer: Buffer = {
       fullPath: buffer.fullPath,
       items: currentItems,
+      originalItems: buffer.originalItems,
       historyStack: buffer.historyStack.withNew({
         reversions: [
           {
@@ -211,6 +216,7 @@ export namespace VimEngine {
     const currentBuffer: Buffer = {
       fullPath: fullPath,
       items: currentItems,
+      originalItems: buffer.originalItems,
       historyStack: buffer.historyStack.withNew({
         reversions: [
           {
@@ -292,6 +298,88 @@ export namespace VimEngine {
     }
   }
 
+  export type Changes = {
+    changes: Change[]
+  }
+  export type Change =
+    | {
+        type: 'add'
+        directory: string
+        name: string
+      }
+    | {
+        type: 'remove'
+        directory: string
+        item: GetFilesAndFoldersInDirectoryItem
+      }
+    | {
+        type: 'rename'
+        item: GetFilesAndFoldersInDirectoryItem
+        newDirectory: string
+        newName: string
+      }
+  export function aggregateChanges(state: State): Changes {
+    const changes: Change[] = []
+
+    for (const buffer of Object.values(state.buffers)) {
+      // Create a map of original items by their identifier (fullPath or name)
+      const originalItemsById = new Map<string, GetFilesAndFoldersInDirectoryItem>()
+      for (const originalItem of buffer.originalItems) {
+        const id = originalItem.item.fullPath || originalItem.item.name
+        originalItemsById.set(id, originalItem.item)
+      }
+
+      // Create a map of current items by their identifier for tracking
+      const currentItemsById = new Map<string, { item: GetFilesAndFoldersInDirectoryItem; newName: string }>()
+      const addedItems: string[] = []
+
+      // Process current buffer state
+      for (const bufferItem of buffer.items) {
+        if (bufferItem.type === 'real') {
+          const id = bufferItem.item.fullPath || bufferItem.item.name
+          currentItemsById.set(id, { item: bufferItem.item, newName: bufferItem.str })
+        } else if (bufferItem.type === 'str' && bufferItem.str.trim() !== '') {
+          // This is a new item (add)
+          addedItems.push(bufferItem.str)
+        }
+      }
+
+      // Detect changes by comparing original vs current
+      for (const [id, originalItem] of originalItemsById.entries()) {
+        const currentItem = currentItemsById.get(id)
+
+        if (!currentItem) {
+          // Original item is not in current buffer - it's been removed
+          changes.push({
+            type: 'remove',
+            directory: buffer.fullPath,
+            item: originalItem,
+          })
+        } else if (currentItem.newName !== originalItem.name) {
+          // Item exists but name has changed - it's a rename
+          changes.push({
+            type: 'rename',
+            item: originalItem,
+            newDirectory: buffer.fullPath,
+            newName: currentItem.newName,
+          })
+        }
+        // else: item exists with same name - no change
+      }
+
+      // Add all new items
+      for (const newItemName of addedItems) {
+        changes.push({
+          type: 'add',
+          directory: buffer.fullPath,
+          name: newItemName,
+        })
+      }
+    }
+
+    return { changes }
+  }
+
   // function lineUpdatingFn(
   //   state: PerDirectoryState,
   //   fn: (line: string) => { column: number; result: string }
@@ -361,10 +449,11 @@ export namespace VimEngine {
     }
   }
 
-  export function defaultBuffer(fullPath: string, items: BufferItem[]): Buffer {
+  export function defaultBuffer(fullPath: string, items: RealBufferItem[]): Buffer {
     return {
       fullPath,
       items,
+      originalItems: items,
       historyStack: new HistoryStack<HistoryItem>([]),
       cursor: { line: 0, column: 0 },
     }

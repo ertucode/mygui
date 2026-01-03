@@ -57,6 +57,11 @@ export const VimShortcuts = {
           handler: createHandler(VimEngine.P),
           label: '[VIM] Paste before',
         },
+        {
+          key: { key: 's', altKey: true },
+          handler: createHandler(VimEngine.esc),
+          label: '[VIM] Save',
+        },
       ],
       sequences: [
         {
