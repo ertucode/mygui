@@ -459,6 +459,12 @@ export namespace VimEngine {
         item: GetFilesAndFoldersInDirectoryItem
       }
     | {
+        type: 'copy'
+        item: GetFilesAndFoldersInDirectoryItem
+        newDirectory: string
+        newName: string
+      }
+    | {
         type: 'rename'
         item: GetFilesAndFoldersInDirectoryItem
         newDirectory: string
@@ -475,7 +481,7 @@ export namespace VimEngine {
     }
 
     const originalLocations = new Map<string, ItemLocation>() // id -> original location
-    const currentLocations = new Map<string, ItemLocation>() // id -> current location
+    const currentLocations = new Map<string, ItemLocation[]>() // id -> array of current locations (for detecting multiple pastes)
     const addedItems: Array<{ directory: string; name: string }> = []
 
     // Collect all original and current items from all buffers
@@ -494,11 +500,13 @@ export namespace VimEngine {
       for (const bufferItem of buffer.items) {
         if (bufferItem.type === 'real') {
           const id = bufferItem.item.fullPath || bufferItem.item.name
-          currentLocations.set(id, {
+          const locations = currentLocations.get(id) || []
+          locations.push({
             directory: buffer.fullPath,
             item: bufferItem.item,
             newName: bufferItem.str,
           })
+          currentLocations.set(id, locations)
         } else if (bufferItem.type === 'str' && bufferItem.str.trim() !== '') {
           // This is a new item (add)
           addedItems.push({
@@ -511,28 +519,51 @@ export namespace VimEngine {
 
     // Second pass: detect changes by comparing original vs current locations
     for (const [id, originalLocation] of originalLocations.entries()) {
-      const currentLocation = currentLocations.get(id)
+      const locations = currentLocations.get(id) || []
 
-      if (!currentLocation) {
+      if (locations.length === 0) {
         // Item was in original but not in current - it's been removed
         changes.push({
           type: 'remove',
           directory: originalLocation.directory,
           item: originalLocation.item,
         })
-      } else if (
-        currentLocation.directory !== originalLocation.directory ||
-        currentLocation.newName !== originalLocation.item.name
-      ) {
-        // Item exists but directory or name has changed - it's a rename/move
+      } else if (locations.length === 1) {
+        // Single location - could be unchanged, renamed, or moved
+        const currentLocation = locations[0]
+        if (
+          currentLocation.directory !== originalLocation.directory ||
+          currentLocation.newName !== originalLocation.item.name
+        ) {
+          // Item exists but directory or name has changed - it's a rename/move
+          changes.push({
+            type: 'rename',
+            item: originalLocation.item,
+            newDirectory: currentLocation.directory,
+            newName: currentLocation.newName,
+          })
+        }
+        // else: item exists in same directory with same name - no change
+      } else {
+        // Multiple locations - multiple pastes detected
+        // First n-1 are copies, last one is the rename/move
+        for (let i = 0; i < locations.length - 1; i++) {
+          changes.push({
+            type: 'copy',
+            item: originalLocation.item,
+            newDirectory: locations[i].directory,
+            newName: locations[i].newName,
+          })
+        }
+        // Last one is the rename/move
+        const lastLocation = locations[locations.length - 1]
         changes.push({
           type: 'rename',
           item: originalLocation.item,
-          newDirectory: currentLocation.directory,
-          newName: currentLocation.newName,
+          newDirectory: lastLocation.directory,
+          newName: lastLocation.newName,
         })
       }
-      // else: item exists in same directory with same name - no change
     }
 
     // Add all new items

@@ -192,7 +192,7 @@ function VimInsertItem({ row }: { row: DerivedDirectoryItem }) {
     directoryStore.trigger.updateItemStr({
       str: value,
       isEnter,
-      column: inputRef.current?.selectionStart,
+      column: inputRef.current?.selectionStart && inputRef.current.selectionStart - 1,
     })
   }
 
