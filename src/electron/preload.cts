@@ -33,7 +33,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
     allowBigSize?: boolean,
     fullSize?: boolean,
   ) => ipcInvoke("readFilePreview", { filePath, allowBigSize, fullSize }),
-  deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
+  deleteFiles: (filePaths: string[], clientMetadata: any) => ipcInvoke("deleteFiles", { filePaths, clientMetadata }),
   applyVimChanges: (changes: any) => ipcInvoke("applyVimChanges", changes),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
@@ -96,12 +96,14 @@ electron.contextBridge.exposeInMainWorld("electron", {
     archiveType: ArchiveTypes.ArchiveType,
     source: string[],
     destination: string,
-  ) => ipcInvoke("startArchive", { archiveType, source, destination }),
+    clientMetadata: any,
+  ) => ipcInvoke("startArchive", { archiveType, source, destination, clientMetadata }),
   startUnarchive: (
     archiveType: ArchiveTypes.ArchiveType,
     source: string,
     destination: string,
-  ) => ipcInvoke("startUnarchive", { archiveType, source, destination }),
+    clientMetadata: any,
+  ) => ipcInvoke("startUnarchive", { archiveType, source, destination, clientMetadata }),
   abortTask: (taskId: string) => ipcInvoke("abortTask", taskId),
   getApplicationsForFile: (filePath: string) =>
     ipcInvoke("getApplicationsForFile", filePath),

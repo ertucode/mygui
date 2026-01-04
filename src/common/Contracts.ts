@@ -1,5 +1,5 @@
 import { type GenericResult } from './GenericError.js'
-import { TaskEvents } from './Tasks.js'
+import { TaskEvents, Tasks } from './Tasks.js'
 import { type ArchiveTypes } from './ArchiveTypes.js'
 import { GenericEvent } from './GenericEvent.js'
 import { VimEngine } from './VimEngine.js'
@@ -222,7 +222,7 @@ export type EventRequestMapping = {
     allowBigSize?: boolean
     fullSize?: boolean
   }
-  deleteFiles: string[]
+  deleteFiles: { filePaths: string[]; clientMetadata: Tasks.ClientMetadata }
   applyVimChanges: VimEngine.Change[]
   createFileOrFolder: {
     parentDir: string
@@ -256,11 +256,13 @@ export type EventRequestMapping = {
     archiveType: ArchiveTypes.ArchiveType
     source: string[]
     destination: string
+    clientMetadata: Tasks.ClientMetadata
   }
   startUnarchive: {
     archiveType: ArchiveTypes.ArchiveType
     source: string
     destination: string
+    clientMetadata: Tasks.ClientMetadata
   }
   abortTask: string
   getApplicationsForFile: string
@@ -305,7 +307,7 @@ export type WindowElectron = {
     | { error: string }
     | { error: 'FILE_TOO_LARGE' }
   >
-  deleteFiles: (filePaths: string[]) => Promise<GenericResult<void>>
+  deleteFiles: (filePaths: string[], clientMetadata: Tasks.ClientMetadata) => Promise<GenericResult<void>>
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
   renameFileOrFolder: (fullPath: string, newName: string) => Promise<GenericResult<{ newPath: string }>>
@@ -343,8 +345,8 @@ export type WindowElectron = {
   onTaskEvent: (cb: (e: TaskEvents) => void) => void
   onGenericEvent: (cb: (e: GenericEvent) => void) => void
   onWindowFocus: (cb: () => void) => UnsubscribeFunction
-  startArchive: (archiveType: ArchiveTypes.ArchiveType, source: string[], destination: string) => Promise<void>
-  startUnarchive: (archiveType: ArchiveTypes.ArchiveType, source: string, destination: string) => Promise<void>
+  startArchive: (archiveType: ArchiveTypes.ArchiveType, source: string[], destination: string, clientMetadata: Tasks.ClientMetadata) => Promise<void>
+  startUnarchive: (archiveType: ArchiveTypes.ArchiveType, source: string, destination: string, clientMetadata: Tasks.ClientMetadata) => Promise<void>
   abortTask: (taskId: string) => Promise<void>
   getApplicationsForFile: (filePath: string) => Promise<ApplicationInfo[]>
   openFileWithApplication: (filePath: string, applicationPath: string) => Promise<void>
