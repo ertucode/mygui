@@ -33,7 +33,7 @@ export function useTable<T>(opts: UseTableOptions<T>) {
             size: col.size,
           }
         }),
-        id: Math.random(),
+        id: getId(item),
       }
     })
   }, [data, cols])
@@ -62,4 +62,14 @@ export function columnSortKey<T>(col: ColumnDef<T>) {
   if (col.sortKey) return col.sortKey
   if (col.id) return col.id
   return undefined
+}
+
+const weakMap = new WeakMap<any, any>()
+let nextId = 1
+function getId(obj: any) {
+  let id = weakMap.get(obj)
+  if (id !== undefined) return id
+  id = nextId++
+  weakMap.set(obj, id)
+  return id
 }

@@ -143,7 +143,7 @@ export const directorySelection = {
     }
 
     // Throttle delay for selection shortcuts
-    const THROTTLE_DELAY = 2
+    const THROTTLE_DELAY = 0
 
     return [
       {
