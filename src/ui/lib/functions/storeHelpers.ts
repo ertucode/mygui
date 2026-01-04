@@ -4,7 +4,8 @@ import { useSyncExternalStore } from 'react'
 export function subscribeToStores<const Stores extends readonly AnyStore[]>(
   stores: Stores,
   selector: (contexts: ContextsOf<Stores>) => readonly any[],
-  fn: (contexts: ContextsOf<Stores>, changedIndexes: number[]) => void
+  fn: (contexts: ContextsOf<Stores>, changedIndexes: number[]) => void,
+  initialRun = true
 ) {
   let lastChecks: readonly any[] | undefined
 
@@ -34,8 +35,7 @@ export function subscribeToStores<const Stores extends readonly AnyStore[]>(
     fn(contexts, changedIndexes)
   }
 
-  // initial run (optional but usually desired)
-  notifyIfChanged()
+  if (initialRun) notifyIfChanged()
 
   const unsubscribers = stores.map(store =>
     store.subscribe(() => {
@@ -61,41 +61,32 @@ export function createUseDerivedStoreValue<const Stores extends readonly AnyStor
   selector: (contexts: ContextsOf<Stores>) => readonly any[],
   fn: (contexts: ContextsOf<Stores>) => TDerivedValue
 ) {
-  let last:
-    | {
-        checks: readonly any[]
-        id: number
-        value: TDerivedValue
-        contexts: ContextsOf<Stores>
-      }
-    | undefined
+  let lastValue: TDerivedValue | undefined
+
+  const subscriptions = new Set<() => void>()
+
+  const unsubscribe = subscribeToStores(
+    stores,
+    selector,
+    contexts => {
+      lastValue = fn(contexts)
+      subscriptions.forEach(fn => fn())
+    },
+    false
+  )
 
   const subscribe = (onStoreChange: () => void) => {
     // Subscribe to all stores
-    const subscriptions = stores.map(store => store.subscribe(onStoreChange))
+    subscriptions.add(onStoreChange)
 
     // Return cleanup function
     return () => {
-      subscriptions.forEach(sub => sub.unsubscribe())
+      subscriptions.delete(onStoreChange)
     }
   }
 
   const getSnapshot = () => {
-    const contexts = stores.map(s => s.getSnapshot().context) as ContextsOf<Stores>
-    if (last && contexts.every((c, i) => c === last?.contexts[i])) return last.value
-
-    // Only recompute the derived value if checks actually changed
-    const checks = selector(contexts)
-    if (!last || last.checks.length !== checks.length || last.checks.some((v, i) => v !== checks[i])) {
-      last = {
-        checks,
-        id: Math.random(),
-        value: fn(contexts),
-        contexts,
-      }
-    }
-
-    return last.value
+    return lastValue!
   }
 
   return [
@@ -105,6 +96,7 @@ export function createUseDerivedStoreValue<const Stores extends readonly AnyStor
 
       return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
     },
-    () => last?.value,
+    () => lastValue,
+    unsubscribe,
   ] as const
 }
