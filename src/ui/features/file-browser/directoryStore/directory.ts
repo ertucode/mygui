@@ -141,12 +141,29 @@ export const directoryStore = createStore({
         data: GetFilesAndFoldersInDirectoryItem[]
         directoryId: DirectoryId
       }
-    ) =>
-      updateDirectory(context, event.directoryId, d => ({
-        ...d,
-        directoryData: event.data,
-        error: undefined,
-      })),
+    ) => {
+      return updateDirectory(context, event.directoryId, d => {
+        const prevFirstItem = d.directoryData[0]
+        const currentFirstItem = event.data[0]
+        let fuzzyQuery = d.fuzzyQuery
+        if (
+          prevFirstItem &&
+          currentFirstItem &&
+          prevFirstItem.fullPath &&
+          currentFirstItem.fullPath &&
+          PathHelpers.parent(prevFirstItem.fullPath) !== PathHelpers.parent(currentFirstItem.fullPath)
+        ) {
+          fuzzyQuery = ''
+        }
+        return {
+          ...d,
+          directoryData: event.data,
+          error: undefined,
+          fuzzyQuery,
+        }
+      })
+    },
+    // fuzzyQuery: '',
     setError: (context, event: { error: GenericError | undefined; directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, d => ({
         ...d,
