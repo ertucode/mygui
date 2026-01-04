@@ -19,6 +19,7 @@ import { captureRect } from "./utils/capture-rect.js";
 import { getFileContent } from "./utils/get-file-content.js";
 import { deleteFiles } from "./utils/delete-files.js";
 import { createFileOrFolder } from "./utils/create-file-or-folder.js";
+import { createImageFromClipboard, hasClipboardImage } from "./utils/create-image-from-clipboard.js";
 import { renameFileOrFolder } from "./utils/rename-file-or-folder.js";
 import { batchRenameFiles } from "./utils/batch-rename-files.js";
 import { copyFiles, setClipboardCutMode } from "./utils/copy-files.js";
@@ -202,6 +203,10 @@ app.on("ready", () => {
   ipcHandle("createFileOrFolder", ({ parentDir, name }) =>
     createFileOrFolder(parentDir, name),
   );
+  ipcHandle("createImageFromClipboard", ({ parentDir, name }) =>
+    createImageFromClipboard(parentDir, name),
+  );
+  ipcHandle("hasClipboardImage", async () => hasClipboardImage());
   ipcHandle("renameFileOrFolder", ({ fullPath, newName }) =>
     renameFileOrFolder(fullPath, newName),
   );

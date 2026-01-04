@@ -130,6 +130,8 @@ export type EventResponseMapping = {
   deleteFiles: Promise<GenericResult<void>>
   applyVimChanges: Promise<GenericResult<void>>
   createFileOrFolder: Promise<GenericResult<{ path: string }>>
+  createImageFromClipboard: Promise<GenericResult<{ path: string }>>
+  hasClipboardImage: Promise<boolean>
   renameFileOrFolder: Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: Promise<GenericResult<{ renamedPaths: Array<{ oldPath: string; newPath: string }> }>>
   getPreviewPreloadPath: string
@@ -141,6 +143,7 @@ export type EventResponseMapping = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
+    | { customPaste: "image" }
   >
   fuzzyFileFinder: Promise<GenericResult<string[]>>
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>
@@ -228,6 +231,11 @@ export type EventRequestMapping = {
     parentDir: string
     name: string
   }
+  createImageFromClipboard: {
+    parentDir: string
+    name: string
+  }
+  hasClipboardImage: void
   renameFileOrFolder: {
     fullPath: string
     newName: string
@@ -311,6 +319,8 @@ export type WindowElectron = {
   deleteFiles: (filePaths: string[], clientMetadata: Tasks.ClientMetadata) => Promise<GenericResult<void>>
   applyVimChanges: (changes: VimEngine.Change[]) => Promise<GenericResult<void>>
   createFileOrFolder: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
+  createImageFromClipboard: (parentDir: string, name: string) => Promise<GenericResult<{ path: string }>>
+  hasClipboardImage: () => Promise<boolean>
   renameFileOrFolder: (fullPath: string, newName: string) => Promise<GenericResult<{ newPath: string }>>
   batchRenameFiles: (
     items: Array<{ fullPath: string; newName: string }>
@@ -328,6 +338,7 @@ export type WindowElectron = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
+    | { customPaste: "image" }
   >
   fuzzyFileFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
   searchStringRecursively: (options: StringSearchOptions) => Promise<GenericResult<StringSearchResult[]>>

@@ -6,6 +6,7 @@ import { Result } from "../../common/Result.js";
 let clipboardState: {
   filePaths: string[];
   cut: boolean;
+  timestamp: number;
 } | null = null;
 
 export async function copyFiles(
@@ -20,6 +21,7 @@ export async function copyFiles(
     clipboardState = {
       filePaths: expandedPaths,
       cut,
+      timestamp: Date.now(),
     };
 
     return Result.Success(undefined);

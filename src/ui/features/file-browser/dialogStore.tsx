@@ -30,7 +30,8 @@ import { useSelector } from "@xstate/store/react";
 import { CommandMetadata } from "@common/Command";
 import { RunCommandDialog } from "./components/RunCommandDialog";
 import { VimChangesDialog } from "./vim/VimChangesDialog";
-import { SaveIcon } from "lucide-react";
+import { SaveIcon, ImageIcon } from "lucide-react";
+import { CreateImageDialog } from "./components/CreateImageDialog";
 
 // Define the dialog types that can be opened
 export type DialogType =
@@ -46,7 +47,8 @@ export type DialogType =
   | "customLayouts"
   | "pasteConflict"
   | "runCommand"
-  | "vimChanges";
+  | "vimChanges"
+  | "createImage";
 
 // Define the metadata each dialog requires
 export type DialogMetadata = {
@@ -80,6 +82,7 @@ export type DialogMetadata = {
   vimChanges: {
     changes: import("@common/VimEngine").VimEngine.Change[];
   };
+  createImage: {};
 };
 
 // Store context - only one dialog can be open at a time
@@ -214,6 +217,12 @@ const dialogDefinitions = [
     component: VimChangesDialog,
     icon: SaveIcon,
     title: "VIM Changes",
+  },
+  {
+    type: "createImage" as const,
+    component: CreateImageDialog,
+    icon: ImageIcon,
+    title: "Create Image from Clipboard",
   },
 ] as const;
 

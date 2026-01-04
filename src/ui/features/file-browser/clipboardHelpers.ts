@@ -32,6 +32,14 @@ export const clipboardHelpers = {
 
     // First call without resolution to check for conflicts
     const checkResult = await getWindowElectron().pasteFiles(directoryPath)
+    
+    // Handle custom paste for image
+    if ('customPaste' in checkResult) {
+      if (checkResult.customPaste === 'image') {
+        dialogActions.open('createImage', {});
+      }
+      return;
+    }
 
     if (checkResult.needsResolution) {
       // Show conflict dialog
@@ -42,6 +50,13 @@ export const clipboardHelpers = {
           onResolve: async (resolution: ConflictResolution) => {
             // Execute paste with resolutions
             const result = await getWindowElectron().pasteFiles(directoryPath, resolution)
+
+            if ('customPaste' in result) {
+              // Shouldn't happen when resolving, but handle it
+              dialogActions.close()
+              resolve()
+              return
+            }
 
             if (!result.needsResolution) {
               if (result.result.success) {

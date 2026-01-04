@@ -7,6 +7,7 @@
 
 - for archives, navgate to it on double click. show unarchive button on the name part
 - paste picture from clipboard. If last clipboard data is 30 seconds old, and clipboard has image
+- fix pending selection to be actually pending selection, not after selection
 
 # AMBITIOUS TODO
 

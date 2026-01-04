@@ -37,6 +37,9 @@ electron.contextBridge.exposeInMainWorld("electron", {
   applyVimChanges: (changes: any) => ipcInvoke("applyVimChanges", changes),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
+  createImageFromClipboard: (parentDir: string, name: string) =>
+    ipcInvoke("createImageFromClipboard", { parentDir, name }),
+  hasClipboardImage: () => ipcInvoke("hasClipboardImage", undefined),
   setClipboardCutMode: (cut: boolean) =>
     ipcInvoke("setClipboardCutMode", { cut }),
   renameFileOrFolder: (fullPath: string, newName: string) =>
