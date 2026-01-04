@@ -2,7 +2,7 @@ import { useState, Ref, forwardRef, useEffect, useMemo, useRef } from 'react'
 import { Dialog } from '@/lib/components/dialog'
 import { Button } from '@/lib/components/button'
 import { VimEngine } from '@common/VimEngine'
-import { FileIcon, FolderIcon, PlusIcon, TrashIcon, Edit3Icon, ArrowRightIcon, CopyIcon } from 'lucide-react'
+import { FileIcon, FolderIcon, PlusIcon, TrashIcon, Edit3Icon, ArrowRightIcon, CopyIcon, AlertTriangleIcon } from 'lucide-react'
 import { useDialogStoreDialog } from '../dialogStore'
 import { DialogForItem } from '@/lib/hooks/useDialogForItem'
 import { getWindowElectron } from '@/getWindowElectron'
@@ -211,6 +211,43 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(changesWithIds.map(c => c.id)))
 
+  // Detect duplicate destination files
+  const duplicateDestinations = useMemo(() => {
+    const selectedChanges = changesWithIds.filter(c => selectedIds.has(c.id))
+    const destinationMap = new Map<string, ChangeWithId[]>()
+
+    for (const change of selectedChanges) {
+      let destinationPath: string | null = null
+
+      if (change.type === 'add') {
+        destinationPath = `${change.directory}/${change.name}`
+      } else if (change.type === 'copy') {
+        destinationPath = `${change.newDirectory}/${change.newName}`
+      } else if (change.type === 'rename') {
+        destinationPath = `${change.newDirectory}/${change.newName}`
+      }
+
+      if (destinationPath) {
+        if (!destinationMap.has(destinationPath)) {
+          destinationMap.set(destinationPath, [])
+        }
+        destinationMap.get(destinationPath)!.push(change)
+      }
+    }
+
+    // Find paths with multiple changes targeting them
+    const duplicates: Array<{ path: string; changes: ChangeWithId[] }> = []
+    for (const [path, changes] of destinationMap.entries()) {
+      if (changes.length > 1) {
+        duplicates.push({ path, changes })
+      }
+    }
+
+    return duplicates
+  }, [changesWithIds, selectedIds])
+
+  const hasDuplicates = duplicateDestinations.length > 0
+
   // Reset selected IDs when changes change
   useEffect(() => {
     setSelectedIds(new Set(changesWithIds.map(c => c.id)))
@@ -239,6 +276,13 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
 
   const handleApply = async () => {
     if (selectedIds.size === 0) return
+    
+    // Validate for duplicates before applying
+    if (hasDuplicates) {
+      alert('Cannot apply changes: Multiple changes are targeting the same destination path. Please deselect conflicting changes.')
+      return
+    }
+    
     const selectedChanges = changesWithIds.filter(c => selectedIds.has(c.id)).map(({ id, ...change }) => change)
 
     const result = await getWindowElectron().applyVimChanges(selectedChanges)
@@ -564,6 +608,34 @@ export const VimChangesDialog = forwardRef(function VimChangesDialog(
       }
     >
       <div className="overflow-y-auto max-h-[60vh]">
+        {/* Duplicate destinations warning */}
+        {hasDuplicates && (
+          <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+            <div className="flex items-start gap-3">
+              <AlertTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">
+                  Duplicate Destinations Detected
+                </h4>
+                <p className="text-sm text-red-700 dark:text-red-400 mb-3">
+                  Multiple changes are targeting the same destination path. Please deselect conflicting changes:
+                </p>
+                <ul className="space-y-2">
+                  {duplicateDestinations.map((dup, idx) => (
+                    <li key={idx} className="text-sm">
+                      <div className="font-mono text-red-800 dark:text-red-300 font-semibold mb-1">
+                        {dup.path}
+                      </div>
+                      <div className="text-red-600 dark:text-red-400 pl-4">
+                        Targeted by {dup.changes.length} changes
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
         {directoryGroups.map(group => (
           <div key={group.directory} className="mb-6 last:mb-0">
             {/* Directory header */}
