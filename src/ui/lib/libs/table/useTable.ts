@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { ColumnDef } from './table-types'
+import { FastIdentity } from '@common/FastIdentity'
 
 export type TableMetadata<T> = ReturnType<typeof useTable<T>>
 
@@ -64,12 +65,4 @@ export function columnSortKey<T>(col: ColumnDef<T>) {
   return undefined
 }
 
-const weakMap = new WeakMap<any, any>()
-let nextId = 1
-function getId(obj: any) {
-  let id = weakMap.get(obj)
-  if (id !== undefined) return id
-  id = nextId++
-  weakMap.set(obj, id)
-  return id
-}
+const getId = FastIdentity.create()
