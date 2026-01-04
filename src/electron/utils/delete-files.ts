@@ -3,14 +3,18 @@ import { expandHome } from "./expand-home.js";
 import { GenericError, GenericResult } from "../../common/GenericError.js";
 import { Result } from "../../common/Result.js";
 import { TaskManager } from "../TaskManager.js";
+import { Tasks } from "../../common/Tasks.js";
 
-export async function deleteFiles(
-  filePaths: string[],
-): Promise<GenericResult<void>> {
+export async function deleteFiles(request: {
+  filePaths: string[];
+  clientMetadata: Tasks.ClientMetadata;
+}): Promise<GenericResult<void>> {
+  const { filePaths, clientMetadata } = request;
   const taskId = TaskManager.create({
     type: "delete",
     metadata: { files: filePaths },
     progress: 0,
+    clientMetadata,
   });
   try {
     let totalDeleted = 0;

@@ -9,18 +9,20 @@ type StartArchiveRequest = {
   archiveType: ArchiveTypes.ArchiveType;
   source: string[];
   destination: string;
+  clientMetadata: Tasks.ClientMetadata;
 };
 
 type StartUnarchiveRequest = {
   archiveType: ArchiveTypes.ArchiveType;
   source: string;
   destination: string;
+  clientMetadata: Tasks.ClientMetadata;
 };
 
 export async function startArchive(
   request: StartArchiveRequest,
 ): Promise<void> {
-  const { archiveType, source, destination } = request;
+  const { archiveType, source, destination, clientMetadata } = request;
 
   // Expand home paths
   const expandedSource = source.map(expandHome);
@@ -30,8 +32,8 @@ export async function startArchive(
   const dummyAbortController = new AbortController();
   const dummyProgressCallback = () => {};
 
-  // Create the task definition with proper types
-  const taskDef: Omit<Tasks.Archive, "id"> & { progress: number } = {
+  // Create the task in TaskManager and get the ID
+  const taskId = TaskManager.create({
     type: "archive",
     progress: 0,
     metadata: {
@@ -41,10 +43,8 @@ export async function startArchive(
       progressCallback: dummyProgressCallback,
       abortSignal: dummyAbortController.signal,
     },
-  };
-
-  // Create the task in TaskManager and get the ID
-  const taskId = TaskManager.create(taskDef);
+    clientMetadata,
+  });
 
   // Start the archive operation asynchronously
   // We don't await this - it runs in the background
@@ -80,7 +80,7 @@ export async function startArchive(
 export async function startUnarchive(
   request: StartUnarchiveRequest,
 ): Promise<void> {
-  const { archiveType, source, destination } = request;
+  const { archiveType, source, destination, clientMetadata } = request;
 
   // Expand home paths
   const expandedSource = expandHome(source);
@@ -90,8 +90,8 @@ export async function startUnarchive(
   const dummyAbortController = new AbortController();
   const dummyProgressCallback = () => {};
 
-  // Create the task definition with proper types
-  const taskDef: Omit<Tasks.Unarchive, "id"> & { progress: number } = {
+  // Create the task in TaskManager and get the ID
+  const taskId = TaskManager.create({
     type: "unarchive",
     progress: 0,
     metadata: {
@@ -101,10 +101,8 @@ export async function startUnarchive(
       progressCallback: dummyProgressCallback,
       abortSignal: dummyAbortController.signal,
     },
-  };
-
-  // Create the task in TaskManager and get the ID
-  const taskId = TaskManager.create(taskDef);
+    clientMetadata,
+  });
 
   // Start the unarchive operation asynchronously
   // We don't await this - it runs in the background

@@ -30,6 +30,7 @@ import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores } from '../schemas'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { confirmation } from '@/lib/components/confirmation'
+import { Tasks } from '@common/Tasks'
 
 export const cd = async (newDirectory: DirectoryInfo, isNew: boolean, drectoryId: DirectoryId | undefined) => {
   const context = getActiveDirectory(directoryStore.getSnapshot().context, drectoryId)
@@ -357,7 +358,8 @@ export const directoryHelpers = {
     _directoryId: DirectoryId | undefined
   ) => {
     const tableData = _tableData.filter(i => i.type === 'real').map(i => i.item)
-    const directoryId = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
+    const activeDirectory = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId)
+    const directoryId = activeDirectory.directoryId
 
     const paths = items.map(item => item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
     const deletedNames = new Set(items.map(item => item.name))
@@ -381,7 +383,10 @@ export const directoryHelpers = {
       onConfirm: async () => {
         try {
           // Delete all selected files/folders
-          const result = await getWindowElectron().deleteFiles(paths)
+          const result = await getWindowElectron().deleteFiles(
+            paths,
+            directoryHelpers.getClientMetadata(activeDirectory)
+          )
 
           if (!result.success) {
             toast.show(result)
@@ -534,7 +539,12 @@ export const directoryHelpers = {
       const finalArchiveName = archiveName.endsWith(archiveType) ? archiveName : `${archiveName}${archiveType}`
       const destinationArchivePath = mergeMaybeSlashed(context.directory.fullPath, finalArchiveName)
 
-      await getWindowElectron().startArchive(archiveType as any, filePaths, destinationArchivePath)
+      await getWindowElectron().startArchive(
+        archiveType as any,
+        filePaths,
+        destinationArchivePath,
+        directoryHelpers.getClientMetadata(context)
+      )
 
       // The task system will handle the progress and reload
       return { success: true, data: { path: destinationArchivePath } }
@@ -558,7 +568,12 @@ export const directoryHelpers = {
     try {
       const destinationFolder = mergeMaybeSlashed(context.directory.fullPath, folderName)
 
-      await getWindowElectron().startUnarchive(archiveType as any, archiveFilePath, destinationFolder)
+      await getWindowElectron().startUnarchive(
+        archiveType as any,
+        archiveFilePath,
+        destinationFolder,
+        directoryHelpers.getClientMetadata(context)
+      )
 
       // The task system will handle the progress and reload
       return { success: true, data: { path: destinationFolder } }
@@ -665,6 +680,12 @@ export const directoryHelpers = {
 
         return
       }
+    }
+  },
+  getClientMetadata: (d: DirectoryContextDirectory): Tasks.ClientMetadata => {
+    return {
+      directoryId: d.directoryId,
+      selection: d.selection,
     }
   },
 }

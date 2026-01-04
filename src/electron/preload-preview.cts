@@ -24,7 +24,7 @@ electron.contextBridge.exposeInMainWorld("electron", {
   },
   readFilePreview: (filePath: string, allowBigSize?: boolean) =>
     ipcInvoke("readFilePreview", { filePath, allowBigSize }),
-  deleteFiles: (filePaths: string[]) => ipcInvoke("deleteFiles", filePaths),
+  deleteFiles: (filePaths: string[], clientMetadata: any) => ipcInvoke("deleteFiles", { filePaths, clientMetadata }),
   createFileOrFolder: (parentDir: string, name: string) =>
     ipcInvoke("createFileOrFolder", { parentDir, name }),
   renameFileOrFolder: (fullPath: string, newName: string) =>
