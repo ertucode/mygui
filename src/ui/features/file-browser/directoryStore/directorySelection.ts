@@ -458,7 +458,7 @@ export const directorySelection = {
 
     const selection = buffer.selection.indexes
     const result = [...selection].map(i => buffer.items[i]).filter(i => i.type === 'real')
-    if (result.length === 0) {
+    if (result.length <= 1) {
       const item = buffer.items[buffer.cursor.line]
       if (item.type === 'real') return [item]
       return undefined
