@@ -33,6 +33,7 @@ export function resolveSort(sort: SortContext): SortState {
 }
 
 export function resolveSortFromStores(dir: DirectoryContextDirectory, columnPrefs: ColumnPreferenceStore) {
+  if (!dir) return { by: undefined, order: undefined }
   return resolveSort({
     directory: dir.localSort,
     global: columnPrefs.global.sort,

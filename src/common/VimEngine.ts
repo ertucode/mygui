@@ -43,6 +43,10 @@ export namespace VimEngine {
     pendingOperator?: $Maybe<Operator>
     textObjectModifier?: $Maybe<TextObjectModifier>
     insertModeStartReversions?: Reversion[]
+    selection: {
+      indexes: Set<number>
+      last: number | undefined
+    }
   }
 
   export type CommandOpts = {
@@ -74,6 +78,11 @@ export namespace VimEngine {
         index: number
         str: string
       }
+    | {
+        type: 'selection'
+        indexes: Set<number>
+        last: number | undefined
+      }
   export const Mode = {
     N: 'normal',
     I: 'insert',
@@ -83,25 +92,76 @@ export namespace VimEngine {
   export function cc({ state, fullPath }: CommandOpts): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
-    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), createStrBufferItem(''))
-
-    // Store reversions to be merged with insert mode changes
-    const reversions: Reversion[] = [
-      {
-        type: 'remove',
-        count: 1,
-        index: buffer.cursor.line,
-      },
-      {
-        type: 'add',
-        items: deletedItems,
-        index: buffer.cursor.line,
-      },
-      {
-        type: 'cursor',
-        cursor: buffer.cursor,
-      },
-    ]
+    
+    // If we have multiple selection indexes, use those; otherwise use cursor position
+    let deletedItems: BufferItem[]
+    let newCursorLine: number
+    let reversions: Reversion[]
+    
+    if (state.selection.indexes.size > 1) {
+      // Get sorted indexes for deletion
+      const sortedIndexes = Array.from(state.selection.indexes).sort((a, b) => a - b)
+      const minIndex = sortedIndexes[0]
+      
+      // Delete selected lines and replace with single empty line
+      deletedItems = []
+      for (let i = sortedIndexes.length - 1; i >= 0; i--) {
+        const deleted = currentItems.splice(sortedIndexes[i], 1)
+        deletedItems.unshift(...deleted)
+      }
+      currentItems.splice(minIndex, 0, createStrBufferItem(''))
+      
+      reversions = [
+        {
+          type: 'remove',
+          count: 1,
+          index: minIndex,
+        },
+        {
+          type: 'add',
+          items: deletedItems,
+          index: minIndex,
+        },
+        {
+          type: 'cursor',
+          cursor: buffer.cursor,
+        },
+        {
+          type: 'selection',
+          indexes: state.selection.indexes,
+          last: state.selection.last,
+        },
+      ]
+      
+      newCursorLine = minIndex
+    } else {
+      // No selection, use normal behavior
+      deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state), createStrBufferItem(''))
+      
+      reversions = [
+        {
+          type: 'remove',
+          count: 1,
+          index: buffer.cursor.line,
+        },
+        {
+          type: 'add',
+          items: deletedItems,
+          index: buffer.cursor.line,
+        },
+        {
+          type: 'cursor',
+          cursor: buffer.cursor,
+        },
+        {
+          type: 'selection',
+          indexes: state.selection.indexes,
+          last: state.selection.last,
+        },
+      ]
+      
+      newCursorLine = buffer.cursor.line
+    }
 
     const currentBuffer: Buffer = {
       fullPath,
@@ -109,7 +169,7 @@ export namespace VimEngine {
       originalItems: buffer.originalItems,
       historyStack: buffer.historyStack,
       cursor: {
-        line: buffer.cursor.line,
+        line: newCursorLine,
         column: 0,
       },
     }
@@ -124,17 +184,42 @@ export namespace VimEngine {
       },
       insertModeStartReversions: reversions,
       pendingOperator: undefined,
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
   export function dd({ state, fullPath }: CommandOpts): CommandResult {
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
-    const deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state))
+    
+    // If we have multiple selection indexes, use those; otherwise use cursor position
+    let deletedItems: BufferItem[]
+    let deleteIndex: number
+    
+    if (state.selection.indexes.size > 1) {
+      // Get sorted indexes for deletion
+      const sortedIndexes = Array.from(state.selection.indexes).sort((a, b) => b - a)
+      deleteIndex = Math.min(...sortedIndexes)
+      
+      // Delete selected lines from highest to lowest index
+      deletedItems = []
+      for (const idx of sortedIndexes) {
+        const deleted = currentItems.splice(idx, 1)
+        deletedItems.unshift(...deleted)
+      }
+    } else {
+      // No selection, use normal behavior
+      deleteIndex = buffer.cursor.line
+      deletedItems = currentItems.splice(buffer.cursor.line, getEffectiveCount(state))
+    }
+    
     if (currentItems.length === 0) {
       currentItems.push(createStrBufferItem(''))
     }
-    const line = Math.min(buffer.cursor.line, currentItems.length - 1)
+    const line = Math.min(deleteIndex, currentItems.length - 1)
     const currentBuffer: Buffer = {
       fullPath: fullPath,
       items: currentItems,
@@ -144,11 +229,16 @@ export namespace VimEngine {
           {
             type: 'add',
             items: deletedItems,
-            index: buffer.cursor.line,
+            index: deleteIndex,
           },
           {
             type: 'cursor',
             cursor: buffer.cursor,
+          },
+          {
+            type: 'selection',
+            indexes: state.selection.indexes,
+            last: state.selection.last,
           },
         ],
       }),
@@ -166,21 +256,39 @@ export namespace VimEngine {
         [fullPath]: currentBuffer,
       },
       pendingOperator: undefined,
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
   export function yy({ state, fullPath }: CommandOpts): CommandResult {
     const buffer = state.buffers[fullPath]
-    const idxs: number[] = []
-    const lastLine = Math.min(getEffectiveCount(state) + buffer.cursor.line, buffer.items.length)
-    for (let i = buffer.cursor.line; i < lastLine; i++) {
-      idxs.push(i)
+    let idxs: number[] = []
+    
+    if (state.selection.indexes.size > 1) {
+      // If we have selection, yank selected lines
+      idxs = Array.from(state.selection.indexes).sort((a, b) => a - b)
+    } else {
+      // No selection, use normal behavior
+      const lastLine = Math.min(getEffectiveCount(state) + buffer.cursor.line, buffer.items.length)
+      for (let i = buffer.cursor.line; i < lastLine; i++) {
+        idxs.push(i)
+      }
     }
+    
+    // Note: yy doesn't modify the buffer, so we don't add to history
+    // The selection clearing is intentional and doesn't need undo support
     return {
       ...state,
       registry: idxs.map(i => buffer.items[i]),
       count: 0,
       pendingOperator: undefined,
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
@@ -189,7 +297,28 @@ export namespace VimEngine {
 
     const buffer = state.buffers[fullPath]
     const currentItems = [...buffer.items]
-    currentItems.splice(buffer.cursor.line + 1, 0, ...state.registry)
+    
+    // If we have multiple items selected, delete selected lines first then paste
+    let pasteIndex: number
+    
+    if (state.selection.indexes.size > 1) {
+      // Get sorted indexes for deletion
+      const sortedIndexes = Array.from(state.selection.indexes).sort((a, b) => b - a)
+      const minIndex = Math.min(...sortedIndexes)
+      
+      // Delete selected lines from highest to lowest index
+      for (const idx of sortedIndexes) {
+        currentItems.splice(idx, 1)
+      }
+      
+      // Paste at the position of the first deleted line
+      pasteIndex = minIndex
+    } else {
+      // No selection, paste after cursor
+      pasteIndex = buffer.cursor.line + 1
+    }
+    
+    currentItems.splice(pasteIndex, 0, ...state.registry)
     const currentBuffer: Buffer = {
       fullPath: buffer.fullPath,
       items: currentItems,
@@ -199,16 +328,21 @@ export namespace VimEngine {
           {
             type: 'remove',
             count: state.registry.length,
-            index: buffer.cursor.line + 1,
+            index: pasteIndex,
           },
           {
             type: 'cursor',
             cursor: buffer.cursor,
           },
+          {
+            type: 'selection',
+            indexes: state.selection.indexes,
+            last: state.selection.last,
+          },
         ],
       }),
       cursor: {
-        line: buffer.cursor.line + 1,
+        line: pasteIndex,
         column: 0,
       },
     }
@@ -220,6 +354,10 @@ export namespace VimEngine {
       count: 0,
       mode: 'normal',
       registry: state.registry,
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
@@ -228,7 +366,28 @@ export namespace VimEngine {
     const buffer = state.buffers[fullPath]
 
     const currentItems = [...buffer.items]
-    currentItems.splice(Math.max(0, buffer.cursor.line), 0, ...state.registry)
+    
+    // If we have multiple items selected, delete selected lines first then paste
+    let pasteIndex: number
+    
+    if (state.selection.indexes.size > 1) {
+      // Get sorted indexes for deletion
+      const sortedIndexes = Array.from(state.selection.indexes).sort((a, b) => b - a)
+      const minIndex = Math.min(...sortedIndexes)
+      
+      // Delete selected lines from highest to lowest index
+      for (const idx of sortedIndexes) {
+        currentItems.splice(idx, 1)
+      }
+      
+      // Paste at the position of the first deleted line
+      pasteIndex = minIndex
+    } else {
+      // No selection, paste before cursor
+      pasteIndex = Math.max(0, buffer.cursor.line)
+    }
+    
+    currentItems.splice(pasteIndex, 0, ...state.registry)
     const currentBuffer: Buffer = {
       fullPath: fullPath,
       items: currentItems,
@@ -238,16 +397,21 @@ export namespace VimEngine {
           {
             type: 'remove',
             count: state.registry.length,
-            index: Math.max(0, buffer.cursor.line),
+            index: pasteIndex,
           },
           {
             type: 'cursor',
             cursor: buffer.cursor,
           },
+          {
+            type: 'selection',
+            indexes: state.selection.indexes,
+            last: state.selection.last,
+          },
         ],
       }),
       cursor: {
-        line: buffer.cursor.line,
+        line: pasteIndex,
         column: 0,
       },
     }
@@ -259,6 +423,10 @@ export namespace VimEngine {
       count: 0,
       mode: 'normal',
       registry: state.registry,
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
@@ -269,6 +437,7 @@ export namespace VimEngine {
 
     const currentItems = [...buffer.items]
     let cursor = buffer.cursor
+    let selection = state.selection
 
     for (const reversion of historyItem.reversions) {
       if (reversion.type === 'cursor') {
@@ -281,6 +450,11 @@ export namespace VimEngine {
         currentItems[reversion.index] = {
           ...currentItems[reversion.index],
           str: reversion.str,
+        }
+      } else if (reversion.type === 'selection') {
+        selection = {
+          indexes: reversion.indexes,
+          last: reversion.last,
         }
       } else {
         Typescript.assertUnreachable(reversion)
@@ -298,6 +472,7 @@ export namespace VimEngine {
         },
       },
       count: 0,
+      selection,
     }
   }
 
@@ -610,6 +785,10 @@ export namespace VimEngine {
   }
 
   export function d(opts: CommandOpts): CommandResult {
+    // If we have multiple items selected, execute delete immediately
+    if (opts.state.selection.indexes.size > 1) {
+      return dd(opts)
+    }
     // If d is already pending, execute dd
     if (opts.state.pendingOperator === 'd') {
       return dd(opts)
@@ -621,6 +800,10 @@ export namespace VimEngine {
   }
 
   export function c(opts: CommandOpts): CommandResult {
+    // If we have multiple items selected, execute change immediately
+    if (opts.state.selection.indexes.size > 1) {
+      return cc(opts)
+    }
     // If c is already pending, execute cc
     if (opts.state.pendingOperator === 'c') {
       return cc(opts)
@@ -632,6 +815,10 @@ export namespace VimEngine {
   }
 
   export function y(opts: CommandOpts): CommandResult {
+    // If we have multiple items selected, execute yank immediately
+    if (opts.state.selection.indexes.size > 1) {
+      return yy(opts)
+    }
     // If y is already pending, execute yy
     if (opts.state.pendingOperator === 'y') {
       return yy(opts)
@@ -728,6 +915,7 @@ export namespace VimEngine {
         ...state.buffers,
         [fullPath]: currentBuffer,
       },
+      selection: state.selection,
     }
   }
 
@@ -741,6 +929,10 @@ export namespace VimEngine {
       mode: 'normal',
       count: 0,
       registry: [],
+      selection: {
+        indexes: new Set<number>(),
+        last: undefined,
+      },
     }
   }
 
@@ -812,6 +1004,7 @@ export namespace VimEngine {
       },
       insertModeStartReversions: reversions,
       pendingOperator: undefined,
+      selection: state.selection,
     }
   }
 
@@ -856,6 +1049,7 @@ export namespace VimEngine {
       },
       insertModeStartReversions: reversions,
       pendingOperator: undefined,
+      selection: state.selection,
     }
   }
 
@@ -903,6 +1097,7 @@ export namespace VimEngine {
         },
       },
       pendingOperator: undefined,
+      selection: state.selection,
     }
   }
 }

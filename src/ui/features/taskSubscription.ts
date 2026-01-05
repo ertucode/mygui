@@ -21,7 +21,7 @@ function shouldUseClientMetadata(task: Tasks.Base): boolean {
   if (!directory) return false
 
   // Check if selection has changed
-  const currentSelection = Array.from(directory.selection.indexes).sort()
+  const currentSelection = Array.from(directoryStore.getSnapshot().context.vim.selection.indexes).sort()
   const originalSelection = [...task.clientMetadata.selection.indexes].sort()
   console.log(currentSelection, originalSelection)
 

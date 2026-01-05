@@ -35,7 +35,7 @@ type GridItemProps = {
 
 const GridItem = memo(function GridItem({ item, index, directoryId, onContextMenu }: GridItemProps) {
   const isSelected = useSelector(directoryStore, state =>
-    state.context.directoriesById[directoryId].selection.indexes.has(index)
+    state.context.vim.selection.indexes.has(index)
   )
 
   const isDragOverThisRow = useSelector(

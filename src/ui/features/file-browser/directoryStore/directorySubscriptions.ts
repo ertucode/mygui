@@ -58,12 +58,12 @@ export function setupSubscriptions(directoryId: DirectoryId) {
   subscriptions.push(
     subscribeToStores(
       [directoryStore],
-      ([s]) => [s.directoriesById[directoryId]?.selection.last],
+      ([s]) => [s.vim.selection.last],
       ([s]) => {
         const ss = s.directoriesById[directoryId]
         if (!ss) return
-        if (ss.selection.last != null) {
-          scrollRowIntoViewIfNeeded(ss.directoryId, ss.selection.last)
+        if (s.vim.selection.last != null) {
+          scrollRowIntoViewIfNeeded(ss.directoryId, s.vim.selection.last)
         }
       }
     )
@@ -98,6 +98,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
     },
     ([d, settings, columnPrefs]): DerivedDirectoryItem[] => {
       const dir = d.directoriesById[directoryId]
+      if (!dir) return []
       const fullPath = dir?.directory.type === 'path' ? dir.directory.fullPath : undefined
       if (fullPath && VimEngine.isActive(d.vim, fullPath)) {
         return d.vim.buffers[fullPath].items

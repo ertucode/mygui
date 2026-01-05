@@ -22,12 +22,10 @@ export function fileBrowserListItemProps({
   return {
     onClick: perDirectoryDataHelpers.getOnClick(directoryId, item, index),
     onMouseDown: e => {
-      // Only handle left mouse button for drag-to-select
       if (e.button !== 0) return
 
       const state = directoryStore.getSnapshot()
-      const directory = state.context.directoriesById[directoryId]
-      const isItemSelected = directory.selection.indexes.has(index)
+      const isItemSelected = state.context.vim.selection.indexes.has(index)
 
       // If item is not selected, start drag-to-select mode
       if (!isItemSelected) {
@@ -139,8 +137,7 @@ export function fileBrowserListItemProps({
 
       // Make element draggable only if it's selected
       const state = directoryStore.getSnapshot()
-      const directory = state.context.directoriesById[directoryId]
-      const isItemSelected = directory.selection.indexes.has(index)
+      const isItemSelected = state.context.vim.selection.indexes.has(index)
 
       const target = e.currentTarget as HTMLElement
       target.draggable = isItemSelected

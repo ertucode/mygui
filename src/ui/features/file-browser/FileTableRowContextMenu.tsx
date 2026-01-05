@@ -80,8 +80,7 @@ export const FileTableRowContextMenu = ({
         view: <TextWithIcon icon={StarIcon}>Add to favorites</TextWithIcon>,
       }
 
-  const directory = directoryStore.getSnapshot().context.directoriesById[directoryId]
-  const selectionIndexes = directory.selection.indexes
+  const selectionIndexes = directoryStore.getSnapshot().context.vim.selection.indexes
   const isSelected = itemIndex !== -1 && selectionIndexes.has(itemIndex)
   const sItems = (
     isSelected && selectionIndexes.size > 0 ? [...selectionIndexes].map(i => tableData[i]) : [item]

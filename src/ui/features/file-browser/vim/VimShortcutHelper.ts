@@ -49,7 +49,7 @@ export namespace VimShortcutHelper {
     const wasInitialized = snapshot.vim.buffers[fullPath]
     if (!wasInitialized) {
       snapshot.vim.buffers[fullPath] = VimEngine.defaultBuffer(fullPath, items as VimEngine.RealBufferItem[])
-      snapshot.vim.buffers[fullPath].cursor.line = activeDirectory.selection.last ?? 0
+      snapshot.vim.buffers[fullPath].cursor.line = snapshot.vim.selection.last ?? 0
     }
     return {
       snapshot,

@@ -472,9 +472,9 @@ export const directoryHelpers = {
     e: KeyboardEvent | undefined,
     directoryId: DirectoryId | undefined
   ) => {
-    const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
-    const lastSelected = context.selection.last
-    const selectionIndexes = context.selection.indexes
+    const snapshot = directoryStore.getSnapshot()
+    const lastSelected = snapshot.context.vim.selection.last
+    const selectionIndexes = snapshot.context.vim.selection.indexes
     function resolveItemToOpen() {
       if (lastSelected == null || selectionIndexes.size !== 1) {
         return data[0]
@@ -495,7 +495,7 @@ export const directoryHelpers = {
   },
 
   openAssignTagsDialog: (fullPath: string, data: GetFilesAndFoldersInDirectoryItem[], directoryId: DirectoryId) => {
-    const indexes = getActiveDirectory(directoryStore.getSnapshot().context, directoryId).selection.indexes
+    const indexes = directoryStore.getSnapshot().context.vim.selection.indexes
     const selectedIndexes = [...indexes.values()]
     const selectedItems = selectedIndexes.map(i => {
       const item = data[i]
@@ -520,8 +520,7 @@ export const directoryHelpers = {
   },
   getFullPathForItem,
   getSelectedItemsOrCurrentItem(index: number, directoryId: DirectoryId) {
-    const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
-    const selection = context.selection
+    const selection = directoryStore.getSnapshot().context.vim.selection
     const tableData = directoryDerivedStores.get(directoryId)?.getFilteredDirectoryData()!
     const item = tableData[index]
 
@@ -714,7 +713,7 @@ export const directoryHelpers = {
   getClientMetadata: (d: DirectoryContextDirectory): Tasks.ClientMetadata => {
     return {
       directoryId: d.directoryId,
-      selection: d.selection,
+      selection: directoryStore.getSnapshot().context.vim.selection,
     }
   },
 }
