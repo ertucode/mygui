@@ -4,6 +4,7 @@ import { VimMovements } from '@common/VimMovements'
 import { directoryStore } from '../directoryStore/directory'
 import { dialogActions } from '../dialogStore'
 import { VimShortcutHelper } from './VimShortcutHelper'
+import { getSnapshotWithInitializedVim } from '../directoryStore/vimHelpers'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -15,7 +16,7 @@ const findCommandListener: (e: KeyboardEvent) => void = e => {
   }
   e.preventDefault()
   e.stopImmediatePropagation()
-  const result = VimShortcutHelper.getSnapshotWithInitializedVim()
+  const result = getSnapshotWithInitializedVim()
   if (!result) return
 
   const pendingFindCommand = result.snapshot.vim.pendingFindCommand
@@ -69,7 +70,7 @@ export const VimShortcuts = {
           handler: e => {
             e?.preventDefault()
 
-            const result = VimShortcutHelper.getSnapshotWithInitializedVim()
+            const result = getSnapshotWithInitializedVim()
             if (!result || !result.wasInitialized) return
 
             const { snapshot } = result
