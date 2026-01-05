@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { setDefaultPath } from './defaultPath'
 import { dialogActions } from './dialogStore'
-import { directoryHelpers, directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
+import { directoryHelpers, directoryStore } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
 import { selectIsFavorite, favoritesStore } from './favorites'
 import { tagsStore, selectLastUsedTag, selectHasTag, selectTagName, TAG_COLOR_CLASSES } from './tags'
@@ -52,7 +52,6 @@ export const FileTableRowContextMenu = ({
 }) => {
   if (i.type === 'str') return undefined
   const directoryId = useDirectoryContext().directoryId
-  if (selectActiveVimBuffer(directoryId)(directoryStore.getSnapshot())) return undefined
 
   const item = i.item
   const fullPath = item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId)

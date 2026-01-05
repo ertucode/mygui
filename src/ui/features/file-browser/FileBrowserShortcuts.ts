@@ -1,5 +1,5 @@
 import { dialogActions, dialogStore } from './dialogStore'
-import { directoryHelpers, directoryStore, selectActiveVimBuffer, selectSelection } from './directoryStore/directory'
+import { directoryHelpers, directoryStore, selectSelection } from './directoryStore/directory'
 import { clipboardHelpers } from './clipboardHelpers'
 import { favoritesStore } from './favorites'
 import { layoutModel } from './initializeDirectory'
@@ -53,7 +53,7 @@ export const FileBrowserShortcuts = {
         {
           key: ['Enter'],
           handler: e => directoryHelpers.openSelectedItem(getData(), e, undefined),
-          label: 'Open selected item',
+          label: 'Open item on cursor',
         },
         {
           key: { key: 'p', ctrlKey: true },
@@ -121,8 +121,6 @@ export const FileBrowserShortcuts = {
             const s = selectSelection(undefined)(snapshot)
             // Command+Delete on macOS
             if (s.indexes.size === 0) return
-            const vim = selectActiveVimBuffer(undefined)(snapshot)
-            if (vim) return
             const data = getData()
             const itemsToDelete = [...s.indexes]
               .map(i => data[i])
@@ -157,8 +155,6 @@ export const FileBrowserShortcuts = {
             const data = getData()
             const snapshot = directoryStore.getSnapshot()
             const s = selectSelection(undefined)(snapshot)
-            const vim = selectActiveVimBuffer(undefined)(snapshot)
-            if (vim) return
             const itemsToRename = s.indexes.size < 1 ? data : [...s.indexes].map(i => data[i])
             const itemsToRenameMapped = itemsToRename.filter(i => i.type === 'real').map(i => i.item)
             dialogActions.open('batchRename', itemsToRenameMapped)

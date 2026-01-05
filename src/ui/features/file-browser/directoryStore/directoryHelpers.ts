@@ -18,7 +18,12 @@ import { FileBrowserCache } from '../FileBrowserCache'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { directorySelection } from './directorySelection'
 import { DirectoryInfo, DirectoryId, DirectoryContextDirectory, DerivedDirectoryItem } from './DirectoryBase'
-import { directoryInfoEquals, getActiveDirectory, getBufferSelection } from './directoryPureHelpers'
+import {
+  directoryInfoEquals,
+  getActiveDirectory,
+  getBufferSelection,
+  getCursorLineForDirectoryId,
+} from './directoryPureHelpers'
 import { initialDirectoryInfo } from '../defaultPath'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores } from '../schemas'
@@ -467,18 +472,8 @@ export const directoryHelpers = {
     directoryId: DirectoryId | undefined
   ) => {
     const snapshot = directoryStore.getSnapshot()
-    const selection = getBufferSelection(snapshot.context, getActiveDirectory(snapshot.context, directoryId))
-    const lastSelected = selection.last
-    const selectionIndexes = selection.indexes
-    function resolveItemToOpen() {
-      if (lastSelected == null || selectionIndexes.size !== 1) {
-        return data[0]
-      } else {
-        return data[lastSelected]
-      }
-    }
-
-    const itemToOpen = resolveItemToOpen()
+    const cursorLine = getCursorLineForDirectoryId(snapshot.context, directoryId) || 0
+    const itemToOpen = data[cursorLine]
     if (itemToOpen.type !== 'real') return
     if (itemToOpen.item.type === 'file' && e?.key === 'l') return
 
