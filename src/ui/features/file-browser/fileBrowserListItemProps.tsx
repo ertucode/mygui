@@ -1,13 +1,8 @@
 import { getWindowElectron } from '@/getWindowElectron'
 import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
 import { directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
-import {
-  DerivedDirectoryItem,
-  DirectoryId,
-  getActiveDirectory,
-  RealDirectoryItem,
-} from './directoryStore/DirectoryBase'
-import { getBufferSelection } from './directoryStore/defaultSelection'
+import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import { getActiveDirectory, getBufferSelection } from './directoryStore/directoryPureHelpers'
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'

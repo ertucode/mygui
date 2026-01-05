@@ -3,9 +3,10 @@ import { toast } from '@/lib/components/toast'
 import { dialogActions } from './dialogStore'
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { directoryStore } from './directoryStore/directory'
-import { getActiveDirectory, type DirectoryId } from './directoryStore/DirectoryBase'
+import { type DirectoryId } from './directoryStore/DirectoryBase'
 import { GenericError } from '@common/GenericError'
 import type { GetFilesAndFoldersInDirectoryItem, ConflictResolution } from '@common/Contracts'
+import { getActiveDirectory } from './directoryStore/directoryPureHelpers'
 
 export const clipboardHelpers = {
   copy: async (
@@ -32,13 +33,13 @@ export const clipboardHelpers = {
 
     // First call without resolution to check for conflicts
     const checkResult = await getWindowElectron().pasteFiles(directoryPath)
-    
+
     // Handle custom paste for image
     if ('customPaste' in checkResult) {
       if (checkResult.customPaste === 'image') {
-        dialogActions.open('createImage', {});
+        dialogActions.open('createImage', {})
       }
-      return;
+      return
     }
 
     if (checkResult.needsResolution) {

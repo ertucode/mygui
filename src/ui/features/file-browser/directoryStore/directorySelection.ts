@@ -1,7 +1,7 @@
 import { SequenceShortcut, ShortcutWithHandler } from '@/lib/hooks/useShortcuts'
 import { createResetSelection, directoryStore } from './directory'
-import { DirectoryId, getActiveDirectory } from './DirectoryBase'
-import { getBufferSelection } from './defaultSelection'
+import { DirectoryId } from './DirectoryBase'
+import { getActiveDirectory, getBufferSelection } from './directoryPureHelpers'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { throttle } from '@common/throttle'
 

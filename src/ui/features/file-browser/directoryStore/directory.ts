@@ -1,4 +1,4 @@
-import { createStore, StoreSnapshot } from '@xstate/store'
+import { createStore, shallowEqual, StoreSnapshot } from '@xstate/store'
 import { HistoryStack } from '@common/history-stack'
 import { errorToString } from '@common/errorToString'
 import { fileBrowserSettingsStore, selectSettings as selectSettingsFromStore, FileBrowserSettings } from '../settings'
@@ -16,11 +16,10 @@ import {
   DirectoryContext,
   DirectoryId,
   DirectoryContextDirectory,
-  getActiveDirectory,
   DirectoryInfo,
   DirectoryLocalSort,
 } from './DirectoryBase'
-import { defaultSelection } from './defaultSelection'
+import { defaultSelection, getActiveDirectory, getFullPathForBuffer, selectBuffer } from './directoryPureHelpers'
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { useSelector } from '@xstate/store/react'
 import { VimEngine } from '@common/VimEngine'
@@ -627,10 +626,8 @@ export const selectPendingSelection =
 
 export const selectSelection = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
   const activeDirectory = getActiveDirectory(state.context, directoryId)
-  if (activeDirectory.directory.type !== 'path') {
-    return defaultSelection
-  }
-  const buffer = state.context.vim.buffers[activeDirectory.directory.fullPath]
+  const fullPath = getFullPathForBuffer(activeDirectory.directory)
+  const buffer = state.context.vim.buffers[fullPath]
   return buffer?.selection ?? defaultSelection
 }
 
@@ -648,6 +645,28 @@ export function useRowIsSelected(index: number, directoryId: DirectoryId | undef
     const selection = selectSelection(directoryId)(s)
     return selection.indexes.has(index)
   })
+}
+export function useRowIsCursor(index: number, directoryId: DirectoryId | undefined) {
+  return useSelector(directoryStore, s => {
+    const buffer = selectBuffer(s.context, directoryId)
+    if (!buffer) return false
+    return buffer.cursor.line === index
+  })
+}
+// TODO: better name
+export function useRowState(index: number, directoryId: DirectoryId | undefined) {
+  return useSelector(
+    directoryStore,
+    s => {
+      const buffer = selectBuffer(s.context, directoryId)
+      if (!buffer) return { isSelected: false, isCursor: false }
+      return {
+        isSelected: buffer.selection.indexes.has(index),
+        isCursor: buffer.cursor.line === index,
+      }
+    },
+    shallowEqual
+  )
 }
 export const selectActiveVimBuffer =
   (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {

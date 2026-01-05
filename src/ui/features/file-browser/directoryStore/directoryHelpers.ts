@@ -17,15 +17,8 @@ import { selectSettings as selectSettingsFromStore } from '../settings'
 import { FileBrowserCache } from '../FileBrowserCache'
 import { directoryDerivedStores } from './directorySubscriptions'
 import { directorySelection } from './directorySelection'
-import {
-  DirectoryInfo,
-  DirectoryId,
-  getActiveDirectory,
-  directoryInfoEquals,
-  DirectoryContextDirectory,
-  DerivedDirectoryItem,
-} from './DirectoryBase'
-import { getBufferSelection } from './defaultSelection'
+import { DirectoryInfo, DirectoryId, DirectoryContextDirectory, DerivedDirectoryItem } from './DirectoryBase'
+import { directoryInfoEquals, getActiveDirectory, getBufferSelection } from './directoryPureHelpers'
 import { initialDirectoryInfo } from '../defaultPath'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores } from '../schemas'

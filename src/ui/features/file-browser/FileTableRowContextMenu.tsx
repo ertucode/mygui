@@ -36,8 +36,8 @@ import { ApplicationInfo } from '@common/Contracts'
 import { ArchiveHelpers } from '@common/ArchiveHelpers'
 import { CommandHelpers } from './CommandHelpers'
 import { checkGlob } from '@/lib/functions/checkGlob'
-import { DerivedDirectoryItem, getActiveDirectory, RealDirectoryItem } from './directoryStore/DirectoryBase'
-import { getBufferSelection } from './directoryStore/defaultSelection'
+import { DerivedDirectoryItem, RealDirectoryItem } from './directoryStore/DirectoryBase'
+import { getActiveDirectory, getBufferSelection } from './directoryStore/directoryPureHelpers'
 
 export const FileTableRowContextMenu = ({
   item: i,

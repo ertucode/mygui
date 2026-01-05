@@ -11,7 +11,7 @@ import {
   selectDirectory,
   selectViewMode,
   selectError,
-  useRowIsSelected,
+  useRowState,
 } from '@/features/file-browser/directoryStore/directory'
 import { FileTableRowContextMenu } from '@/features/file-browser/FileTableRowContextMenu'
 import { useDirectoryContext } from '@/features/file-browser/DirectoryContext'
@@ -279,7 +279,7 @@ type TableRowProps = {
  * significantly improving performance in directories with 300+ items.
  */
 const TableRow = memo(function TableRow({ row, index, directoryId, item, onContextMenu }: TableRowProps) {
-  const isSelected = useRowIsSelected(index, directoryId)
+  const { isSelected, isCursor } = useRowState(index, directoryId)
   const isDragOverThisRow = useDragOverThisRow(item, index, directoryId)
 
   const rowProps =
@@ -291,6 +291,7 @@ const TableRow = memo(function TableRow({ row, index, directoryId, item, onConte
       className={clsx(
         isSelected && 'bg-base-content/10 row-selected',
         isDragOverThisRow && 'bg-primary/20 ring-1 ring-primary ring-inset',
+        isCursor && 'bg-primary/30',
         'select-none'
       )}
       style={{ height: 25.5 }}
