@@ -31,7 +31,7 @@ export function VimCursor() {
 
   return (
     <div
-      className="absolute z-10 whitespace-pre flex items-center"
+      className="absolute z-10 whitespace-pre flex items-center select-none"
       style={{
         top: HEADER + cursor.line * ROW_HEIGHT,
         left: NAME_START,
