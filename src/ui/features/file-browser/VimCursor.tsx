@@ -14,6 +14,7 @@ export function VimCursor() {
       if (s.context.activeDirectoryId !== directoryId) return
       const vim = selectActiveVimBuffer(directoryId)(s)
       if (!vim) return
+      if (vim.cursor.column === 0) return
       const fullPath = getFullPathForBuffer(s.context.directoriesById[directoryId].directory)
       const str = s.context.vim.buffers[fullPath]?.items[vim.cursor.line]?.str
       if (!str) return
