@@ -1,3 +1,4 @@
+import Fuse from 'fuse.js'
 import { GetFilesAndFoldersInDirectoryItem } from './Contracts.js'
 import { GenericError } from './GenericError.js'
 import { HistoryStack } from './history-stack.js'
@@ -22,6 +23,14 @@ export namespace VimEngine {
       }
     | RealBufferItem
 
+  export type FuzzyState = {
+    query: string
+    matches: FuzzyMatches
+    active: boolean // fuzzy input is visible, show highlights
+    fuse: Fuse<BufferItem>
+  }
+  export type FuzzyMatches = { row: number; columns: readonly [number, number] }[]
+  export type FuzzyCacheItem = { fuse: Fuse<BufferItem>; matches: Record<string, FuzzyMatches> }
   export type Buffer = {
     fullPath: string
     items: BufferItem[]
@@ -32,6 +41,9 @@ export namespace VimEngine {
       indexes: Set<number>
       last: number | undefined
     }
+    fuzzy: FuzzyState | undefined
+    fuzzyHistory: string[]
+    fuzzyCache: WeakMap<BufferItem[], FuzzyCacheItem>
   }
 
   export type FindCommand = 'f' | 'F' | 't' | 'T'
@@ -164,6 +176,7 @@ export namespace VimEngine {
     }
 
     const currentBuffer: Buffer = {
+      ...buffer,
       fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
@@ -221,6 +234,7 @@ export namespace VimEngine {
     }
     const line = Math.min(deleteIndex, currentItems.length - 1)
     const currentBuffer: Buffer = {
+      ...buffer,
       fullPath: fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
@@ -250,6 +264,7 @@ export namespace VimEngine {
         indexes: new Set<number>(),
         last: undefined,
       },
+      fuzzy: buffer.fuzzy,
     }
     return {
       count: 0,
@@ -326,6 +341,7 @@ export namespace VimEngine {
 
     currentItems.splice(pasteIndex, 0, ...state.registry)
     const currentBuffer: Buffer = {
+      ...buffer,
       fullPath: buffer.fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
@@ -355,6 +371,7 @@ export namespace VimEngine {
         indexes: new Set<number>(),
         last: undefined,
       },
+      fuzzy: buffer.fuzzy,
     }
     return {
       buffers: {
@@ -395,6 +412,7 @@ export namespace VimEngine {
 
     currentItems.splice(pasteIndex, 0, ...state.registry)
     const currentBuffer: Buffer = {
+      ...buffer,
       fullPath: fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
@@ -424,6 +442,7 @@ export namespace VimEngine {
         indexes: new Set<number>(),
         last: undefined,
       },
+      fuzzy: buffer.fuzzy,
     }
     return {
       buffers: {
@@ -899,6 +918,7 @@ export namespace VimEngine {
     }
 
     const currentBuffer: Buffer = {
+      ...buffer,
       fullPath,
       items: currentItems,
       originalItems: buffer.originalItems,
@@ -920,6 +940,7 @@ export namespace VimEngine {
         column: Math.max(0, Math.min(range.start, newStr.length - 1)),
       },
       selection: buffer.selection,
+      fuzzy: buffer.fuzzy,
     }
 
     return {
@@ -976,6 +997,9 @@ export namespace VimEngine {
         indexes: new Set<number>(),
         last: undefined,
       },
+      fuzzy: undefined,
+      fuzzyHistory: [],
+      fuzzyCache: new WeakMap(),
     }
   }
 
