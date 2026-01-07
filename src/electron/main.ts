@@ -271,6 +271,64 @@ app.on("ready", () => {
   ipcHandle("runCommand", runCommand);
   ipcHandle("applyVimChanges", applyVimChanges);
 
+  ipcHandle("setAlwaysOnTop", async (alwaysOnTop: boolean, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window) {
+      window.setAlwaysOnTop(alwaysOnTop);
+    }
+  });
+
+  ipcHandle("getAlwaysOnTop", async (_: void, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    return window?.isAlwaysOnTop() ?? false;
+  });
+
+  // Store original window bounds for restoration
+  const originalWindowBounds = new Map<number, Electron.Rectangle>();
+
+  ipcHandle("setCompactWindowSize", async (_: void, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window) {
+      const windowId = window.id;
+      // Store the current bounds before resizing
+      if (!originalWindowBounds.has(windowId)) {
+        originalWindowBounds.set(windowId, window.getBounds());
+      }
+      
+      const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize;
+      const newWidth = Math.floor(screenWidth / 3);
+      const newHeight = Math.floor(screenHeight / 3);
+      
+      window.setBounds({
+        width: newWidth,
+        height: newHeight,
+        x: 0,
+        y: 0,
+      });
+    }
+  });
+
+  ipcHandle("restoreWindowSize", async (_: void, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (window) {
+      const windowId = window.id;
+      const savedBounds = originalWindowBounds.get(windowId);
+      
+      if (savedBounds) {
+        window.setBounds(savedBounds);
+        originalWindowBounds.delete(windowId);
+      }
+    }
+  });
+
+  ipcHandle("getIsCompactWindowSize", async (_: void, event) => {
+    const window = BrowserWindow.fromWebContents(event.sender);
+    if (!window) return false;
+    
+    const windowId = window.id;
+    return originalWindowBounds.has(windowId);
+  });
+
   // Store pending select-app promises
   const selectAppPromises = new Map<
     number,

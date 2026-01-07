@@ -1,8 +1,8 @@
 import { getWindowElectron } from '@/getWindowElectron'
 import { captureDivAsBase64 } from '@/lib/functions/captureDiv'
-import { directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
+import { directoryStore } from './directoryStore/directory'
 import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
-import { getActiveDirectory, getBufferSelection } from './directoryStore/directoryPureHelpers'
+import { getActiveDirectory, getBufferSelection, selectBuffer } from './directoryStore/directoryPureHelpers'
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
@@ -137,18 +137,18 @@ export function fileBrowserListItemProps({
         directoryHelpers.preloadDirectory(item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
       }
 
-      // Make element draggable only if it's selected
+      // Make element draggable only if it's selected or on cursor
       const state = directoryStore.getSnapshot()
-      const selection = getBufferSelection(state.context, getActiveDirectory(state.context, directoryId))
-      const isItemSelected = selection.indexes.has(index)
+      const buffer = selectBuffer(state.context, directoryId)
+      if (!buffer) return
+      const isItemSelected = buffer.selection.indexes.has(index)
+      const isCursor = buffer.cursor.line === index
 
       const target = e.currentTarget as HTMLElement
-      target.draggable = isItemSelected
+      // Bunun amacı kaydırarak select yapabilmek
+      target.draggable = isItemSelected || isCursor
     },
     onDragStart: async e => {
-      const vim = selectActiveVimBuffer(directoryId)(directoryStore.getSnapshot())
-      if (vim) return undefined
-
       const items = directoryHelpers.getSelectedItemsOrCurrentItem(index, directoryId) as RealDirectoryItem[]
       const isOutsideDrag = e.metaKey || e.ctrlKey || e.shiftKey
 

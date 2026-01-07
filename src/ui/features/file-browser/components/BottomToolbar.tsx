@@ -6,9 +6,13 @@ import { FileBrowserOptionsSection } from './FileBrowserOptionsSection'
 import { shallowEqual } from '@xstate/store'
 import { StringUtils } from '@common/StringUtils'
 import { getFullPathForBuffer } from '../directoryStore/directoryPureHelpers'
+import { windowStore } from '@/features/windowStore'
 
 export function BottomToolbar() {
   const activeDirectoryId = useSelector(directoryStore, s => s.context.activeDirectoryId)
+
+  const isCompact = useSelector(windowStore, s => s.context.isCompactWindowSize)
+  if (isCompact) return undefined
 
   if (!activeDirectoryId) {
     return (

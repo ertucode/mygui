@@ -143,7 +143,7 @@ export type EventResponseMapping = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: "image" }
+    | { customPaste: 'image' }
   >
   fuzzyFileFinder: Promise<GenericResult<string[]>>
   searchStringRecursively: Promise<GenericResult<StringSearchResult[]>>
@@ -166,6 +166,11 @@ export type EventResponseMapping = {
   openSelectAppWindow: Promise<string | null | undefined>
   openShell: Promise<void>
   runCommand: Promise<GenericResult<void>>
+  setAlwaysOnTop: Promise<void>
+  getAlwaysOnTop: Promise<boolean>
+  setCompactWindowSize: Promise<void>
+  restoreWindowSize: Promise<void>
+  getIsCompactWindowSize: Promise<boolean>
 }
 
 export type StringSearchOptions = {
@@ -279,6 +284,11 @@ export type EventRequestMapping = {
   openSelectAppWindow: { initialPath: string }
   openShell: string
   runCommand: { name: string; filePath: string; parameters: any }
+  setAlwaysOnTop: boolean
+  getAlwaysOnTop: void
+  setCompactWindowSize: void
+  restoreWindowSize: void
+  getIsCompactWindowSize: void
 }
 
 export type EventRequest<Key extends keyof EventResponseMapping> = Key extends keyof EventRequestMapping
@@ -338,7 +348,7 @@ export type WindowElectron = {
         needsResolution: false
         result: GenericResult<{ pastedItems: string[] }>
       }
-    | { customPaste: "image" }
+    | { customPaste: 'image' }
   >
   fuzzyFileFinder: (directory: string, query: string) => Promise<GenericResult<string[]>>
   searchStringRecursively: (options: StringSearchOptions) => Promise<GenericResult<StringSearchResult[]>>
@@ -357,8 +367,19 @@ export type WindowElectron = {
   onTaskEvent: (cb: (e: TaskEvents) => void) => void
   onGenericEvent: (cb: (e: GenericEvent) => void) => void
   onWindowFocus: (cb: () => void) => UnsubscribeFunction
-  startArchive: (archiveType: ArchiveTypes.ArchiveType, source: string[], destination: string, clientMetadata: Tasks.ClientMetadata) => Promise<void>
-  startUnarchive: (archiveType: ArchiveTypes.ArchiveType, source: string, destination: string, clientMetadata: Tasks.ClientMetadata, extractSingleItem?: boolean) => Promise<void>
+  startArchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string[],
+    destination: string,
+    clientMetadata: Tasks.ClientMetadata
+  ) => Promise<void>
+  startUnarchive: (
+    archiveType: ArchiveTypes.ArchiveType,
+    source: string,
+    destination: string,
+    clientMetadata: Tasks.ClientMetadata,
+    extractSingleItem?: boolean
+  ) => Promise<void>
   abortTask: (taskId: string) => Promise<void>
   getApplicationsForFile: (filePath: string) => Promise<ApplicationInfo[]>
   openFileWithApplication: (filePath: string, applicationPath: string) => Promise<void>
@@ -368,4 +389,9 @@ export type WindowElectron = {
   sendSelectAppResult: (appPath: string | null | undefined) => void
   getWindowArgs: () => string
   runCommand: (opts: { name: string; filePath: string; parameters: any }) => Promise<GenericResult<void>>
+  setAlwaysOnTop: (alwaysOnTop: boolean) => Promise<void>
+  getAlwaysOnTop: () => Promise<boolean>
+  setCompactWindowSize: () => Promise<void>
+  restoreWindowSize: () => Promise<void>
+  getIsCompactWindowSize: () => Promise<boolean>
 }

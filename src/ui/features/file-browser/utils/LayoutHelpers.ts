@@ -38,6 +38,10 @@ export namespace LayoutHelpers {
     return result
   }
 
+  export function getActiveOrFirstTabsetWithComponent(components: string[]) {
+    return LayoutHelpers.getActiveTabsetWithComponent(components) || LayoutHelpers.getTabsetWithComponent(components)
+  }
+
   export function getActiveDirectoryId() {
     const node = layoutModel.getActiveTabset()?.getSelectedNode()
     if (isDirectory(node) && node.getConfig()?.directoryId) {

@@ -120,6 +120,12 @@ electron.contextBridge.exposeInMainWorld("electron", {
     ipcInvoke("runCommand", opts),
   getAudioMetadata: (filePath: string) =>
     ipcInvoke("getAudioMetadata", filePath),
+  setAlwaysOnTop: (alwaysOnTop: boolean) =>
+    ipcInvoke("setAlwaysOnTop", alwaysOnTop),
+  getAlwaysOnTop: () => ipcInvoke("getAlwaysOnTop", undefined),
+  setCompactWindowSize: () => ipcInvoke("setCompactWindowSize", undefined),
+  restoreWindowSize: () => ipcInvoke("restoreWindowSize", undefined),
+  getIsCompactWindowSize: () => ipcInvoke("getIsCompactWindowSize", undefined),
 } satisfies WindowElectron);
 
 function ipcInvoke<Key extends keyof EventResponseMapping>(
