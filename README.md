@@ -9,8 +9,6 @@
 
   - open dialog
 
-- selection can't remove select
-
 # AMBITIOUS TODO
 
 - Plugin system

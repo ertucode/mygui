@@ -125,7 +125,7 @@ export const directorySelection = {
     // Helper function to move cursor and optionally modify selection
     const moveCursor = (
       offset: number,
-      mode: 'replace' | 'add' | 'toggle',
+      mode: 'replace' | 'add' | 'toggle' | 'remove',
       e?: KeyboardEvent | React.KeyboardEvent
     ) => {
       const { state, selection, cursorLine, filteredData } = getCursorPosition()
@@ -143,7 +143,8 @@ export const directorySelection = {
         indexes.clear()
         indexes.add(targetIndex)
       } else if (mode === 'add') {
-        // Add target to selection
+        // Add current item to selection first, then add target
+        indexes.add(cursorLine)
         indexes.add(targetIndex)
       } else if (mode === 'toggle') {
         // Toggle target in selection
@@ -152,6 +153,10 @@ export const directorySelection = {
         } else {
           indexes.add(targetIndex)
         }
+      } else if (mode === 'remove') {
+        // Remove current item from selection first, then remove target
+        indexes.delete(cursorLine)
+        indexes.delete(targetIndex)
       }
 
       directoryStore.send({
@@ -261,27 +266,11 @@ export const directorySelection = {
           { key: 'ArrowDown', shiftKey: true },
         ],
         handler: throttle(e => {
-          const { state, selection, cursorLine, filteredData } = getCursorPosition()
           const cols = getColumnsPerRow()
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
           const offset = state.viewMode === 'grid' ? cols : 1
-
-          // Add current item to selection first
-          const indexes = new Set(selection.indexes)
-          indexes.add(cursorLine)
-
-          // Then move and add target
-          let targetIndex = cursorLine + offset
-          const count = filteredData.length
-          if (targetIndex >= count) targetIndex = 0
-          indexes.add(targetIndex)
-
-          directoryStore.send({
-            type: 'setSelection',
-            indexes,
-            last: targetIndex,
-            directoryId: state.directoryId,
-          })
-          e?.preventDefault()
+          moveCursor(offset, 'add', e)
         }, THROTTLE_DELAY),
         label: 'Move down and add to selection',
       },
@@ -293,27 +282,11 @@ export const directorySelection = {
           { key: 'ArrowUp', shiftKey: true },
         ],
         handler: throttle(e => {
-          const { state, selection, cursorLine, filteredData } = getCursorPosition()
           const cols = getColumnsPerRow()
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
           const offset = state.viewMode === 'grid' ? cols : 1
-
-          // Add current item to selection first
-          const indexes = new Set(selection.indexes)
-          indexes.add(cursorLine)
-
-          // Then move and add target
-          let targetIndex = cursorLine - offset
-          const count = filteredData.length
-          if (targetIndex < 0) targetIndex = count - 1
-          indexes.add(targetIndex)
-
-          directoryStore.send({
-            type: 'setSelection',
-            indexes,
-            last: targetIndex,
-            directoryId: state.directoryId,
-          })
-          e?.preventDefault()
+          moveCursor(-offset, 'add', e)
         }, THROTTLE_DELAY),
         label: 'Move up and add to selection',
       },
@@ -370,6 +343,68 @@ export const directorySelection = {
           moveCursor(offset, 'add', e)
         }, THROTTLE_DELAY),
         label: 'Move right and add to selection',
+      },
+
+      // Ctrl+J/Cmd+ArrowDown: Move down and remove from selection
+      {
+        key: [
+          { key: 'j', ctrlKey: true },
+          { key: 'ArrowDown', metaKey: true },
+        ],
+        handler: throttle(e => {
+          const cols = getColumnsPerRow()
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
+          const offset = state.viewMode === 'grid' ? cols : 1
+          moveCursor(offset, 'remove', e)
+        }, THROTTLE_DELAY),
+        label: 'Move down and remove from selection',
+      },
+
+      // Ctrl+K/Cmd+ArrowUp: Move up and remove from selection
+      {
+        key: [
+          { key: 'k', ctrlKey: true },
+          { key: 'ArrowUp', metaKey: true },
+        ],
+        handler: throttle(e => {
+          const cols = getColumnsPerRow()
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
+          const offset = state.viewMode === 'grid' ? cols : 1
+          moveCursor(-offset, 'remove', e)
+        }, THROTTLE_DELAY),
+        label: 'Move up and remove from selection',
+      },
+
+      // Ctrl+H/Cmd+ArrowLeft: Move left and remove in grid, jump up 10 and remove in list
+      {
+        key: [
+          { key: 'h', ctrlKey: true },
+          { key: 'ArrowLeft', metaKey: true },
+        ],
+        handler: throttle(e => {
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
+          const offset = state.viewMode === 'grid' ? -1 : -10
+          moveCursor(offset, 'remove', e)
+        }, THROTTLE_DELAY),
+        label: 'Move left and remove from selection',
+      },
+
+      // Ctrl+L/Cmd+ArrowRight: Move right and remove in grid, jump down 10 and remove in list
+      {
+        key: [
+          { key: 'l', ctrlKey: true },
+          { key: 'ArrowRight', metaKey: true },
+        ],
+        handler: throttle(e => {
+          const snapshot = directoryStore.getSnapshot()
+          const state = getActiveDirectory(snapshot.context, undefined)
+          const offset = state.viewMode === 'grid' ? 1 : 10
+          moveCursor(offset, 'remove', e)
+        }, THROTTLE_DELAY),
+        label: 'Move right and remove from selection',
       },
 
       // Shift+G: Go to last item
