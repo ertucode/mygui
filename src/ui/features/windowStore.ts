@@ -49,7 +49,7 @@ export namespace WindowStoreHelpers {
     }
   }
 
-  export const toggleAlwaysOnTop = async (e: React.MouseEvent) => {
+  export const toggleAlwaysOnTop = async (e: { metaKey: boolean }) => {
     const state = windowStore.getSnapshot().context
     const newValue = !state.alwaysOnTop
     await getWindowElectron().setAlwaysOnTop(newValue)
@@ -60,4 +60,33 @@ export namespace WindowStoreHelpers {
       await toggleWindowSize()
     }
   }
+}
+
+import { GlobalShortcuts } from '@/lib/hooks/globalShortcuts'
+
+const SHORTCUTS_KEY = 'windowStore'
+
+export const WindowStoreShortcuts = {
+  init: () => {
+    GlobalShortcuts.create({
+      key: SHORTCUTS_KEY,
+      enabled: true,
+      shortcuts: [
+        {
+          key: { key: 'F1', metaKey: true },
+          handler: () => WindowStoreHelpers.toggleAlwaysOnTop({ metaKey: true }),
+          label: '[Window] Toggle Always On Top and Compact',
+        },
+        {
+          key: { key: 'F2', metaKey: true },
+          handler: () => WindowStoreHelpers.toggleWindowSize(),
+          label: '[Window] Toggle Compact Window Size',
+        },
+      ],
+      sequences: [],
+    })
+  },
+  deinit: () => {
+    GlobalShortcuts.updateEnabled(SHORTCUTS_KEY, false)
+  },
 }
