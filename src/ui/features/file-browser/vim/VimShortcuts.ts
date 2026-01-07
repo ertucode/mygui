@@ -7,6 +7,7 @@ import { VimShortcutHelper } from './VimShortcutHelper'
 import { getSnapshotWithInitializedVim } from '../directoryStore/vimHelpers'
 import { confirmation } from '@/lib/components/confirmation'
 import { subscribeToStores } from '@/lib/functions/storeHelpers'
+import { VimFuzzy } from '@common/VimFuzzy'
 
 const SHORTCUTS_KEY = 'vim'
 
@@ -107,6 +108,8 @@ export const VimShortcuts = {
         { key: 't', handler: create(VimMovements.t), label: '[VIM] Move cursor to next occurrence of character' },
         { key: 'T', handler: create(VimMovements.T), label: '[VIM] Move cursor to previous occurrence of character' },
         { key: ';', handler: create(VimMovements.semicolon), label: '[VIM] Repeat last f/F/t/T command' },
+        { key: 'n', handler: create(VimFuzzy.n), label: '[VIM] Next fuzzy match' },
+        { key: { shiftKey: true, key: 'N' }, handler: create(VimFuzzy.N), label: '[VIM] Next fuzzy match (backwards)' },
         {
           key: ',',
           handler: create(VimMovements.comma),

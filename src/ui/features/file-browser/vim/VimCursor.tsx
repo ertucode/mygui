@@ -1,8 +1,9 @@
 import { useSelector } from '@xstate/store/react'
-import { useDirectoryContext } from './DirectoryContext'
-import { directoryStore, selectActiveVimBuffer } from './directoryStore/directory'
+import { useDirectoryContext } from '../DirectoryContext'
+import { directoryStore, selectActiveVimBuffer } from '../directoryStore/directory'
 import { shallowEqual } from '@xstate/store'
-import { getFullPathForBuffer } from './directoryStore/directoryPureHelpers'
+import { getFullPathForBuffer } from '../directoryStore/directoryPureHelpers'
+import { VimHighlight } from './VimHighlight'
 
 export function VimCursor() {
   const directoryId = useDirectoryContext().directoryId
@@ -30,26 +31,5 @@ export function VimCursor() {
   if (!data) return null
   const { cursor } = data
 
-  return (
-    <div
-      className="absolute z-10 whitespace-pre flex items-center select-none"
-      style={{
-        top: HEADER + cursor.line * ROW_HEIGHT,
-        left: NAME_START,
-        height: ROW_HEIGHT,
-        fontSize: fontsize,
-      }}
-      data-cursor={directoryId}
-    >
-      <span className="opacity-0 h-full flex items-center">{data.until}</span>
-
-      <span className="bg-red-100/50 h-full flex items-center">{data.char}</span>
-    </div>
-  )
+  return <VimHighlight line={cursor.line} until={data.until} highlighted={data.char} colorClass="bg-red-100/50" />
 }
-
-const fontsize = `0.6875rem`
-
-const HEADER = 30
-const ROW_HEIGHT = 25.5
-const NAME_START = 40

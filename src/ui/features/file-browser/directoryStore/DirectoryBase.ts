@@ -27,7 +27,6 @@ export type DirectoryContextDirectory = {
   error: GenericError | undefined
   historyStack: HistoryStack<DirectoryInfo>
   pendingSelection: string | string[] | null
-  fuzzyQuery: string
   viewMode: 'list' | 'grid'
   localSort: DirectoryLocalSort | undefined
 }

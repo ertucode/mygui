@@ -52,6 +52,7 @@ function VimStatus() {
         pendingOperator: s.context.vim.pendingOperator,
         textObjectModifier: s.context.vim.textObjectModifier,
         mode: s.context.vim.mode,
+        fuzzy: JSON.stringify(buffer.fuzzy),
       }
     },
     shallowEqual

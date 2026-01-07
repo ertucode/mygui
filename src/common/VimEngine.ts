@@ -23,13 +23,14 @@ export namespace VimEngine {
       }
     | RealBufferItem
 
-  export type FuzzyState = {
-    query: string
+  export type Fuzzy = {
+    query: string | undefined
     matches: FuzzyMatches
-    active: boolean // fuzzy input is visible, show highlights
-    fuse: Fuse<BufferItem>
+    cycleIndex: number
+    history: HistoryStack<string>
+    cache: WeakMap<BufferItem[], FuzzyCacheItem>
   }
-  export type FuzzyMatches = { row: number; columns: readonly [number, number] }[]
+  export type FuzzyMatches = { line: number; columnTuples: readonly (readonly [number, number])[] }[]
   export type FuzzyCacheItem = { fuse: Fuse<BufferItem>; matches: Record<string, FuzzyMatches> }
   export type Buffer = {
     fullPath: string
@@ -41,9 +42,7 @@ export namespace VimEngine {
       indexes: Set<number>
       last: number | undefined
     }
-    fuzzy: FuzzyState | undefined
-    fuzzyHistory: string[]
-    fuzzyCache: WeakMap<BufferItem[], FuzzyCacheItem>
+    fuzzy: Fuzzy
   }
 
   export type FindCommand = 'f' | 'F' | 't' | 'T'
@@ -970,7 +969,7 @@ export namespace VimEngine {
     }
   }
 
-  function getEffectiveCount(state: State): number {
+  export function getEffectiveCount(state: State): number {
     return state.count || 1
   }
 
@@ -997,10 +996,32 @@ export namespace VimEngine {
         indexes: new Set<number>(),
         last: undefined,
       },
-      fuzzy: undefined,
-      fuzzyHistory: [],
-      fuzzyCache: new WeakMap(),
+      fuzzy: createFuzzy(undefined),
     }
+  }
+
+  export function createFuzzy(query: string | undefined): Fuzzy {
+    return {
+      query,
+      matches: [],
+      cycleIndex: 0,
+      history: new HistoryStack<string>([]),
+      cache: new WeakMap(),
+    }
+  }
+
+  export function spreadBuffers(state: State, fullPath: string): [State, Buffer] {
+    const buffer = { ...state.buffers[fullPath] }
+    return [
+      {
+        ...state,
+        buffers: {
+          ...state.buffers,
+          [fullPath]: buffer,
+        },
+      },
+      buffer,
+    ] as const
   }
 
   export function createStrBufferItem(str: string): BufferItem {

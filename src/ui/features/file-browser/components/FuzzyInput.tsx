@@ -1,47 +1,35 @@
-import { useSelector } from "@xstate/store/react";
-import { useEffect, useRef, useState } from "react";
-import {
-  directoryStore,
-  directoryHelpers,
-  selectFuzzyQuery,
-} from "../directoryStore/directory";
-import { DirectoryId } from "../directoryStore/DirectoryBase";
-import { directoryDerivedStores } from "../directoryStore/directorySubscriptions";
-import { directorySelection } from "../directoryStore/directorySelection";
+import { useSelector } from '@xstate/store/react'
+import { useEffect, useRef, useState } from 'react'
+import { directoryStore, directoryHelpers } from '../directoryStore/directory'
+import { DirectoryId } from '../directoryStore/DirectoryBase'
+import { directoryDerivedStores } from '../directoryStore/directorySubscriptions'
+import { directorySelection } from '../directoryStore/directorySelection'
+import { selectBuffer } from '../directoryStore/directoryPureHelpers'
+import { VimShortcutHelper } from '../vim/VimShortcutHelper'
+import { VimFuzzy } from '@common/VimFuzzy'
 
 export type FuzzyInputProps = {
-  directoryId: DirectoryId;
-};
+  directoryId: DirectoryId
+}
 
 export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
-  const fuzzyQuery = useSelector(directoryStore, selectFuzzyQuery(directoryId));
-  const filteredData = directoryDerivedStores
-    .get(directoryId)!
-    .useFilteredDirectoryData();
+  const fuzzy = useSelector(directoryStore, s => {
+    return selectBuffer(s.context, directoryId)?.fuzzy
+  })
+  const filteredData = directoryDerivedStores.get(directoryId)!.useFilteredDirectoryData()
 
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [isFocused, setIsFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [isFocused, setIsFocused] = useState(false)
 
   useEffect(() => {
-    return directoryStore.on("focusFuzzyInput", ({ e, directoryId: dId }) => {
-      if (dId !== directoryId) return;
-      e?.preventDefault();
-      inputRef.current?.focus();
-      const query =
-        directoryStore.getSnapshot().context.directoriesById[directoryId]
-          .fuzzyQuery;
-      if (query) {
-        setTimeout(() => {
-          const i = inputRef.current;
-          if (!i) return;
-          i.selectionStart = 0;
-          i.selectionEnd = query.length;
-        }, 100);
-      }
-    }).unsubscribe;
-  }, [directoryId]);
+    return directoryStore.on('focusFuzzyInput', ({ e, directoryId: dId }) => {
+      if (dId !== directoryId) return
+      e?.preventDefault()
+      inputRef.current?.focus()
+    }).unsubscribe
+  }, [directoryId])
 
-  const isVisible = isFocused || fuzzyQuery.length > 0;
+  const isVisible = isFocused
 
   return (
     <input
@@ -51,41 +39,44 @@ export function FuzzyInput({ directoryId }: { directoryId: DirectoryId }) {
       className="input text-sm h-6 w-48 min-[1000px]:w-60 absolute top-2 right-2 z-10 transition-opacity duration-200 rounded-none"
       style={{
         opacity: isVisible ? 1 : 0,
-        pointerEvents: isVisible ? "auto" : "none",
+        pointerEvents: isVisible ? 'auto' : 'none',
       }}
       placeholder="Search... (/)"
-      value={fuzzyQuery}
-      onChange={(e) => {
-        directoryHelpers.setFuzzyQuery(e.target.value, directoryId);
+      value={fuzzy?.query ?? ''}
+      onChange={e => {
+        VimShortcutHelper.updateVim(opts => VimFuzzy.setFuzzyQuery(opts, e.target.value))
       }}
       onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          directoryHelpers.clearFuzzyQuery(directoryId);
-          e.currentTarget.blur();
+      onBlur={() => {
+        setIsFocused(false)
+        VimShortcutHelper.updateVim(VimFuzzy.blurFuzzy)
+      }}
+      onKeyDown={e => {
+        if (e.key === 'Escape') {
+          e.currentTarget.blur()
+          VimShortcutHelper.updateVim(VimFuzzy.blurFuzzy)
         }
-        if (e.key === "j" && e.ctrlKey)
-          directorySelection.setSelection(
-            (h) => Math.min(h + 1, filteredData.length - 1),
-            directoryId,
-          );
-        if (e.key === "k" && e.ctrlKey)
-          directorySelection.setSelection(
-            (h) => Math.max(h - 1, 0),
-            directoryId,
-          );
+        if (e.key === 'j' && e.ctrlKey)
+          directorySelection.setSelection(h => Math.min(h + 1, filteredData.length - 1), directoryId)
+        if (e.key === 'k' && e.ctrlKey) directorySelection.setSelection(h => Math.max(h - 1, 0), directoryId)
 
-        if (e.key === "Enter") {
-          directoryHelpers.openSelectedItem(
-            filteredData,
-            undefined,
-            directoryId,
-          );
-          directoryHelpers.clearFuzzyQuery(directoryId);
-          e.currentTarget.blur();
+        if (e.key === 'n' && e.ctrlKey) VimShortcutHelper.updateVim(VimFuzzy.n)
+        if (e.key === 'N' && e.ctrlKey && e.shiftKey) VimShortcutHelper.updateVim(VimFuzzy.N)
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault()
+          VimShortcutHelper.updateVim(VimFuzzy.fuzzyHistoryPrev)
+        }
+        if (e.key === 'ArrowDown') {
+          e.preventDefault()
+          VimShortcutHelper.updateVim(VimFuzzy.fuzzyHistoryNext)
+        }
+
+        if (e.key === 'Enter') {
+          directoryHelpers.openItemOnCursor(filteredData, undefined, directoryId)
+          e.currentTarget.blur()
         }
       }}
     />
-  );
+  )
 }

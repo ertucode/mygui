@@ -466,7 +466,7 @@ export const directoryHelpers = {
     }, 5)
   },
 
-  openSelectedItem: (
+  openItemOnCursor: (
     data: DerivedDirectoryItem[],
     e: KeyboardEvent | undefined,
     directoryId: DirectoryId | undefined
@@ -477,10 +477,6 @@ export const directoryHelpers = {
     if (itemToOpen.type !== 'real') return
     if (itemToOpen.item.type === 'file' && e?.key === 'l') return
 
-    // if ((e.target as HTMLInputElement).id === "fuzzy-finder-input") {
-    //   fuzzy.clearQuery();
-    //   tableRef.current?.querySelector("tbody")?.focus();
-    // }
     directoryHelpers.openItem(itemToOpen.item, directoryId)
   },
 
@@ -502,14 +498,6 @@ export const directoryHelpers = {
     }
   },
 
-  // Fuzzy finder helpers
-  setFuzzyQuery: (query: string, directoryId: DirectoryId) => {
-    directoryStore.send({ type: 'setFuzzyQuery', query, directoryId })
-  },
-
-  clearFuzzyQuery: (directoryId: DirectoryId) => {
-    directoryStore.send({ type: 'clearFuzzyQuery', directoryId })
-  },
   getFullPathForItem,
   getSelectedItemsOrCurrentItem(index: number, directoryId: DirectoryId) {
     const snapshot = directoryStore.getSnapshot()

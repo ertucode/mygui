@@ -63,7 +63,26 @@ export class HistoryStack<T> {
     return this.items[this.index]
   }
 
+  goLatest() {
+    this.index = this.items.length - 1
+    return this
+  }
+
+  cleanUp(fn: (item: T) => boolean) {
+    this.items = this.items.filter(fn)
+    this.index = Math.min(this.index, this.items.length - 1)
+    return this
+  }
+
   hasItems(): boolean {
     return this.items.length > 0
+  }
+
+  current(): T | undefined {
+    return this.items[this.index]
+  }
+
+  debug() {
+    return `${JSON.stringify(this.items)}|${this.index}`
   }
 }

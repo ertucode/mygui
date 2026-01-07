@@ -45,7 +45,7 @@ export const FileBrowserShortcuts = {
       shortcuts: [
         {
           key: ['Enter'],
-          handler: e => directoryHelpers.openSelectedItem(getFilteredData(), e, undefined),
+          handler: e => directoryHelpers.openItemOnCursor(getFilteredData(), e, undefined),
           label: 'Open item on cursor',
         },
         {

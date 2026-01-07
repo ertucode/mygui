@@ -31,8 +31,9 @@ import { Alert } from '@/lib/components/alert'
 import { errorResponseToMessage, GenericError } from '@common/GenericError'
 import { getWindowElectron } from '@/getWindowElectron'
 import { Button } from '@/lib/components/button'
-import { VimCursor } from './VimCursor'
+import { VimCursor } from './vim/VimCursor'
 import { getFullPathForBuffer } from './directoryStore/directoryPureHelpers'
+import { VimFuzzyHighlight } from './vim/VimFuzzyHighlight'
 
 export type TableContextMenuProps<T> = {
   item: T
@@ -180,6 +181,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
         {...fileBrowserListContainerProps({ directoryId, directory })}
       >
         <VimCursor />
+        <VimFuzzyHighlight />
         <LoadingOverlay />
         <table className="w-full table table-zebra table-xs rounded-none overflow-hidden">
           <thead>

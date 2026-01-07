@@ -12,7 +12,7 @@ export namespace VimShortcutHelper {
       const pendingFindCommand = result.snapshot.vim.pendingFindCommand
       if (pendingFindCommand) return undefined
 
-      initializedWithUpdater(result, updater)
+      return initializedWithUpdater(result, updater)
     }
   }
 
@@ -22,12 +22,21 @@ export namespace VimShortcutHelper {
   ) {
     const { snapshot, fullPath } = result
 
+    const state = updater({ state: snapshot.vim, fullPath })
     directoryStore.trigger.updateVimState({
-      state: updater({ state: snapshot.vim, fullPath }),
+      state: state,
     })
+    return state
   }
 
   export function isSingleCharAndNoModifiers(e: KeyboardEvent | undefined): e is KeyboardEvent {
     return e?.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey
+  }
+
+  export function updateVim(updater: Updater) {
+    const result = getSnapshotWithInitializedVim()
+    if (!result) return
+
+    return VimShortcutHelper.createHandler(updater)(undefined)
   }
 }

@@ -48,8 +48,8 @@ function updateDirectory(
 
 export function createResetSelection() {
   return {
-    indexes: new Set<number>([0]),
-    last: 0,
+    indexes: new Set<number>(),
+    last: undefined,
   }
 }
 
@@ -62,7 +62,6 @@ export function createDirectoryContext(directoryId: DirectoryId, directory: Dire
     error: undefined as GenericError | undefined,
     historyStack: new HistoryStack<DirectoryInfo>([directory]),
     pendingSelection: null as string | string[] | null,
-    fuzzyQuery: '',
     viewMode: 'list',
     localSort: undefined,
   }
@@ -103,8 +102,6 @@ export const directoryStore = createStore({
         error: undefined as string | undefined,
         historyStack: new HistoryStack<DirectoryInfo>([{ color: 'red', type: 'tags' }]),
         pendingSelection: null as string | string[] | null,
-        // Fuzzy finder state
-        fuzzyQuery: '',
         // View mode
         viewMode: 'list' as 'list' | 'grid',
         // Local sort state
@@ -152,29 +149,15 @@ export const directoryStore = createStore({
       }
     ) => {
       const updated = updateDirectory(context, event.directoryId, d => {
-        const prevFirstItem = d.directoryData[0]
-        const currentFirstItem = event.data[0]
-        let fuzzyQuery = d.fuzzyQuery
-        if (
-          prevFirstItem &&
-          currentFirstItem &&
-          prevFirstItem.fullPath &&
-          currentFirstItem.fullPath &&
-          PathHelpers.parent(prevFirstItem.fullPath) !== PathHelpers.parent(currentFirstItem.fullPath)
-        ) {
-          fuzzyQuery = ''
-        }
         return {
           ...d,
           directoryData: event.data,
           error: undefined,
-          fuzzyQuery,
         }
       })
       return updated
     },
 
-    // fuzzyQuery: '',
     setError: (context, event: { error: GenericError | undefined; directoryId: DirectoryId }) =>
       updateDirectory(context, event.directoryId, d => ({
         ...d,
@@ -308,43 +291,6 @@ export const directoryStore = createStore({
         },
       }
     },
-    // Fuzzy finder events
-    setFuzzyQuery: (context, event: { query: string; directoryId: DirectoryId }) => {
-      const updatedContext = updateDirectory(context, event.directoryId, d => ({
-        ...d,
-        fuzzyQuery: event.query,
-      }))
-
-      if (event.query) {
-        const activeDir = getActiveDirectory(updatedContext, event.directoryId)
-        if (activeDir.directory.type === 'path') {
-          const fullPath = activeDir.directory.fullPath
-          const buffer = updatedContext.vim.buffers[fullPath]
-          if (buffer) {
-            updatedContext.vim = {
-              ...updatedContext.vim,
-              buffers: {
-                ...updatedContext.vim.buffers,
-                [fullPath]: {
-                  ...buffer,
-                  selection: {
-                    indexes: new Set([0]),
-                    last: 0,
-                  },
-                },
-              },
-            }
-          }
-        }
-      }
-
-      return updatedContext
-    },
-    clearFuzzyQuery: (context, event: { directoryId: DirectoryId }) =>
-      updateDirectory(context, event.directoryId, d => ({
-        ...d,
-        fuzzyQuery: '',
-      })),
     toggleViewMode: (context, event: { directoryId: DirectoryId | undefined }) =>
       updateDirectory(context, event.directoryId, d => ({
         ...d,
@@ -486,8 +432,6 @@ export const directoryStore = createStore({
               error: undefined as GenericError | undefined,
               historyStack: new HistoryStack<DirectoryInfo>([directory]),
               pendingSelection: null as string | string[] | null,
-              // Fuzzy finder state
-              fuzzyQuery: '',
               // View mode
               viewMode: 'list' as 'list' | 'grid',
               // Local sort state
@@ -638,9 +582,6 @@ export const selectSelection = (directoryId: DirectoryId | undefined) => (state:
 export const selectCursorLine = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) => {
   return selectBuffer(state.context, directoryId)?.cursor.line
 }
-
-export const selectFuzzyQuery = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
-  getActiveDirectory(state.context, directoryId).fuzzyQuery
 
 export const selectViewMode = (directoryId: DirectoryId | undefined) => (state: StoreSnapshot<DirectoryContext>) =>
   getActiveDirectory(state.context, directoryId).viewMode

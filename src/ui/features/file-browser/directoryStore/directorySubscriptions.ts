@@ -1,10 +1,8 @@
 import { subscribeToStores, createUseDerivedStoreValue } from '@/lib/functions/storeHelpers'
 import { scrollRowIntoViewIfNeeded } from '@/lib/libs/table/globalTableScroll'
-import { GetFilesAndFoldersInDirectoryItem } from '@common/Contracts'
 import { directoryHelpers } from './directoryHelpers'
 import { fileBrowserSettingsStore } from '../settings'
 import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
-import Fuse from 'fuse.js'
 import { directoryStore } from './directory'
 import { DerivedDirectoryItem, DirectoryId } from './DirectoryBase'
 import { getCursorLine, getFullPathForBuffer } from './directoryPureHelpers'
@@ -24,24 +22,6 @@ export const directoryDerivedStores = new Map<
     getSort: () => SortState | undefined
   }
 >()
-
-function filterByQuery(
-  directoryData: GetFilesAndFoldersInDirectoryItem[],
-  query: string
-): GetFilesAndFoldersInDirectoryItem[] {
-  if (!query) return directoryData
-
-  const fuse = new Fuse(directoryData, {
-    threshold: 0.3,
-    minMatchCharLength: 1,
-    keys: ['name'],
-    shouldSort: true,
-    isCaseSensitive: false,
-  })
-
-  const results = fuse.search(query)
-  return results.map(result => result.item)
-}
 
 export function setupSubscriptions(directoryId: DirectoryId) {
   const subscriptions: (() => void)[] = []
@@ -95,7 +75,6 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         return [
           dir?.directoryData,
           settings.settings,
-          dir?.fuzzyQuery,
           JSON.stringify(resolveSortFromStores(dir, columnPrefs)),
           fullPath && d.vim.buffers[fullPath]?.items,
         ]
@@ -110,9 +89,8 @@ export function setupSubscriptions(directoryId: DirectoryId) {
 
         const sort = resolveSortFromStores(dir, columnPrefs)
         const directoryData = DirectoryDataFromSettings.getDirectoryData(dir?.directoryData, settings.settings, sort)
-        const filteredDirectoryData = filterByQuery(directoryData, d.directoriesById[directoryId]?.fuzzyQuery)
 
-        return filteredDirectoryData.map(i => ({ type: 'real', str: i.name, item: i }))
+        return directoryData.map(i => ({ type: 'real', str: i.name, item: i }))
       }
     )
   subscriptions.push(unsubscribeFilteredDirectoryData)

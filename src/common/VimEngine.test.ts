@@ -53,8 +53,7 @@ function createBuffer(fullPath: string, items: VimEngine.RealBufferItem[]): VimE
     historyStack: new HistoryStack<VimEngine.HistoryItem>([]),
     cursor: { line: 0, column: 0 },
     selection: { indexes: new Set<number>(), last: undefined },
-    fuzzy: undefined,
-    fuzzyHistory: [],
+    fuzzy: VimEngine.createFuzzy(undefined),
   }
 }
 
