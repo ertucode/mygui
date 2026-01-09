@@ -61,6 +61,7 @@ const preloadDirectory = (dir: string) => {
 }
 
 const getFullPath = (dir: string, directoryId: DirectoryId | undefined) => {
+  if (dir.startsWith('/')) return dir
   const context = getActiveDirectory(directoryStore.getSnapshot().context, directoryId)
   if (context.directory.type === 'path') {
     return mergeMaybeSlashed(context.directory.fullPath, dir)
