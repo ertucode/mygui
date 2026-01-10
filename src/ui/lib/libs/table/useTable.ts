@@ -19,6 +19,7 @@ export function useTable<T>(opts: UseTableOptions<T>) {
         value,
         id: columnId(col),
         sortKey: columnSortKey(col),
+        size: col.size,
       }
     })
   }, [cols])
@@ -31,7 +32,6 @@ export function useTable<T>(opts: UseTableOptions<T>) {
           return {
             value,
             id: headers[colIdx].id,
-            size: col.size,
           }
         }),
         id: getId(item),

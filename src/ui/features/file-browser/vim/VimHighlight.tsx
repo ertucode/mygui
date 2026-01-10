@@ -26,4 +26,4 @@ const fontsize = `0.6875rem`
 
 const HEADER = 30
 const ROW_HEIGHT = 25.5
-const NAME_START = 40
+const NAME_START = 31.6

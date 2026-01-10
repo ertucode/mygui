@@ -175,7 +175,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
 
       <div
         className={clsx(
-          'relative h-full min-h-0 overflow-auto rounded-none border-none',
+          'relative h-full w-full min-h-0 overflow-auto rounded-none border-none',
           isDragOver && 'ring-2 ring-primary ring-inset'
         )}
         {...fileBrowserListContainerProps({ directoryId, directory })}
@@ -183,7 +183,7 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
         <VimCursor />
         <VimFuzzyHighlight />
         <LoadingOverlay />
-        <table className="w-full table table-zebra table-xs rounded-none overflow-hidden">
+        <table className="w-full table table-zebra table-xs rounded-none overflow-hidden table-fixed">
           <thead>
             <tr>
               {table.headers.map(header => {
@@ -232,6 +232,11 @@ export const FileBrowserTable = memo(function FileBrowserTable() {
                     onContextMenu={e => {
                       e.preventDefault()
                       headerContextMenu.onRightClick(e, null)
+                    }}
+                    style={{
+                      width: header.size,
+                      maxWidth: header.size,
+                      minWidth: header.size,
                     }}
                   >
                     <div className="flex items-center gap-1">
@@ -310,16 +315,7 @@ const TableRow = memo(function TableRow({ row, index, directoryId, item, onConte
       {...rowProps}
     >
       {row.cells.map(cell => {
-        return (
-          <td
-            style={{
-              width: cell.size,
-            }}
-            key={cell.id}
-          >
-            {cell.value}
-          </td>
-        )
+        return <td key={cell.id}>{cell.value}</td>
       })}
     </tr>
   )
