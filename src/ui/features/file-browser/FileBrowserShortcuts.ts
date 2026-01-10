@@ -183,13 +183,11 @@ export const FileBrowserShortcuts = {
           handler: e => {
             // Check if user is selecting text
             const selection = window.getSelection()
-            const s = selectSelection(undefined)(directoryStore.getSnapshot())
             if (selection && selection.toString().length > 0) {
               return // Allow default text copy
             }
 
             e?.preventDefault()
-            if (s.indexes.size === 0) return
             const itemsToCopy = directorySelection.getSelectedRealsOrCurrentReal(undefined)
             if (!itemsToCopy) return
             const itemsToCopyMapped = itemsToCopy.filter(i => i.type === 'real').map(i => i.item)
