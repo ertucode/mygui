@@ -107,7 +107,17 @@ export function subscribeToTasks() {
         directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, dir), undefined)
       }
     } else if (task.type === 'paste') {
-      // TODO: handle reload of previous and updated directories
+      const { destinationDir, sourceFiles, isCut } = task.metadata
+      // Reload destination directory
+      directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, destinationDir), undefined)
+
+      // For cut operations, reload source directories (files were moved)
+      if (isCut) {
+        const sourceDirectories = new Set(sourceFiles.map(file => PathHelpers.parent(file).path))
+        for (const dir of sourceDirectories) {
+          directoryHelpers.checkAndReloadDirectories(PathHelpers.expandHome(homeDirectory, dir), undefined)
+        }
+      }
     }
   })
 }

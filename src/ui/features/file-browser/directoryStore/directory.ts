@@ -484,11 +484,11 @@ export const directoryStore = createStore({
   },
 })
 
-export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId | undefined) => {
+export const loadDirectoryPath = async (dir: string, _directoryId: DirectoryId | undefined, forceReload = false) => {
   const directoryId = _directoryId ?? getActiveDirectory(directoryStore.getSnapshot().context, _directoryId).directoryId
   directoryLoadingHelpers.startLoading(directoryId)
   try {
-    const result = await FileBrowserCache.load(dir)
+    const result = await FileBrowserCache.load(dir, forceReload)
 
     if (!result.success) {
       directoryStore.send({
@@ -562,7 +562,7 @@ export const loadTaggedFiles = async (color: TagColor, _directoryId: DirectoryId
 
 export const loadDirectoryInfo = async (info: DirectoryInfo, directoryId: DirectoryId | undefined) => {
   if (info.type === 'path') {
-    return loadDirectoryPath(info.fullPath, directoryId)
+    return loadDirectoryPath(info.fullPath, directoryId, true)
   } else {
     return loadTaggedFiles(info.color, directoryId)
   }

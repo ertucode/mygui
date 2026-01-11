@@ -49,6 +49,7 @@ export namespace Tasks {
     metadata: {
       fileCount: number
       destinationDir: string
+      sourceFiles: string[]
       isCut: boolean
       isEstimated: boolean
     }

@@ -594,6 +594,7 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
       metadata: {
         fileCount: 0,
         destinationDir: expandedDest,
+        sourceFiles: filePaths,
         isCut,
         isEstimated: false,
       },
@@ -603,10 +604,8 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
     if (!resolution) {
       const conflictData = await findConflicts(filePaths, expandedDest)
 
-      // TaskManager.result(taskId, GenericError.Message("Found conflicts"));
-      TaskManager.abort(taskId)
-
       if (conflictData.conflicts.length > 0) {
+        TaskManager.abort(taskId)
         // Conflicts found, need user resolution
         return {
           needsResolution: true,

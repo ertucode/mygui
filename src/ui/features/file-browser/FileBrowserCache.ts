@@ -13,5 +13,5 @@ export const FileBrowserCache = new CachedWorker(
     }
     return result
   },
-  2000
+  1000
 )

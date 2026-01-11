@@ -469,10 +469,3 @@ export function useDragOverThisRow(item: DerivedDirectoryItem, index: number, di
     )
   })
 }
-
-fileDragDropStore.inspect(o => {
-  if (o.type === '@xstate.snapshot' && o.snapshot.status === 'active') {
-    // @ts-ignore
-    console.log(o.snapshot.context)
-  }
-})

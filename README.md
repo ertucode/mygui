@@ -10,7 +10,6 @@
   - open dialog
 
 - paste conflict dialog should be simpler for one item
-- task subscription for paste files
 
 - revamp selection for mouse
 - mouse selection requirements

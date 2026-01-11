@@ -20,7 +20,6 @@ export function FolderPreview({ data }: FolderPreviewProps) {
       setError(null)
 
       try {
-        console.log(data.fullPath)
         const result: GenericResult<GetFilesAndFoldersInDirectoryItem[]> = await FileBrowserCache.load(data.fullPath)
 
         if (result.success) {
