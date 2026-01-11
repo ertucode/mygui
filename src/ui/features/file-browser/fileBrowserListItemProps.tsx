@@ -3,6 +3,7 @@ import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './director
 
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
+import { getBufferSelection } from './directoryStore/directoryPureHelpers'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
 
 export function fileBrowserListItemProps({
@@ -23,8 +24,12 @@ export function fileBrowserListItemProps({
     onMouseDown: e => {
       if (e.button !== 0) return
 
-      // Only start drag-to-select mode when ctrlKey is pressed
-      if (e.ctrlKey) {
+      // Check if click is on a no-drag-to-select element (like the file name)
+      const target = e.target as HTMLElement
+      const isOnNoDragToSelect = target.closest('[data-no-drag-to-select]') !== null
+
+      // Start drag-to-select when clicking outside no-drag-to-select zones
+      if (!isOnNoDragToSelect) {
         fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey)
       }
     },
@@ -123,8 +128,6 @@ export function fileBrowserListItemProps({
     },
     onContextMenu: e => {
       e.preventDefault()
-      // On macOS, Ctrl+Click triggers context menu, but we use Ctrl for drag-to-select
-      if (e.ctrlKey) return
       directoryStore.trigger.selectManually({ index, directoryId })
       onContextMenu(e, { item: i, index })
     },
@@ -134,8 +137,17 @@ export function fileBrowserListItemProps({
       }
 
       const target = e.currentTarget as HTMLElement
-      // Dragging is the default behavior, drag-to-select only when ctrlKey is pressed
-      target.draggable = !e.ctrlKey
+      const eventTarget = e.target as HTMLElement
+      const isOnNoDragToSelect = eventTarget.closest('[data-no-drag-to-select]') !== null
+
+      // Enable file dragging when clicking on no-drag-to-select zones (like file name)
+      // or when clicking anywhere on a selected item
+      const state = directoryStore.getSnapshot()
+      const directory = state.context.directoriesById[directoryId]
+      const selection = getBufferSelection(state.context, directory)
+      const isSelected = selection?.indexes.has(index) ?? false
+
+      target.draggable = isOnNoDragToSelect || isSelected
     },
     onDragStart: async e => {
       // Always use native drag (enables dragging to external apps)

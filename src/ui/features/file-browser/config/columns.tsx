@@ -158,7 +158,7 @@ function DirectoryNameCell({ item, ctx }: { item: RealDirectoryItem; ctx: Column
 
   return (
     <div className="flex items-center min-w-0 gap-2">
-      <span className="block truncate leading-none" title={row.name}>
+      <span data-no-drag-to-select className="block truncate leading-none" title={row.name}>
         {item.str}
       </span>
       {tags && <TagCircles tags={tags} />}
@@ -182,7 +182,7 @@ function VimModeName({ ctx, row, index }: { ctx: ColumnsContext; row: StrDirecto
     return buffer.cursor.line === index
   })
 
-  if (!isInsert) return row.str
+  if (!isInsert) return <span data-no-drag-to-select>{row.str}</span>
 
   return <VimInsertItem row={row} />
 }
