@@ -19,6 +19,7 @@ import { BaseThumbnail } from './BaseThumbnail'
 import { fileBrowserListContainerProps } from '../../fileBrowserListContainerProps'
 import { VideoThumbnail } from './VideoThumbnail'
 import { AppIconThumbnail } from './AppIconThumbnail'
+import { clipboardStore } from '../../clipboardHelpers'
 
 /*
  * SIMPLIFICATIONS:
@@ -33,6 +34,23 @@ type GridItemProps = {
   onContextMenu: (e: React.MouseEvent, item: { item: DerivedDirectoryItem; index: number }) => void
 }
 
+/** Hook to get clipboard state for a grid item */
+function useClipboardState(fullPath: string): { isCut: boolean } | null {
+  const isInClipboard = useSelector(
+    clipboardStore,
+    state => state.context.filePaths.includes(fullPath),
+    (a, b) => a === b
+  )
+  const isCut = useSelector(
+    clipboardStore,
+    state => state.context.isCut,
+    (a, b) => a === b
+  )
+
+  if (!isInClipboard) return null
+  return { isCut }
+}
+
 const GridItem = memo(function GridItem({ item, index, directoryId, onContextMenu }: GridItemProps) {
   const { isSelected, isCursor } = useRowState(index, directoryId)
 
@@ -42,6 +60,7 @@ const GridItem = memo(function GridItem({ item, index, directoryId, onContextMen
   )
 
   const fullPath = directoryHelpers.getFullPathForItem(item.item, directoryId)
+  const clipboardState = useClipboardState(fullPath)
 
   return (
     <div
@@ -49,7 +68,9 @@ const GridItem = memo(function GridItem({ item, index, directoryId, onContextMen
         'group relative flex flex-col rounded-lg border border-base-300 hover:bg-base-200 cursor-pointer transition-colors select-none overflow-hidden h-36',
         isSelected && 'bg-base-content/10 ring-2 ring-primary',
         isDragOverThisRow && 'bg-primary/20 ring-2 ring-primary',
-        isCursor && 'bg-primary/20 ring-2 ring-primary'
+        isCursor && 'bg-primary/20 ring-2 ring-primary',
+        clipboardState?.isCut && 'opacity-50',
+        clipboardState && !clipboardState.isCut && 'ring-2 ring-info/50'
       )}
       data-list-item
       {...fileBrowserListItemProps({

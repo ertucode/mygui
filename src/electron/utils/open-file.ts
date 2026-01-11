@@ -1,6 +1,7 @@
 import { exec } from "child_process";
 import { platform } from "os";
 import { expandHome } from "./expand-home.js";
+import { ShellHelpers } from "./ShellHelpers.js";
 
 export function openFile(path: string) {
   const cmd = getCommand(expandHome(path));
@@ -18,9 +19,9 @@ export function openFile(path: string) {
 function getCommand(path: string) {
   const p = platform();
 
-  if (p === "darwin") return `open "${path}"`;
-  if (p === "win32") return `start "" "${path}"`;
-  if (p === "linux") return `xdg-open "${path}"`;
+  if (p === "darwin") return `open ${ShellHelpers.escape(path)}`;
+  if (p === "win32") return `start "" ${ShellHelpers.escape(path)}`;
+  if (p === "linux") return `xdg-open ${ShellHelpers.escape(path)}`;
 
   return "";
 }

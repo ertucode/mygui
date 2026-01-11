@@ -34,6 +34,7 @@ import { Button } from '@/lib/components/button'
 import { VimCursor } from './vim/VimCursor'
 import { getFullPathForBuffer } from './directoryStore/directoryPureHelpers'
 import { VimFuzzyHighlight } from './vim/VimFuzzyHighlight'
+import { useClipboardState } from './useClipboardState'
 
 export type TableContextMenuProps<T> = {
   item: T
@@ -300,6 +301,7 @@ type TableRowProps = {
 const TableRow = memo(function TableRow({ row, index, directoryId, item, onContextMenu }: TableRowProps) {
   const { isSelected, isCursor } = useRowState(index, directoryId)
   const isDragOverThisRow = useDragOverThisRow(item, index, directoryId)
+  const clipboardState = useClipboardState(item)
 
   const rowProps =
     item.type === 'real' ? fileBrowserListItemProps({ item: item, index, directoryId, onContextMenu }) : undefined
@@ -311,6 +313,8 @@ const TableRow = memo(function TableRow({ row, index, directoryId, item, onConte
         isSelected && 'bg-base-content/10 row-selected',
         isDragOverThisRow && 'bg-primary/20 ring-1 ring-primary ring-inset',
         isCursor && 'bg-primary/30',
+        clipboardState?.isCut && 'opacity-50',
+        clipboardState && !clipboardState.isCut && 'ring-1 ring-inset ring-info/50',
         'select-none'
       )}
       style={{ height: 25.5 }}

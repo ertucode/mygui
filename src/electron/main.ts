@@ -3,7 +3,6 @@ import os from 'os'
 import { ipcHandle, isDev } from './util.js'
 import fs from 'fs'
 import { getPreloadPath, getPreviewPreloadPath, getUIPath } from './pathResolver.js'
-import { convertDocxToPdf } from './utils/docx-to-pdf.js'
 import { getFilesAndFoldersInDirectory, getFileInfoByPaths } from './utils/get-files-and-folders-in-directory.js'
 import { openFile } from './utils/open-file.js'
 import { expandHome } from './utils/expand-home.js'
@@ -158,8 +157,6 @@ app.on('ready', () => {
   const initialPath =
     pendingOpenPath ?? process.argv.find(a => a.startsWith('--initial-path='))?.replace('--initial-path=', '')
   createWindow({ initialPath })
-
-  ipcHandle('docxToPdf', (filePath: string) => convertDocxToPdf(filePath, undefined, { copyBase64ToClipboard: true }))
 
   ipcHandle('getFilesAndFoldersInDirectory', getFilesAndFoldersInDirectory)
   ipcHandle('openFile', openFile)

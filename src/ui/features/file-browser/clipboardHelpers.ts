@@ -7,6 +7,43 @@ import { type DirectoryId } from './directoryStore/DirectoryBase'
 import { GenericError } from '@common/GenericError'
 import type { GetFilesAndFoldersInDirectoryItem, ConflictResolution } from '@common/Contracts'
 import { getActiveDirectory } from './directoryStore/directoryPureHelpers'
+import { createStore } from '@xstate/store'
+
+// Store for tracking clipboard state in the UI
+type ClipboardState = {
+  /** Full paths of items in clipboard */
+  filePaths: Set<string>
+  /** Whether items are cut (true) or copied (false) */
+  isCut: boolean
+}
+
+export const clipboardStore = createStore({
+  context: {
+    filePaths: new Set<string>(),
+    isCut: false,
+  } as ClipboardState,
+  on: {
+    setClipboard: (_, event: { filePaths: Set<string>; isCut: boolean }) => ({
+      filePaths: event.filePaths,
+      isCut: event.isCut,
+    }),
+    clearClipboard: () => ({
+      filePaths: new Set<string>(),
+      isCut: false,
+    }),
+  },
+})
+
+/** Selector to check if a specific file path is in the clipboard */
+export const selectIsInClipboard = (fullPath: string) => (state: { context: ClipboardState }) =>
+  state.context.filePaths.has(fullPath)
+
+/** Selector to get clipboard state for a file path */
+export const selectClipboardState = (fullPath: string) => (state: { context: ClipboardState }) => {
+  const isInClipboard = state.context.filePaths.has(fullPath)
+  if (!isInClipboard) return null
+  return { isCut: state.context.isCut }
+}
 
 export const clipboardHelpers = {
   copy: async (
@@ -18,6 +55,9 @@ export const clipboardHelpers = {
     const result = await getWindowElectron().copyFiles(paths, cut)
     if (!result.success) {
       toast.show(result)
+    } else {
+      // Update the clipboard store with the copied/cut items
+      clipboardStore.send({ type: 'setClipboard', filePaths: new Set(paths), isCut: cut })
     }
   },
 
@@ -65,6 +105,10 @@ export const clipboardHelpers = {
                 if (result.result.data?.pastedItems && result.result.data.pastedItems.length > 0) {
                   directoryHelpers.setPendingSelection(result.result.data.pastedItems[0], directoryId)
                 }
+                // Clear clipboard state after successful paste (cut items are moved)
+                if (clipboardStore.getSnapshot().context.isCut) {
+                  clipboardStore.send({ type: 'clearClipboard' })
+                }
                 await directoryHelpers.reload(context.directoryId)
               } else {
                 toast.show(result.result)
@@ -85,6 +129,10 @@ export const clipboardHelpers = {
       if (result.success) {
         if (result.data?.pastedItems && result.data.pastedItems.length > 0) {
           directoryHelpers.setPendingSelection(result.data.pastedItems[0], directoryId)
+        }
+        // Clear clipboard state after successful paste (cut items are moved)
+        if (clipboardStore.getSnapshot().context.isCut) {
+          clipboardStore.send({ type: 'clearClipboard' })
         }
         await directoryHelpers.reload(context.directoryId)
       } else {

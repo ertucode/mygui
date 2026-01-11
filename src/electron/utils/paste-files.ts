@@ -544,6 +544,7 @@ async function executePasteWithResolutions(
 }
 
 export async function pasteFiles(destinationDir: string, resolution?: ConflictResolution): Promise<PasteResult> {
+  let taskId: string | undefined = undefined
   try {
     // Get files from in-memory clipboard
     const clipboardState = getClipboardState()
@@ -588,7 +589,7 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
         }
       }
     }
-    const taskId = TaskManager.create({
+    taskId = TaskManager.create({
       type: 'paste',
       progress: 0,
       metadata: {
@@ -627,7 +628,7 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
       function reportProgress() {
         filesCopied++
         const progress = (filesCopied / totalFiles) * 100
-        TaskManager.progress(taskId, progress)
+        TaskManager.progress(taskId!, progress)
       }
       const pastedItems: string[] = []
 
@@ -711,15 +712,13 @@ export async function pasteFiles(destinationDir: string, resolution?: ConflictRe
       throw error
     }
   } catch (error) {
-    if (error instanceof Error) {
-      return {
-        needsResolution: false,
-        result: GenericError.Message(error.message),
-      }
+    const result = error instanceof Error ? GenericError.Message(error.message) : GenericError.Unknown(error)
+    if (taskId) {
+      TaskManager.result(taskId, result)
     }
     return {
       needsResolution: false,
-      result: GenericError.Unknown(error),
+      result,
     }
   }
 }
