@@ -6,9 +6,8 @@ import { GenericError } from '@common/GenericError'
 import { mergeMaybeSlashed } from '@common/merge-maybe-slashed'
 import { PathHelpers } from '@common/PathHelpers'
 import { dialogActions } from '../dialogStore'
-import { createResetSelection, directoryStore, loadDirectoryInfo } from './directory'
+import { directoryStore, loadDirectoryInfo } from './directory'
 import { directoryLoadingHelpers } from './directoryLoadingStore'
-import { selectIsFavorite, favoritesStore } from '../favorites'
 import { recentsStore } from '../recents'
 import { fileBrowserSettingsStore, fileBrowserSettingsHelpers } from '../settings'
 import { TagColor } from '../tags'
@@ -381,19 +380,10 @@ export const directoryHelpers = {
     _tableData: DerivedDirectoryItem[],
     _directoryId: DirectoryId | undefined
   ) => {
-    const tableData = _tableData.filter(i => i.type === 'real').map(i => i.item)
     const activeDirectory = getActiveDirectory(directoryStore.getSnapshot().context, _directoryId)
     const directoryId = activeDirectory.directoryId
 
     const paths = items.map(item => item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
-    const deletedNames = new Set(items.map(item => item.name))
-
-    // Find the smallest index among items being deleted
-    const deletedIndexes = items
-      .map(item => tableData.findIndex(d => d.name === item.name))
-      .filter(idx => idx !== -1)
-      .sort((a, b) => a - b)
-    const smallestDeletedIndex = deletedIndexes[0] ?? 0
 
     const message =
       items.length === 1
@@ -416,27 +406,6 @@ export const directoryHelpers = {
             toast.show(result)
             return
           }
-
-          // Remove from favorites if they were favorited
-          paths.forEach(path => {
-            if (selectIsFavorite(path)(favoritesStore.get())) {
-              favoritesStore.send({ type: 'removeFavorite', fullPath: path })
-            }
-          })
-
-          // Select the nearest item (prefer top, fallback to bottom)
-          const remainingItems = tableData.filter(item => !deletedNames.has(item.name))
-          if (remainingItems.length > 0) {
-            // Find the item that should now be at or near the smallest deleted index
-            const newIndex = Math.min(smallestDeletedIndex, remainingItems.length - 1)
-            const itemToSelect = remainingItems[newIndex]
-            directoryHelpers.setPendingSelection(itemToSelect.name, directoryId)
-          } else {
-            const s = createResetSelection()
-            directoryStore.send({ type: 'setSelection', directoryId, ...s })
-          }
-          // Reload the directory without affecting history
-          await directoryHelpers.reload(directoryId)
         } catch (error) {
           console.error('Error deleting files:', error)
           toast.show({
@@ -677,7 +646,7 @@ export const directoryHelpers = {
           if (fileToSelect) {
             const fs = typeof fileToSelect === 'string' ? fileToSelect : fileToSelect(dir)
             if (typeof fs === 'number') {
-              directoryStore.trigger.setSelection({ directoryId: dir.directoryId, indexes: new Set([fs]) })
+              directoryStore.trigger.setCursor({ directoryId: dir.directoryId, cursor: { line: fs } })
             } else if (fs) directoryHelpers.setPendingSelection(fs, dir.directoryId)
           }
         })

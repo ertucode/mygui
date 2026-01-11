@@ -6,7 +6,6 @@ import { DirectoryDataFromSettings } from '../utils/DirectoryDataFromSettings'
 import { directoryStore } from './directory'
 import { DerivedDirectoryItem, DirectoryId } from './DirectoryBase'
 import { getCursorLine, getFullPathForBuffer } from './directoryPureHelpers'
-import { directorySelection } from './directorySelection'
 import { columnPreferencesStore } from '../columnPreferences'
 import { resolveSortFromStores, SortState } from '../schemas'
 import { VimEngine } from '@common/VimEngine'
@@ -104,7 +103,7 @@ export function setupSubscriptions(directoryId: DirectoryId) {
         if (s.pendingSelection && filteredDirectoryData.length > 0) {
           const newItemIndex = filteredDirectoryData.findIndex(item => item.str === s.pendingSelection)
           if (newItemIndex !== -1) {
-            directorySelection.selectManually(newItemIndex, directoryId)
+            directoryStore.trigger.setCursor({ cursor: { line: newItemIndex }, directoryId })
             scrollRowIntoViewIfNeeded(s.directoryId, newItemIndex)
           }
           directoryHelpers.setPendingSelection(null, directoryId)

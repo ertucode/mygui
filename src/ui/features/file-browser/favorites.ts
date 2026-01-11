@@ -92,6 +92,14 @@ export const favoritesStore = createStore({
       ...context,
       favorites: event.favorites,
     }),
+
+    removeFavorites: (context, event: { fullPaths: string[] }) => {
+      const newFavorites = context.favorites.filter(fav => !event.fullPaths.includes(fav.fullPath))
+      return {
+        ...context,
+        favorites: newFavorites,
+      }
+    },
   },
 })
 

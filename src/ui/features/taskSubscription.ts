@@ -4,6 +4,7 @@ import { directoryHelpers } from './file-browser/directoryStore/directoryHelpers
 import { PathHelpers } from '@common/PathHelpers'
 import { directoryStore } from './file-browser/directoryStore/directory'
 import { Tasks } from '@common/Tasks'
+import { favoritesStore } from './file-browser/favorites'
 
 function shouldUseClientMetadata(task: Tasks.Base): boolean {
   if (!task.clientMetadata) return false
@@ -67,6 +68,7 @@ export function subscribeToTasks() {
       )
     } else if (task.type === 'delete') {
       const fullPaths = [...new Set(task.metadata.files)]
+      favoritesStore.trigger.removeFavorites({ fullPaths })
       for (const fullPath of fullPaths) {
         const directoryPath = PathHelpers.expandHome(homeDirectory, PathHelpers.parent(fullPath).path)
 

@@ -1,6 +1,6 @@
 import { directoryStore } from './directoryStore/directory'
 import { DerivedDirectoryItem, DirectoryId, RealDirectoryItem } from './directoryStore/DirectoryBase'
-import { getActiveDirectory, getBufferSelection, selectBuffer } from './directoryStore/directoryPureHelpers'
+
 import { directoryHelpers } from './directoryStore/directoryHelpers'
 import { perDirectoryDataHelpers } from './directoryStore/perDirectoryData'
 import { fileDragDropHandlers, fileDragDropStore } from './fileDragDrop'
@@ -23,12 +23,8 @@ export function fileBrowserListItemProps({
     onMouseDown: e => {
       if (e.button !== 0) return
 
-      const state = directoryStore.getSnapshot()
-      const selection = getBufferSelection(state.context, getActiveDirectory(state.context, directoryId))
-      const isItemSelected = selection.indexes.has(index)
-
-      // If item is not selected, start drag-to-select mode
-      if (!isItemSelected) {
+      // Only start drag-to-select mode when ctrlKey is pressed
+      if (e.ctrlKey) {
         fileDragDropHandlers.startDragToSelect(index, directoryId, e.metaKey)
       }
     },
@@ -127,6 +123,8 @@ export function fileBrowserListItemProps({
     },
     onContextMenu: e => {
       e.preventDefault()
+      // On macOS, Ctrl+Click triggers context menu, but we use Ctrl for drag-to-select
+      if (e.ctrlKey) return
       directoryStore.trigger.selectManually({ index, directoryId })
       onContextMenu(e, { item: i, index })
     },
@@ -135,16 +133,9 @@ export function fileBrowserListItemProps({
         directoryHelpers.preloadDirectory(item.fullPath ?? directoryHelpers.getFullPath(item.name, directoryId))
       }
 
-      // Make element draggable only if it's selected or on cursor
-      const state = directoryStore.getSnapshot()
-      const buffer = selectBuffer(state.context, directoryId)
-      if (!buffer) return
-      const isItemSelected = buffer.selection.indexes.has(index)
-      const isCursor = buffer.cursor.line === index
-
       const target = e.currentTarget as HTMLElement
-      // Bunun amacı kaydırarak select yapabilmek
-      target.draggable = isItemSelected || isCursor
+      // Dragging is the default behavior, drag-to-select only when ctrlKey is pressed
+      target.draggable = !e.ctrlKey
     },
     onDragStart: async e => {
       // Always use native drag (enables dragging to external apps)
